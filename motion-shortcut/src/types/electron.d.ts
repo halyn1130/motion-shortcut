@@ -33,6 +33,20 @@ declare global {
       setKeyboardVisible(visible: boolean): Promise<boolean>;
       toggleKeyboard(): Promise<boolean>;
       typeKey(key: string): void;
+      sendKeyboardPointer(sample: {
+        hand: "Left" | "Right";
+        x: number;
+        y: number;
+        tap: boolean;
+      }): void;
+      onKeyboardPointer(
+        callback: (sample: {
+          hand: "Left" | "Right";
+          x: number;
+          y: number;
+          tap: boolean;
+        }) => void,
+      ): void;
       onKeyboardChanged(callback: (visible: boolean) => void): void;
     };
   }

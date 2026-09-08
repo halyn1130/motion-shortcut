@@ -208,6 +208,9 @@ function App() {
           addLog(`왼손 세 손가락 · 가상 키보드 ${visible ? "OPEN" : "CLOSE"}`),
         );
     },
+    (sample) => {
+      if (keyboardVisible) window.motionAPI?.sendKeyboardPointer(sample);
+    },
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {

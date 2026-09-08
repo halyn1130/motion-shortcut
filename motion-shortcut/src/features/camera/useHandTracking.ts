@@ -52,6 +52,12 @@ export function useHandTracking(
   onCursorClick?: () => void,
   cursorSensitivity = 1,
   onKeyboardToggle?: () => void,
+  onKeyboardPointer?: (sample: {
+    hand: "Left" | "Right";
+    x: number;
+    y: number;
+    tap: boolean;
+  }) => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -68,9 +74,19 @@ export function useHandTracking(
   const onCursorMoveRef = useRef(onCursorMove);
   const onCursorClickRef = useRef(onCursorClick);
   const onKeyboardToggleRef = useRef(onKeyboardToggle);
+  const onKeyboardPointerRef = useRef(onKeyboardPointer);
   const cursorToggleRef = useRef({ since: 0, triggered: false });
   const keyboardToggleRef = useRef({ since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
+  const airTapRef = useRef<
+    Record<
+      "Left" | "Right",
+      { minY: number; lastY: number; armed: boolean; cooldown: number }
+    >
+  >({
+    Left: { minY: 1, lastY: 1, armed: true, cooldown: 0 },
+    Right: { minY: 1, lastY: 1, armed: true, cooldown: 0 },
+  });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -82,11 +98,13 @@ export function useHandTracking(
     onCursorMoveRef.current = onCursorMove;
     onCursorClickRef.current = onCursorClick;
     onKeyboardToggleRef.current = onKeyboardToggle;
+    onKeyboardPointerRef.current = onKeyboardPointer;
   }, [
     onCursorClick,
     onCursorMove,
     onCursorToggle,
     onGesture,
+    onKeyboardPointer,
     onKeyboardToggle,
   ]);
 
@@ -225,6 +243,34 @@ export function useHandTracking(
             keyboardToggleRef,
             onKeyboardToggleRef.current,
           );
+          for (const tracked of trackedHands) {
+            if (
+              (tracked.handedness === "Left" ||
+                tracked.handedness === "Right") &&
+              fingerExtended(tracked.landmarks, 8, 6)
+            ) {
+              const point = {
+                x: applySensitivity(
+                  clamp((1 - tracked.landmarks[8].x - 0.08) / 0.84),
+                  cursorSensitivity,
+                ),
+                y: applySensitivity(
+                  clamp((tracked.landmarks[8].y - 0.08) / 0.84),
+                  cursorSensitivity,
+                ),
+              };
+              onKeyboardPointerRef.current?.({
+                hand: tracked.handedness,
+                ...point,
+                tap: detectAirTap(
+                  tracked.handedness,
+                  point.y,
+                  now,
+                  airTapRef.current,
+                ),
+              });
+            }
+          }
           updateLeftHandClick(
             leftHand,
             cursorToggleCandidate || keyboardToggleCandidate,
@@ -300,6 +346,36 @@ function clamp(value: number) {
 
 function applySensitivity(value: number, sensitivity: number) {
   return clamp(0.5 + (value - 0.5) * sensitivity);
+}
+
+function detectAirTap(
+  hand: "Left" | "Right",
+  y: number,
+  now: number,
+  states: Record<
+    "Left" | "Right",
+    { minY: number; lastY: number; armed: boolean; cooldown: number }
+  >,
+) {
+  const state = states[hand];
+  if (state.lastY === 1) {
+    state.minY = y;
+    state.lastY = y;
+    return false;
+  }
+  if (!state.armed && state.lastY - y > 0.018) {
+    state.armed = true;
+    state.minY = y;
+  }
+  if (state.armed) state.minY = Math.min(state.minY, y);
+  const tapped = state.armed && now >= state.cooldown && y - state.minY > 0.042;
+  if (tapped) {
+    state.armed = false;
+    state.cooldown = now + 320;
+    state.minY = y;
+  }
+  state.lastY = y;
+  return tapped;
 }
 
 function fingerExtended(

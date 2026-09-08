@@ -77,13 +77,36 @@ body {
   cursor: pointer;
 }
 .keyboard-row button:active,
-.keyboard-row button.active {
+.keyboard-row button.active,
+.keyboard-row button.air-hover {
   transform: translateY(2px);
   border-color: #65f6dc99;
   background: #183a34;
   box-shadow:
     0 1px 0 #080909,
     0 0 18px #65f6dc33;
+}
+.air-pointer {
+  position: fixed;
+  z-index: 20;
+  width: 25px;
+  height: 25px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #65f6dcdd;
+  color: #06110f;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 21px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 0 20px #65f6dccc;
+}
+.air-pointer.right {
+  background: #78b5ffdd;
+  box-shadow: 0 0 20px #78b5ffcc;
 }
 .keyboard-row.controls .space {
   width: 340px;

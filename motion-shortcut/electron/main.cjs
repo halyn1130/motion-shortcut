@@ -219,6 +219,22 @@ ipcMain.on("keyboard:type", (_event, key) => {
     cursorHelper.stdin.write(`type ${key.charCodeAt(0)}\n`);
   }
 });
+ipcMain.on("keyboard:pointer", (_event, sample) => {
+  if (!keyboardVisible || !keyboardWindow || !sample) return;
+  const display = screen.getPrimaryDisplay();
+  const area = display.bounds;
+  const bounds = keyboardWindow.getBounds();
+  const globalX =
+    area.x + Math.max(0, Math.min(1, Number(sample.x))) * area.width;
+  const globalY =
+    area.y + Math.max(0, Math.min(1, Number(sample.y))) * area.height;
+  keyboardWindow.webContents.send("keyboard:pointer", {
+    hand: sample.hand === "Left" ? "Left" : "Right",
+    x: globalX - bounds.x,
+    y: globalY - bounds.y,
+    tap: Boolean(sample.tap),
+  });
+});
 
 function createWindow() {
   const window = new BrowserWindow({

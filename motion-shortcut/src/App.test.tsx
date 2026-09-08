@@ -49,6 +49,8 @@ describe("모션 앱 런처", () => {
       setKeyboardVisible: vi.fn().mockResolvedValue(true),
       toggleKeyboard: vi.fn().mockResolvedValue(true),
       typeKey: vi.fn(),
+      sendKeyboardPointer: vi.fn(),
+      onKeyboardPointer: vi.fn(),
       onKeyboardChanged: vi.fn(),
       onCursorChanged: vi.fn(),
     };
