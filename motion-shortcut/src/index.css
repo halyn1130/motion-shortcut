@@ -1,0 +1,103 @@
+:root {
+  font-family:
+    Inter,
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #f4f5f6;
+  background: #080909;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% -20%, #172324 0, transparent 38%), #080909;
+}
+.overlay-page,
+.overlay-page body,
+.overlay-page #root {
+  background: transparent !important;
+}
+button {
+  font: inherit;
+}
+button:focus-visible {
+  outline: 2px solid #65f6dc;
+  outline-offset: 3px;
+}
+::selection {
+  background: #65f6dc;
+  color: #07100e;
+}
+.desktop-pet {
+  position: relative;
+  width: 320px;
+  height: 420px;
+  overflow: hidden;
+  background: transparent;
+}
+.desktop-pet video,
+.desktop-pet canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.desktop-pet video {
+  transform: scaleX(-1);
+}
+.desktop-pet > span {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  padding: 5px 8px;
+  border: 1px solid #65f6dc44;
+  border-radius: 7px;
+  background: #07100ed9;
+  color: #76f7de;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.desktop-pet.person-pet {
+  border-radius: 48% 48% 14% 14%/36% 36% 10% 10%;
+  background: transparent;
+  filter: drop-shadow(0 12px 24px #0009);
+}
+.desktop-pet.person-pet video {
+  clip-path: ellipse(48% 49% at 50% 50%);
+}
+.desktop-pet.person-pet .guide-canvas {
+  z-index: 2;
+  filter: drop-shadow(0 0 7px #65f6dc);
+}
+.desktop-pet.person-pet .pet-hand-canvas {
+  display: none;
+}
+.desktop-pet.hand-pet video,
+.desktop-pet.hand-pet .guide-canvas {
+  opacity: 0;
+}
+.desktop-pet.hand-pet .pet-hand-canvas {
+  z-index: 2;
+  opacity: 0;
+  filter: drop-shadow(0 0 12px #65f6dc);
+  transition: opacity 0.15s;
+}
+.desktop-pet.hand-pet.has-hand .pet-hand-canvas {
+  opacity: 1;
+}
+.desktop-pet.hand-pet:not(.has-hand) > span {
+  opacity: 0;
+}

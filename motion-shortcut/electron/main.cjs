@@ -1,0 +1,158 @@
+const { app, BrowserWindow, ipcMain, session, screen } = require("electron");
+const { execFile } = require("node:child_process");
+const path = require("node:path");
+const { promisify } = require("node:util");
+
+const execFileAsync = promisify(execFile);
+
+const allowedApps = Object.freeze({
+  calculator: { name: "계산기", mac: "Calculator" },
+  notes: { name: "메모", mac: "Notes" },
+  chrome: { name: "Chrome", mac: "Google Chrome" },
+  spotlight: { name: "Spotlight", action: "spotlight" },
+});
+let overlayWindow = null;
+let motionEnabled = true;
+
+function broadcastMotionState() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("motion:changed", motionEnabled);
+  }
+}
+
+ipcMain.handle("motion:get", () => motionEnabled);
+ipcMain.handle("motion:set", (_event, enabled) => {
+  motionEnabled = Boolean(enabled);
+  broadcastMotionState();
+  return motionEnabled;
+});
+ipcMain.handle("motion:toggle", () => {
+  motionEnabled = !motionEnabled;
+  broadcastMotionState();
+  return motionEnabled;
+});
+
+function createWindow() {
+  const window = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 880,
+    minHeight: 640,
+    title: "모션 단축키",
+    backgroundColor: "#080909",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    window.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  }
+}
+
+function createOverlayWindow() {
+  const area = screen.getPrimaryDisplay().workArea;
+  overlayWindow = new BrowserWindow({
+    width: 320,
+    height: 420,
+    x: area.x + area.width - 340,
+    y: area.y + area.height - 440,
+    transparent: true,
+    frame: false,
+    resizable: false,
+    hasShadow: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  overlayWindow.setAlwaysOnTop(true, "floating");
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  overlayWindow.setIgnoreMouseEvents(true);
+  const target = process.env.VITE_DEV_SERVER_URL
+    ? `${process.env.VITE_DEV_SERVER_URL}?overlay=1`
+    : `file://${path.join(__dirname, "..", "dist", "index.html")}?overlay=1`;
+  overlayWindow.loadURL(target);
+  overlayWindow.on("closed", () => {
+    overlayWindow = null;
+  });
+}
+
+ipcMain.handle("overlay:set-mode", (_event, mode) => {
+  if (!["camera", "person-pet", "hand-pet"].includes(mode)) return false;
+  if (!overlayWindow) createOverlayWindow();
+  if (mode === "camera") overlayWindow.hide();
+  else {
+    overlayWindow.showInactive();
+    overlayWindow.webContents.send("overlay:mode", mode);
+  }
+  return true;
+});
+
+ipcMain.handle("overlay:set-color", (_event, color) => {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return false;
+  overlayWindow?.webContents.send("overlay:color", color);
+  return true;
+});
+
+ipcMain.handle("apps:launch", async (_event, appId) => {
+  const target = allowedApps[appId];
+  if (!target) return { ok: false, error: "허용되지 않은 프로그램입니다." };
+  if (process.platform !== "darwin")
+    return { ok: false, error: "현재 MVP는 macOS만 지원합니다." };
+
+  try {
+    if (target.action === "spotlight") {
+      await execFileAsync("/usr/bin/osascript", [
+        "-e",
+        'tell application "System Events" to key code 49 using command down',
+      ]);
+      return { ok: true, appName: target.name };
+    }
+    await execFileAsync("/usr/bin/open", ["-a", target.mac]);
+    return { ok: true, appName: target.name };
+  } catch (error) {
+    if (
+      appId === "spotlight" &&
+      /assistive access|not authorized|1002/i.test(String(error))
+    ) {
+      return {
+        ok: false,
+        error:
+          "Spotlight 실행 권한이 없습니다. 시스템 설정 → 개인정보 보호 및 보안 → 손쉬운 사용에서 Electron을 허용하세요.",
+      };
+    }
+    return { ok: false, error: `${target.name}을(를) 열지 못했습니다.` };
+  }
+});
+
+app.whenReady().then(() => {
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback) => {
+      const trusted =
+        webContents.getURL().startsWith("http://127.0.0.1:5173") ||
+        webContents.getURL().startsWith("file:");
+      callback(trusted && permission === "media");
+    },
+  );
+  createWindow();
+  createOverlayWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
