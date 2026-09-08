@@ -1,4 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const connections: Array<[number, number]> = [
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 4],
+  [0, 5],
+  [5, 6],
+  [6, 7],
+  [7, 8],
+  [5, 9],
+  [9, 10],
+  [10, 11],
+  [11, 12],
+  [9, 13],
+  [13, 14],
+  [14, 15],
+  [15, 16],
+  [13, 17],
+  [17, 18],
+  [18, 19],
+  [19, 20],
+  [0, 17],
+];
 
 const rows = [
   ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
@@ -8,6 +32,7 @@ const rows = [
 ];
 
 export default function Keyboard() {
+  const handCanvasRef = useRef<HTMLCanvasElement>(null);
   const [shift, setShift] = useState(false);
   const [pointers, setPointers] = useState({
     Left: { x: -100, y: -100, key: "" },
@@ -27,6 +52,9 @@ export default function Keyboard() {
         },
       }));
       if (sample.tap) keyButton?.click();
+    });
+    window.motionAPI?.onKeyboardHands((hands) => {
+      drawKeyboardHands(handCanvasRef.current, hands);
     });
   }, []);
 
@@ -95,6 +123,7 @@ export default function Keyboard() {
           Enter
         </button>
       </div>
+      <canvas ref={handCanvasRef} className="keyboard-hands" />
       {(["Left", "Right"] as const).map((hand) => (
         <i
           key={hand}
@@ -106,4 +135,55 @@ export default function Keyboard() {
       ))}
     </main>
   );
+}
+
+function drawKeyboardHands(
+  canvas: HTMLCanvasElement | null,
+  hands: Array<{
+    handedness: "Left" | "Right";
+    landmarks: Array<{ x: number; y: number }>;
+  }>,
+) {
+  if (!canvas) return;
+  const scale = window.devicePixelRatio || 1;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  if (canvas.width !== width * scale || canvas.height !== height * scale) {
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+  }
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.clearRect(0, 0, width, height);
+  for (const hand of hands) {
+    const color = hand.handedness === "Left" ? "#65f6dc" : "#78b5ff";
+    const point = (index: number) => ({
+      x: hand.landmarks[index].x * width,
+      y: hand.landmarks[index].y * height,
+    });
+    context.save();
+    context.strokeStyle = color;
+    context.fillStyle = color;
+    context.lineCap = "round";
+    context.lineWidth = 3;
+    context.globalAlpha = 0.72;
+    context.shadowColor = color;
+    context.shadowBlur = 14;
+    for (const [from, to] of connections) {
+      const a = point(from);
+      const b = point(to);
+      context.beginPath();
+      context.moveTo(a.x, a.y);
+      context.lineTo(b.x, b.y);
+      context.stroke();
+    }
+    for (let index = 0; index < hand.landmarks.length; index += 1) {
+      const p = point(index);
+      context.beginPath();
+      context.arc(p.x, p.y, index === 8 ? 6 : 3, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.restore();
+  }
 }

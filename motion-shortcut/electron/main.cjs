@@ -22,11 +22,13 @@ const allowedApps = Object.freeze({
 let overlayWindow = null;
 let keyboardWindow = null;
 let keyboardVisible = false;
+let overlayMode = "camera";
 let motionEnabled = true;
 let cursorEnabled = false;
 let cursorSensitivity = 1;
 let cursorHelper = null;
 let cursorPosition = null;
+const lastKeyboardTap = { Left: 0, Right: 0 };
 
 function broadcastMotionState() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -199,8 +201,13 @@ function createKeyboardWindow() {
 function setKeyboardVisible(visible) {
   if (!keyboardWindow) createKeyboardWindow();
   keyboardVisible = Boolean(visible);
-  if (keyboardVisible) keyboardWindow.showInactive();
-  else keyboardWindow.hide();
+  if (keyboardVisible) {
+    overlayWindow?.hide();
+    keyboardWindow.showInactive();
+  } else {
+    keyboardWindow.hide();
+    if (overlayMode !== "camera") overlayWindow?.showInactive();
+  }
   broadcastKeyboardState();
   return keyboardVisible;
 }
@@ -221,19 +228,22 @@ ipcMain.on("keyboard:type", (_event, key) => {
 });
 ipcMain.on("keyboard:pointer", (_event, sample) => {
   if (!keyboardVisible || !keyboardWindow || !sample) return;
-  const display = screen.getPrimaryDisplay();
-  const area = display.bounds;
   const bounds = keyboardWindow.getBounds();
-  const globalX =
-    area.x + Math.max(0, Math.min(1, Number(sample.x))) * area.width;
-  const globalY =
-    area.y + Math.max(0, Math.min(1, Number(sample.y))) * area.height;
+  const hand = sample.hand === "Left" ? "Left" : "Right";
+  let tap = Boolean(sample.tap);
+  const now = Date.now();
+  if (tap && now - lastKeyboardTap[hand] < 280) tap = false;
+  if (tap) lastKeyboardTap[hand] = now;
   keyboardWindow.webContents.send("keyboard:pointer", {
-    hand: sample.hand === "Left" ? "Left" : "Right",
-    x: globalX - bounds.x,
-    y: globalY - bounds.y,
-    tap: Boolean(sample.tap),
+    hand,
+    x: Math.max(0, Math.min(1, Number(sample.x))) * bounds.width,
+    y: Math.max(0, Math.min(1, Number(sample.y))) * bounds.height,
+    tap,
   });
+});
+ipcMain.on("keyboard:hands", (_event, hands) => {
+  if (!keyboardVisible || !keyboardWindow || !Array.isArray(hands)) return;
+  keyboardWindow.webContents.send("keyboard:hands", hands);
 });
 
 function createWindow() {
@@ -295,8 +305,9 @@ function createOverlayWindow() {
 
 ipcMain.handle("overlay:set-mode", (_event, mode) => {
   if (!["camera", "person-pet", "hand-pet"].includes(mode)) return false;
+  overlayMode = mode;
   if (!overlayWindow) createOverlayWindow();
-  if (mode === "camera") overlayWindow.hide();
+  if (mode === "camera" || keyboardVisible) overlayWindow.hide();
   else {
     overlayWindow.showInactive();
     overlayWindow.webContents.send("overlay:mode", mode);

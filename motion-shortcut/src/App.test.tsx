@@ -51,6 +51,8 @@ describe("모션 앱 런처", () => {
       typeKey: vi.fn(),
       sendKeyboardPointer: vi.fn(),
       onKeyboardPointer: vi.fn(),
+      sendKeyboardHands: vi.fn(),
+      onKeyboardHands: vi.fn(),
       onKeyboardChanged: vi.fn(),
       onCursorChanged: vi.fn(),
     };

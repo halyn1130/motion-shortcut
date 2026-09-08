@@ -211,6 +211,9 @@ function App() {
     (sample) => {
       if (keyboardVisible) window.motionAPI?.sendKeyboardPointer(sample);
     },
+    (hands) => {
+      if (keyboardVisible) window.motionAPI?.sendKeyboardHands(hands);
+    },
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {

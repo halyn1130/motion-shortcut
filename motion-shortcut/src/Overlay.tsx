@@ -36,6 +36,9 @@ export default function Overlay() {
     (sample) => {
       if (keyboardVisible) window.motionAPI?.sendKeyboardPointer(sample);
     },
+    (hands) => {
+      if (keyboardVisible) window.motionAPI?.sendKeyboardHands(hands);
+    },
   );
 
   useEffect(() => {

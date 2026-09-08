@@ -58,6 +58,12 @@ export function useHandTracking(
     y: number;
     tap: boolean;
   }) => void,
+  onKeyboardHands?: (
+    hands: Array<{
+      handedness: "Left" | "Right";
+      landmarks: Array<{ x: number; y: number }>;
+    }>,
+  ) => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -75,6 +81,7 @@ export function useHandTracking(
   const onCursorClickRef = useRef(onCursorClick);
   const onKeyboardToggleRef = useRef(onKeyboardToggle);
   const onKeyboardPointerRef = useRef(onKeyboardPointer);
+  const onKeyboardHandsRef = useRef(onKeyboardHands);
   const cursorToggleRef = useRef({ since: 0, triggered: false });
   const keyboardToggleRef = useRef({ since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
@@ -99,12 +106,14 @@ export function useHandTracking(
     onCursorClickRef.current = onCursorClick;
     onKeyboardToggleRef.current = onKeyboardToggle;
     onKeyboardPointerRef.current = onKeyboardPointer;
+    onKeyboardHandsRef.current = onKeyboardHands;
   }, [
     onCursorClick,
     onCursorMove,
     onCursorToggle,
     onGesture,
     onKeyboardPointer,
+    onKeyboardHands,
     onKeyboardToggle,
   ]);
 
@@ -242,6 +251,27 @@ export function useHandTracking(
             1500,
             keyboardToggleRef,
             onKeyboardToggleRef.current,
+          );
+          onKeyboardHandsRef.current?.(
+            trackedHands
+              .filter(
+                (tracked) =>
+                  tracked.handedness === "Left" ||
+                  tracked.handedness === "Right",
+              )
+              .map((tracked) => ({
+                handedness: tracked.handedness as "Left" | "Right",
+                landmarks: tracked.landmarks.map((landmark) => ({
+                  x: applySensitivity(
+                    clamp((1 - landmark.x - 0.08) / 0.84),
+                    cursorSensitivity,
+                  ),
+                  y: applySensitivity(
+                    clamp((landmark.y - 0.08) / 0.84),
+                    cursorSensitivity,
+                  ),
+                })),
+              })),
           );
           for (const tracked of trackedHands) {
             if (

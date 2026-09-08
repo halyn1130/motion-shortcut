@@ -47,6 +47,20 @@ declare global {
           tap: boolean;
         }) => void,
       ): void;
+      sendKeyboardHands(
+        hands: Array<{
+          handedness: "Left" | "Right";
+          landmarks: Array<{ x: number; y: number }>;
+        }>,
+      ): void;
+      onKeyboardHands(
+        callback: (
+          hands: Array<{
+            handedness: "Left" | "Right";
+            landmarks: Array<{ x: number; y: number }>;
+          }>,
+        ) => void,
+      ): void;
       onKeyboardChanged(callback: (visible: boolean) => void): void;
     };
   }

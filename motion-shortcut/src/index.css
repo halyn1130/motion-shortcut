@@ -104,6 +104,15 @@ body {
   pointer-events: none;
   box-shadow: 0 0 20px #65f6dccc;
 }
+.keyboard-hands {
+  position: fixed;
+  z-index: 12;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px #65f6dc88);
+}
 .air-pointer.right {
   background: #78b5ffdd;
   box-shadow: 0 0 20px #78b5ffcc;
