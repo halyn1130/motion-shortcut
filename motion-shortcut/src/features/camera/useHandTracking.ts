@@ -49,6 +49,7 @@ export function useHandTracking(
   onGesture: (gesture: MotionGestureId) => void,
   onCursorToggle?: () => void,
   onCursorMove?: (point: { x: number; y: number }) => void,
+  onCursorClick?: () => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -63,7 +64,9 @@ export function useHandTracking(
   const onGestureRef = useRef(onGesture);
   const onCursorToggleRef = useRef(onCursorToggle);
   const onCursorMoveRef = useRef(onCursorMove);
+  const onCursorClickRef = useRef(onCursorClick);
   const cursorToggleRef = useRef({ since: 0, triggered: false });
+  const cursorPinchRef = useRef({ closed: false, lastClick: 0 });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -73,7 +76,8 @@ export function useHandTracking(
     onGestureRef.current = onGesture;
     onCursorToggleRef.current = onCursorToggle;
     onCursorMoveRef.current = onCursorMove;
-  }, [onCursorMove, onCursorToggle, onGesture]);
+    onCursorClickRef.current = onCursorClick;
+  }, [onCursorClick, onCursorMove, onCursorToggle, onGesture]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -183,6 +187,17 @@ export function useHandTracking(
               y: clamp((tip.y - 0.08) / 0.84),
             });
           }
+          const clicking =
+            !cursorToggleCandidate && hands.some(isCursorClickPose);
+          if (
+            clicking &&
+            !cursorPinchRef.current.closed &&
+            now - cursorPinchRef.current.lastClick > 600
+          ) {
+            cursorPinchRef.current.lastClick = now;
+            onCursorClickRef.current?.();
+          }
+          cursorPinchRef.current.closed = clicking;
           const detectedGestures = hands.map(classifyGesture);
           const detected = cursorToggleCandidate
             ? null
@@ -205,6 +220,7 @@ export function useHandTracking(
         } else {
           smoothedRef.current = null;
           cursorToggleRef.current = { since: 0, triggered: false };
+          cursorPinchRef.current.closed = false;
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
           setGesture(null);
@@ -280,6 +296,28 @@ function isCursorMovePose(landmarks: Array<{ x: number; y: number }>) {
     !fingerExtended(landmarks, 16, 14) &&
     !fingerExtended(landmarks, 20, 18) &&
     tipsTogether
+  );
+}
+
+function isCursorClickPose(landmarks: Array<{ x: number; y: number }>) {
+  const palmScale = Math.max(
+    Math.hypot(
+      landmarks[0].x - landmarks[9].x,
+      landmarks[0].y - landmarks[9].y,
+    ),
+    0.001,
+  );
+  const pinched =
+    Math.hypot(
+      landmarks[4].x - landmarks[8].x,
+      landmarks[4].y - landmarks[8].y,
+    ) <
+    palmScale * 0.3;
+  return (
+    pinched &&
+    fingerExtended(landmarks, 12, 10) &&
+    !fingerExtended(landmarks, 16, 14) &&
+    !fingerExtended(landmarks, 20, 18)
   );
 }
 

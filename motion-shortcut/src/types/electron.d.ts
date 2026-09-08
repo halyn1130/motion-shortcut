@@ -24,6 +24,7 @@ declare global {
         error?: string;
       }>;
       moveCursor(point: { x: number; y: number }): void;
+      clickCursor(): void;
       onCursorChanged(callback: (enabled: boolean) => void): void;
     };
   }

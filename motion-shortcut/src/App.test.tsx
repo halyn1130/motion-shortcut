@@ -41,6 +41,7 @@ describe("모션 앱 런처", () => {
       setCursorEnabled: vi.fn().mockResolvedValue({ ok: true, enabled: false }),
       toggleCursor: vi.fn().mockResolvedValue({ ok: true, enabled: true }),
       moveCursor: vi.fn(),
+      clickCursor: vi.fn(),
       onCursorChanged: vi.fn(),
     };
     render(<App />);

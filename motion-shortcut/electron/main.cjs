@@ -138,8 +138,12 @@ ipcMain.on("cursor:move", (_event, point) => {
       : target.y,
   };
   cursorHelper.stdin.write(
-    `${cursorPosition.x.toFixed(1)} ${cursorPosition.y.toFixed(1)}\n`,
+    `move ${cursorPosition.x.toFixed(1)} ${cursorPosition.y.toFixed(1)}\n`,
   );
+});
+ipcMain.on("cursor:click", () => {
+  if (!cursorEnabled || !ensureCursorHelper()) return;
+  cursorHelper.stdin.write("click\n");
 });
 
 function createWindow() {

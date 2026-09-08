@@ -28,6 +28,7 @@ export default function Overlay() {
       void window.motionAPI?.toggleCursor();
     },
     (point) => window.motionAPI?.moveCursor(point),
+    () => window.motionAPI?.clickCursor(),
   );
 
   useEffect(() => {

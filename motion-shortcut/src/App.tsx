@@ -190,6 +190,10 @@ function App() {
     },
     () => void toggleCursor(),
     (point) => window.motionAPI?.moveCursor(point),
+    () => {
+      window.motionAPI?.clickCursor();
+      if (cursorOn) addLog("엄지·검지 집기 · 클릭");
+    },
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {
@@ -364,6 +368,11 @@ function App() {
               <span>✌️</span>
               <strong>두 손가락 붙이기</strong>
               <small>{cursorOn ? "커서 이동 중" : "커서 이동"}</small>
+            </button>
+            <button className="cursor-example" aria-label="커서 클릭 예시">
+              <span>👌</span>
+              <strong>중지 펴고 집기</strong>
+              <small>한 번 클릭</small>
             </button>
             <button className="toggle-example" aria-label="모션 ON OFF 예시">
               <span>🤙</span>
