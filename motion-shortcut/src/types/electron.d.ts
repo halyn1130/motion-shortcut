@@ -25,6 +25,9 @@ declare global {
       }>;
       moveCursor(point: { x: number; y: number }): void;
       clickCursor(): void;
+      getCursorSensitivity(): Promise<number>;
+      setCursorSensitivity(value: number): Promise<number>;
+      onCursorSensitivityChanged(callback: (value: number) => void): void;
       onCursorChanged(callback: (enabled: boolean) => void): void;
     };
   }

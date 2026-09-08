@@ -22,6 +22,7 @@ const allowedApps = Object.freeze({
 let overlayWindow = null;
 let motionEnabled = true;
 let cursorEnabled = false;
+let cursorSensitivity = 1;
 let cursorHelper = null;
 let cursorPosition = null;
 
@@ -116,6 +117,14 @@ ipcMain.handle("motion:toggle", () => {
   return motionEnabled;
 });
 ipcMain.handle("cursor:get", () => cursorEnabled);
+ipcMain.handle("cursor:get-sensitivity", () => cursorSensitivity);
+ipcMain.handle("cursor:set-sensitivity", (_event, value) => {
+  cursorSensitivity = Math.max(0.6, Math.min(2, Number(value) || 1));
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("cursor:sensitivity-changed", cursorSensitivity);
+  }
+  return cursorSensitivity;
+});
 ipcMain.handle("cursor:toggle", () => setCursorEnabled(!cursorEnabled, true));
 ipcMain.handle("cursor:set", (_event, enabled) =>
   setCursorEnabled(Boolean(enabled), Boolean(enabled)),

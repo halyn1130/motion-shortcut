@@ -89,6 +89,27 @@
   border-color: rgba(104, 169, 255, 0.58);
   color: #a9cdff;
 }
+
+.sensitivity-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sensitivity-control input {
+  width: 110px;
+  accent-color: #78b5ff;
+}
+
+.sensitivity-control strong {
+  min-width: 32px;
+  color: #bcd8ff;
+  font-variant-numeric: tabular-nums;
+}
 .workspace {
   display: grid;
   grid-template-columns: minmax(430px, 1.05fr) minmax(500px, 1.35fr);

@@ -13,6 +13,7 @@ export default function Overlay() {
   const [mode, setMode] = useState<OverlayMode>("person-pet");
   const [motionOn, setMotionOn] = useState(true);
   const [cursorOn, setCursorOn] = useState(false);
+  const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [handColor, setHandColor] = useState("#65f6dc");
   const tracking = useHandTracking(
     videoRef,
@@ -29,6 +30,7 @@ export default function Overlay() {
     },
     (point) => window.motionAPI?.moveCursor(point),
     () => window.motionAPI?.clickCursor(),
+    cursorSensitivity,
   );
 
   useEffect(() => {
@@ -38,6 +40,8 @@ export default function Overlay() {
     window.motionAPI?.onMotionChanged(setMotionOn);
     void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
     window.motionAPI?.onCursorChanged?.(setCursorOn);
+    void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
+    window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
     let stream: MediaStream | null = null;
     void navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user" }, audio: false })

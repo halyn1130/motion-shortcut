@@ -18,6 +18,13 @@ contextBridge.exposeInMainWorld("motionAPI", {
   toggleCursor: () => ipcRenderer.invoke("cursor:toggle"),
   moveCursor: (point) => ipcRenderer.send("cursor:move", point),
   clickCursor: () => ipcRenderer.send("cursor:click"),
+  getCursorSensitivity: () => ipcRenderer.invoke("cursor:get-sensitivity"),
+  setCursorSensitivity: (value) =>
+    ipcRenderer.invoke("cursor:set-sensitivity", value),
+  onCursorSensitivityChanged: (callback) =>
+    ipcRenderer.on("cursor:sensitivity-changed", (_event, value) =>
+      callback(value),
+    ),
   onCursorChanged: (callback) =>
     ipcRenderer.on("cursor:changed", (_event, enabled) => callback(enabled)),
 });

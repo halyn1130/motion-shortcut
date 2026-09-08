@@ -50,6 +50,7 @@ export function useHandTracking(
   onCursorToggle?: () => void,
   onCursorMove?: (point: { x: number; y: number }) => void,
   onCursorClick?: () => void,
+  cursorSensitivity = 1,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -66,7 +67,7 @@ export function useHandTracking(
   const onCursorMoveRef = useRef(onCursorMove);
   const onCursorClickRef = useRef(onCursorClick);
   const cursorToggleRef = useRef({ since: 0, triggered: false });
-  const cursorPinchRef = useRef({ closed: false, lastClick: 0 });
+  const leftClickRef = useRef({ armedAt: 0, fist: false });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -160,6 +161,10 @@ export function useHandTracking(
           });
           smoothedRef.current = smoothed;
           const hands = [smoothed, ...result.landmarks.slice(1)];
+          const trackedHands = hands.map((landmarks, index) => ({
+            landmarks,
+            handedness: result.handedness[index]?.[0]?.categoryName ?? "",
+          }));
           drawHands(canvas, hands, video.videoWidth / video.videoHeight, color);
           if (petCanvasRef.current)
             drawHands(
@@ -176,28 +181,37 @@ export function useHandTracking(
             cursorToggleRef,
             onCursorToggleRef.current,
           );
-          const moveHand = hands.find(isCursorMovePose);
+          const moveHand = trackedHands.find(
+            (tracked) =>
+              tracked.handedness === "Right" &&
+              isCursorMovePose(tracked.landmarks),
+          )?.landmarks;
           if (moveHand && !cursorToggleCandidate) {
             const tip = {
               x: 1 - (moveHand[8].x + moveHand[12].x) / 2,
               y: (moveHand[8].y + moveHand[12].y) / 2,
             };
             onCursorMoveRef.current?.({
-              x: clamp((tip.x - 0.08) / 0.84),
-              y: clamp((tip.y - 0.08) / 0.84),
+              x: applySensitivity(
+                clamp((tip.x - 0.08) / 0.84),
+                cursorSensitivity,
+              ),
+              y: applySensitivity(
+                clamp((tip.y - 0.08) / 0.84),
+                cursorSensitivity,
+              ),
             });
           }
-          const clicking =
-            !cursorToggleCandidate && hands.some(isCursorClickPose);
-          if (
-            clicking &&
-            !cursorPinchRef.current.closed &&
-            now - cursorPinchRef.current.lastClick > 600
-          ) {
-            cursorPinchRef.current.lastClick = now;
-            onCursorClickRef.current?.();
-          }
-          cursorPinchRef.current.closed = clicking;
+          const leftHand = trackedHands.find(
+            (tracked) => tracked.handedness === "Left",
+          )?.landmarks;
+          updateLeftHandClick(
+            leftHand,
+            cursorToggleCandidate,
+            now,
+            leftClickRef,
+            onCursorClickRef.current,
+          );
           const detectedGestures = hands.map(classifyGesture);
           const detected = cursorToggleCandidate
             ? null
@@ -220,7 +234,7 @@ export function useHandTracking(
         } else {
           smoothedRef.current = null;
           cursorToggleRef.current = { since: 0, triggered: false };
-          cursorPinchRef.current.closed = false;
+          leftClickRef.current = { armedAt: 0, fist: false };
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
           setGesture(null);
@@ -239,7 +253,7 @@ export function useHandTracking(
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       clearCanvas(canvas);
     };
-  }, [canvasRef, color, enabled, petCanvasRef, videoRef]);
+  }, [canvasRef, color, cursorSensitivity, enabled, petCanvasRef, videoRef]);
 
   return enabled
     ? {
@@ -260,6 +274,10 @@ export function useHandTracking(
 
 function clamp(value: number) {
   return Math.max(0, Math.min(1, value));
+}
+
+function applySensitivity(value: number, sensitivity: number) {
+  return clamp(0.5 + (value - 0.5) * sensitivity);
 }
 
 function fingerExtended(
@@ -299,26 +317,47 @@ function isCursorMovePose(landmarks: Array<{ x: number; y: number }>) {
   );
 }
 
-function isCursorClickPose(landmarks: Array<{ x: number; y: number }>) {
-  const palmScale = Math.max(
-    Math.hypot(
-      landmarks[0].x - landmarks[9].x,
-      landmarks[0].y - landmarks[9].y,
-    ),
-    0.001,
+function isOpenHand(landmarks: Array<{ x: number; y: number }>) {
+  return [8, 12, 16, 20].every((tip, index) =>
+    fingerExtended(landmarks, tip, [6, 10, 14, 18][index]),
   );
-  const pinched =
-    Math.hypot(
-      landmarks[4].x - landmarks[8].x,
-      landmarks[4].y - landmarks[8].y,
-    ) <
-    palmScale * 0.3;
-  return (
-    pinched &&
-    fingerExtended(landmarks, 12, 10) &&
-    !fingerExtended(landmarks, 16, 14) &&
-    !fingerExtended(landmarks, 20, 18)
+}
+
+function isFist(landmarks: Array<{ x: number; y: number }>) {
+  return [8, 12, 16, 20].every(
+    (tip, index) => !fingerExtended(landmarks, tip, [6, 10, 14, 18][index]),
   );
+}
+
+function updateLeftHandClick(
+  landmarks: Array<{ x: number; y: number }> | undefined,
+  blocked: boolean,
+  now: number,
+  stateRef: { current: { armedAt: number; fist: boolean } },
+  onClick?: () => void,
+) {
+  if (!landmarks || blocked) {
+    stateRef.current = { armedAt: 0, fist: false };
+    return;
+  }
+  if (isOpenHand(landmarks)) {
+    stateRef.current = { armedAt: now, fist: false };
+    return;
+  }
+  const fist = isFist(landmarks);
+  if (
+    fist &&
+    !stateRef.current.fist &&
+    stateRef.current.armedAt > 0 &&
+    now - stateRef.current.armedAt <= 3000
+  ) {
+    onClick?.();
+    stateRef.current.armedAt = 0;
+  }
+  stateRef.current.fist = fist;
+  if (stateRef.current.armedAt && now - stateRef.current.armedAt > 3000) {
+    stateRef.current.armedAt = 0;
+  }
 }
 
 function isCrossedIndexGesture(hands: Array<Array<{ x: number; y: number }>>) {

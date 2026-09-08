@@ -52,6 +52,7 @@ function App() {
   const streamRef = useRef<MediaStream | null>(null);
   const [motionOn, setMotionOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(false);
+  const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
   );
@@ -141,6 +142,8 @@ function App() {
     window.motionAPI?.onMotionChanged(setMotionOn);
     void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
     window.motionAPI?.onCursorChanged?.(setCursorOn);
+    void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
+    window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
   }, []);
 
   const toggleCursor = async () => {
@@ -192,8 +195,9 @@ function App() {
     (point) => window.motionAPI?.moveCursor(point),
     () => {
       window.motionAPI?.clickCursor();
-      if (cursorOn) addLog("엄지·검지 집기 · 클릭");
+      if (cursorOn) addLog("왼손 펼치기 → 주먹 · 클릭");
     },
+    cursorSensitivity,
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {
@@ -273,6 +277,22 @@ function App() {
               void window.motionAPI?.setOverlayColor(color);
             }}
           />
+        </label>
+        <label className="sensitivity-control">
+          커서 감도
+          <input
+            type="range"
+            min="0.6"
+            max="2"
+            step="0.1"
+            value={cursorSensitivity}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              setCursorSensitivity(value);
+              void window.motionAPI?.setCursorSensitivity(value);
+            }}
+          />
+          <strong>{cursorSensitivity.toFixed(1)}×</strong>
         </label>
       </nav>
 
@@ -370,8 +390,8 @@ function App() {
               <small>{cursorOn ? "커서 이동 중" : "커서 이동"}</small>
             </button>
             <button className="cursor-example" aria-label="커서 클릭 예시">
-              <span>👌</span>
-              <strong>중지 펴고 집기</strong>
+              <span>🖐️→✊</span>
+              <strong>왼손 펼쳤다 주먹</strong>
               <small>한 번 클릭</small>
             </button>
             <button className="toggle-example" aria-label="모션 ON OFF 예시">
