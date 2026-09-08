@@ -20,6 +20,8 @@ const allowedApps = Object.freeze({
   spotlight: { name: "Spotlight", action: "spotlight" },
 });
 let overlayWindow = null;
+let keyboardWindow = null;
+let keyboardVisible = false;
 let motionEnabled = true;
 let cursorEnabled = false;
 let cursorSensitivity = 1;
@@ -155,6 +157,69 @@ ipcMain.on("cursor:click", () => {
   cursorHelper.stdin.write("click\n");
 });
 
+function broadcastKeyboardState() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("keyboard:changed", keyboardVisible);
+  }
+}
+
+function createKeyboardWindow() {
+  const area = screen.getPrimaryDisplay().workArea;
+  keyboardWindow = new BrowserWindow({
+    width: Math.min(920, area.width - 40),
+    height: 310,
+    x: area.x + Math.round((area.width - Math.min(920, area.width - 40)) / 2),
+    y: area.y + area.height - 330,
+    transparent: true,
+    frame: false,
+    resizable: false,
+    hasShadow: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  keyboardWindow.setAlwaysOnTop(true, "floating");
+  keyboardWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  const target = process.env.VITE_DEV_SERVER_URL
+    ? `${process.env.VITE_DEV_SERVER_URL}?keyboard=1`
+    : `file://${path.join(__dirname, "..", "dist", "index.html")}?keyboard=1`;
+  keyboardWindow.loadURL(target);
+  keyboardWindow.on("closed", () => {
+    keyboardWindow = null;
+  });
+}
+
+function setKeyboardVisible(visible) {
+  if (!keyboardWindow) createKeyboardWindow();
+  keyboardVisible = Boolean(visible);
+  if (keyboardVisible) keyboardWindow.showInactive();
+  else keyboardWindow.hide();
+  broadcastKeyboardState();
+  return keyboardVisible;
+}
+
+ipcMain.handle("keyboard:get", () => keyboardVisible);
+ipcMain.handle("keyboard:set", (_event, visible) =>
+  setKeyboardVisible(visible),
+);
+ipcMain.handle("keyboard:toggle", () => setKeyboardVisible(!keyboardVisible));
+ipcMain.on("keyboard:type", (_event, key) => {
+  if (!keyboardVisible || !ensureCursorHelper()) return;
+  const specialKeys = { Backspace: 51, Enter: 36, Tab: 48 };
+  if (Object.hasOwn(specialKeys, key)) {
+    cursorHelper.stdin.write(`key ${specialKeys[key]}\n`);
+  } else if (typeof key === "string" && key.length === 1) {
+    cursorHelper.stdin.write(`type ${key.charCodeAt(0)}\n`);
+  }
+});
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 1280,
@@ -271,6 +336,7 @@ app.whenReady().then(() => {
   );
   createWindow();
   createOverlayWindow();
+  createKeyboardWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

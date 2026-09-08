@@ -5,6 +5,7 @@
 int main(void) {
   char line[128];
   char command[16];
+  int value;
   double x;
   double y;
   CGEventRef initialEvent = CGEventCreate(NULL);
@@ -30,6 +31,29 @@ int main(void) {
           NULL, kCGEventLeftMouseDown, current, kCGMouseButtonLeft);
       CGEventRef up = CGEventCreateMouseEvent(
           NULL, kCGEventLeftMouseUp, current, kCGMouseButtonLeft);
+      if (down != NULL && up != NULL) {
+        CGEventPost(kCGHIDEventTap, down);
+        CGEventPost(kCGHIDEventTap, up);
+      }
+      if (down != NULL) CFRelease(down);
+      if (up != NULL) CFRelease(up);
+    } else if (sscanf(line, "%15s %d", command, &value) == 2 &&
+               strcmp(command, "type") == 0 && value >= 0 && value <= 65535) {
+      UniChar character = (UniChar)value;
+      CGEventRef down = CGEventCreateKeyboardEvent(NULL, 0, true);
+      CGEventRef up = CGEventCreateKeyboardEvent(NULL, 0, false);
+      if (down != NULL && up != NULL) {
+        CGEventKeyboardSetUnicodeString(down, 1, &character);
+        CGEventKeyboardSetUnicodeString(up, 1, &character);
+        CGEventPost(kCGHIDEventTap, down);
+        CGEventPost(kCGHIDEventTap, up);
+      }
+      if (down != NULL) CFRelease(down);
+      if (up != NULL) CFRelease(up);
+    } else if (sscanf(line, "%15s %d", command, &value) == 2 &&
+               strcmp(command, "key") == 0 && value >= 0 && value <= 127) {
+      CGEventRef down = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)value, true);
+      CGEventRef up = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)value, false);
       if (down != NULL && up != NULL) {
         CGEventPost(kCGHIDEventTap, down);
         CGEventPost(kCGHIDEventTap, up);

@@ -31,6 +31,7 @@ export default function Overlay() {
     (point) => window.motionAPI?.moveCursor(point),
     () => window.motionAPI?.clickCursor(),
     cursorSensitivity,
+    () => void window.motionAPI?.toggleKeyboard(),
   );
 
   useEffect(() => {

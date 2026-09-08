@@ -51,6 +51,7 @@ export function useHandTracking(
   onCursorMove?: (point: { x: number; y: number }) => void,
   onCursorClick?: () => void,
   cursorSensitivity = 1,
+  onKeyboardToggle?: () => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -66,7 +67,9 @@ export function useHandTracking(
   const onCursorToggleRef = useRef(onCursorToggle);
   const onCursorMoveRef = useRef(onCursorMove);
   const onCursorClickRef = useRef(onCursorClick);
+  const onKeyboardToggleRef = useRef(onKeyboardToggle);
   const cursorToggleRef = useRef({ since: 0, triggered: false });
+  const keyboardToggleRef = useRef({ since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
@@ -78,7 +81,14 @@ export function useHandTracking(
     onCursorToggleRef.current = onCursorToggle;
     onCursorMoveRef.current = onCursorMove;
     onCursorClickRef.current = onCursorClick;
-  }, [onCursorClick, onCursorMove, onCursorToggle, onGesture]);
+    onKeyboardToggleRef.current = onKeyboardToggle;
+  }, [
+    onCursorClick,
+    onCursorMove,
+    onCursorToggle,
+    onGesture,
+    onKeyboardToggle,
+  ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -205,21 +215,32 @@ export function useHandTracking(
           const leftHand = trackedHands.find(
             (tracked) => tracked.handedness === "Left",
           )?.landmarks;
+          const keyboardToggleCandidate = Boolean(
+            leftHand && isKeyboardTogglePose(leftHand),
+          );
+          updateHeldToggle(
+            keyboardToggleCandidate,
+            now,
+            1500,
+            keyboardToggleRef,
+            onKeyboardToggleRef.current,
+          );
           updateLeftHandClick(
             leftHand,
-            cursorToggleCandidate,
+            cursorToggleCandidate || keyboardToggleCandidate,
             now,
             leftClickRef,
             onCursorClickRef.current,
           );
           const detectedGestures = hands.map(classifyGesture);
-          const detected = cursorToggleCandidate
-            ? null
-            : detectedGestures.includes("toggle-motion")
-              ? "toggle-motion"
-              : hands.length === 1
-                ? (detectedGestures[0] ?? null)
-                : null;
+          const detected =
+            cursorToggleCandidate || keyboardToggleCandidate
+              ? null
+              : detectedGestures.includes("toggle-motion")
+                ? "toggle-motion"
+                : hands.length === 1
+                  ? (detectedGestures[0] ?? null)
+                  : null;
           updateGestureCandidate(
             detected,
             now,
@@ -234,6 +255,7 @@ export function useHandTracking(
         } else {
           smoothedRef.current = null;
           cursorToggleRef.current = { since: 0, triggered: false };
+          keyboardToggleRef.current = { since: 0, triggered: false };
           leftClickRef.current = { armedAt: 0, fist: false };
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
@@ -329,6 +351,33 @@ function isFist(landmarks: Array<{ x: number; y: number }>) {
   );
 }
 
+function isKeyboardTogglePose(landmarks: Array<{ x: number; y: number }>) {
+  return (
+    fingerExtended(landmarks, 8, 6) &&
+    fingerExtended(landmarks, 12, 10) &&
+    fingerExtended(landmarks, 16, 14) &&
+    !fingerExtended(landmarks, 20, 18)
+  );
+}
+
+function updateHeldToggle(
+  detected: boolean,
+  now: number,
+  holdMs: number,
+  stateRef: { current: { since: number; triggered: boolean } },
+  onToggle?: () => void,
+) {
+  if (!detected) {
+    stateRef.current = { since: 0, triggered: false };
+    return;
+  }
+  if (!stateRef.current.since) stateRef.current.since = now;
+  if (!stateRef.current.triggered && now - stateRef.current.since >= holdMs) {
+    stateRef.current.triggered = true;
+    onToggle?.();
+  }
+}
+
 function updateLeftHandClick(
   landmarks: Array<{ x: number; y: number }> | undefined,
   blocked: boolean,
@@ -395,18 +444,7 @@ function updateCursorToggle(
   stateRef: { current: { since: number; triggered: boolean } },
   onToggle?: () => void,
 ) {
-  if (!detected) {
-    stateRef.current = { since: 0, triggered: false };
-    return;
-  }
-  if (!stateRef.current.since) stateRef.current.since = now;
-  if (
-    !stateRef.current.triggered &&
-    now - stateRef.current.since >= CURSOR_TOGGLE_HOLD_MS
-  ) {
-    stateRef.current.triggered = true;
-    onToggle?.();
-  }
+  updateHeldToggle(detected, now, CURSOR_TOGGLE_HOLD_MS, stateRef, onToggle);
 }
 
 function classifyGesture(

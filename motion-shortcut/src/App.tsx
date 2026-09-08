@@ -53,6 +53,7 @@ function App() {
   const [motionOn, setMotionOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
   );
@@ -144,6 +145,8 @@ function App() {
     window.motionAPI?.onCursorChanged?.(setCursorOn);
     void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
     window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
+    void window.motionAPI?.getKeyboardVisible?.().then(setKeyboardVisible);
+    window.motionAPI?.onKeyboardChanged?.(setKeyboardVisible);
   }, []);
 
   const toggleCursor = async () => {
@@ -198,6 +201,13 @@ function App() {
       if (cursorOn) addLog("왼손 펼치기 → 주먹 · 클릭");
     },
     cursorSensitivity,
+    () => {
+      void window.motionAPI
+        ?.toggleKeyboard()
+        .then((visible) =>
+          addLog(`왼손 세 손가락 · 가상 키보드 ${visible ? "OPEN" : "CLOSE"}`),
+        );
+    },
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {
@@ -294,6 +304,14 @@ function App() {
           />
           <strong>{cursorSensitivity.toFixed(1)}×</strong>
         </label>
+        <button
+          className={keyboardVisible ? "active" : ""}
+          onClick={() =>
+            void window.motionAPI?.setKeyboardVisible(!keyboardVisible)
+          }
+        >
+          키보드 {keyboardVisible ? "닫기" : "열기"}
+        </button>
       </nav>
 
       <section className="workspace">
@@ -379,6 +397,11 @@ function App() {
             <strong>{tracking.confidence}%</strong>
           </div>
           <div className="motion-examples" aria-label="모션 예시">
+            <button className="cursor-example" aria-label="가상 키보드 예시">
+              <span>🖖</span>
+              <strong>왼손 세 손가락 1.5초</strong>
+              <small>키보드 열기 / 닫기</small>
+            </button>
             <button className="cursor-example" aria-label="커서 제어 예시">
               <span>☝️×☝️</span>
               <strong>양손 검지 X 2초</strong>

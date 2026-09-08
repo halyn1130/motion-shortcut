@@ -45,6 +45,11 @@ describe("모션 앱 런처", () => {
       getCursorSensitivity: vi.fn().mockResolvedValue(1),
       setCursorSensitivity: vi.fn().mockResolvedValue(1),
       onCursorSensitivityChanged: vi.fn(),
+      getKeyboardVisible: vi.fn().mockResolvedValue(false),
+      setKeyboardVisible: vi.fn().mockResolvedValue(true),
+      toggleKeyboard: vi.fn().mockResolvedValue(true),
+      typeKey: vi.fn(),
+      onKeyboardChanged: vi.fn(),
       onCursorChanged: vi.fn(),
     };
     render(<App />);

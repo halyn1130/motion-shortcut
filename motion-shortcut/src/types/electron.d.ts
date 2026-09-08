@@ -29,6 +29,11 @@ declare global {
       setCursorSensitivity(value: number): Promise<number>;
       onCursorSensitivityChanged(callback: (value: number) => void): void;
       onCursorChanged(callback: (enabled: boolean) => void): void;
+      getKeyboardVisible(): Promise<boolean>;
+      setKeyboardVisible(visible: boolean): Promise<boolean>;
+      toggleKeyboard(): Promise<boolean>;
+      typeKey(key: string): void;
+      onKeyboardChanged(callback: (visible: boolean) => void): void;
     };
   }
 }
