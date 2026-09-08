@@ -185,6 +185,7 @@ function createKeyboardWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
   keyboardWindow.setAlwaysOnTop(true, "floating");
@@ -202,11 +203,17 @@ function setKeyboardVisible(visible) {
   if (!keyboardWindow) createKeyboardWindow();
   keyboardVisible = Boolean(visible);
   if (keyboardVisible) {
-    overlayWindow?.hide();
+    if (overlayMode !== "camera" && overlayWindow) {
+      overlayWindow.setOpacity(0);
+      overlayWindow.showInactive();
+    }
     keyboardWindow.showInactive();
   } else {
     keyboardWindow.hide();
-    if (overlayMode !== "camera") overlayWindow?.showInactive();
+    if (overlayMode !== "camera" && overlayWindow) {
+      overlayWindow.setOpacity(1);
+      overlayWindow.showInactive();
+    }
   }
   broadcastKeyboardState();
   return keyboardVisible;
@@ -259,6 +266,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
 
@@ -289,6 +297,7 @@ function createOverlayWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
   overlayWindow.setAlwaysOnTop(true, "floating");
@@ -307,8 +316,9 @@ ipcMain.handle("overlay:set-mode", (_event, mode) => {
   if (!["camera", "person-pet", "hand-pet"].includes(mode)) return false;
   overlayMode = mode;
   if (!overlayWindow) createOverlayWindow();
-  if (mode === "camera" || keyboardVisible) overlayWindow.hide();
+  if (mode === "camera") overlayWindow.hide();
   else {
+    overlayWindow.setOpacity(keyboardVisible ? 0 : 1);
     overlayWindow.showInactive();
     overlayWindow.webContents.send("overlay:mode", mode);
   }
