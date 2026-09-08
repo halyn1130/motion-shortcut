@@ -14,6 +14,17 @@ declare global {
       setMotionEnabled(enabled: boolean): Promise<boolean>;
       toggleMotion(): Promise<boolean>;
       onMotionChanged(callback: (enabled: boolean) => void): void;
+      getCursorEnabled(): Promise<boolean>;
+      setCursorEnabled(
+        enabled: boolean,
+      ): Promise<{ ok: boolean; enabled: boolean; error?: string }>;
+      toggleCursor(): Promise<{
+        ok: boolean;
+        enabled: boolean;
+        error?: string;
+      }>;
+      moveCursor(point: { x: number; y: number }): void;
+      onCursorChanged(callback: (enabled: boolean) => void): void;
     };
   }
 }

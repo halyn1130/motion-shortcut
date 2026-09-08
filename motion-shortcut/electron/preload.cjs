@@ -13,4 +13,10 @@ contextBridge.exposeInMainWorld("motionAPI", {
   toggleMotion: () => ipcRenderer.invoke("motion:toggle"),
   onMotionChanged: (callback) =>
     ipcRenderer.on("motion:changed", (_event, enabled) => callback(enabled)),
+  getCursorEnabled: () => ipcRenderer.invoke("cursor:get"),
+  setCursorEnabled: (enabled) => ipcRenderer.invoke("cursor:set", enabled),
+  toggleCursor: () => ipcRenderer.invoke("cursor:toggle"),
+  moveCursor: (point) => ipcRenderer.send("cursor:move", point),
+  onCursorChanged: (callback) =>
+    ipcRenderer.on("cursor:changed", (_event, enabled) => callback(enabled)),
 });

@@ -38,6 +38,7 @@ const GESTURE_LABELS: Record<MotionGestureId, string> = {
 };
 
 const GESTURE_HOLD_MS = 1500;
+const CURSOR_TOGGLE_HOLD_MS = 2000;
 
 export function useHandTracking(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -46,6 +47,8 @@ export function useHandTracking(
   enabled: boolean,
   color: string,
   onGesture: (gesture: MotionGestureId) => void,
+  onCursorToggle?: () => void,
+  onCursorMove?: (point: { x: number; y: number }) => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -58,6 +61,9 @@ export function useHandTracking(
   const triggeredRef = useRef(false);
   const cooldownUntilRef = useRef(0);
   const onGestureRef = useRef(onGesture);
+  const onCursorToggleRef = useRef(onCursorToggle);
+  const onCursorMoveRef = useRef(onCursorMove);
+  const cursorToggleRef = useRef({ since: 0, triggered: false });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -65,7 +71,9 @@ export function useHandTracking(
 
   useEffect(() => {
     onGestureRef.current = onGesture;
-  }, [onGesture]);
+    onCursorToggleRef.current = onCursorToggle;
+    onCursorMoveRef.current = onCursorMove;
+  }, [onCursorMove, onCursorToggle, onGesture]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -156,13 +164,36 @@ export function useHandTracking(
               video.videoWidth / video.videoHeight,
               color,
             );
+          const now = performance.now();
+          const cursorToggleCandidate = isCrossedIndexGesture(hands);
+          updateCursorToggle(
+            cursorToggleCandidate,
+            now,
+            cursorToggleRef,
+            onCursorToggleRef.current,
+          );
+          const moveHand = hands.find(isCursorMovePose);
+          if (moveHand && !cursorToggleCandidate) {
+            const tip = {
+              x: 1 - (moveHand[8].x + moveHand[12].x) / 2,
+              y: (moveHand[8].y + moveHand[12].y) / 2,
+            };
+            onCursorMoveRef.current?.({
+              x: clamp((tip.x - 0.08) / 0.84),
+              y: clamp((tip.y - 0.08) / 0.84),
+            });
+          }
           const detectedGestures = hands.map(classifyGesture);
-          const detected = detectedGestures.includes("toggle-motion")
-            ? "toggle-motion"
-            : (detectedGestures.find((value) => value !== null) ?? null);
+          const detected = cursorToggleCandidate
+            ? null
+            : detectedGestures.includes("toggle-motion")
+              ? "toggle-motion"
+              : hands.length === 1
+                ? (detectedGestures[0] ?? null)
+                : null;
           updateGestureCandidate(
             detected,
-            performance.now(),
+            now,
             candidateRef,
             triggeredRef,
             cooldownUntilRef,
@@ -173,6 +204,7 @@ export function useHandTracking(
           setConfidence(Math.round(score * 100));
         } else {
           smoothedRef.current = null;
+          cursorToggleRef.current = { since: 0, triggered: false };
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
           setGesture(null);
@@ -208,6 +240,96 @@ export function useHandTracking(
         gesture: null,
         gestureLabel: "",
       };
+}
+
+function clamp(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function fingerExtended(
+  landmarks: Array<{ x: number; y: number }>,
+  tip: number,
+  pip: number,
+) {
+  const wristDistance = (index: number) =>
+    Math.hypot(
+      landmarks[0].x - landmarks[index].x,
+      landmarks[0].y - landmarks[index].y,
+    );
+  const palmScale = Math.max(wristDistance(9), 0.001);
+  return wristDistance(tip) > wristDistance(pip) + palmScale * 0.16;
+}
+
+function isCursorMovePose(landmarks: Array<{ x: number; y: number }>) {
+  const palmScale = Math.max(
+    Math.hypot(
+      landmarks[0].x - landmarks[9].x,
+      landmarks[0].y - landmarks[9].y,
+    ),
+    0.001,
+  );
+  const tipsTogether =
+    Math.hypot(
+      landmarks[8].x - landmarks[12].x,
+      landmarks[8].y - landmarks[12].y,
+    ) <
+    palmScale * 0.42;
+  return (
+    fingerExtended(landmarks, 8, 6) &&
+    fingerExtended(landmarks, 12, 10) &&
+    !fingerExtended(landmarks, 16, 14) &&
+    !fingerExtended(landmarks, 20, 18) &&
+    tipsTogether
+  );
+}
+
+function isCrossedIndexGesture(hands: Array<Array<{ x: number; y: number }>>) {
+  if (hands.length < 2) return false;
+  const [a, b] = hands;
+  if (!fingerExtended(a, 8, 6) || !fingerExtended(b, 8, 6)) return false;
+  if (
+    fingerExtended(a, 12, 10) ||
+    fingerExtended(b, 12, 10) ||
+    fingerExtended(a, 16, 14) ||
+    fingerExtended(b, 16, 14) ||
+    fingerExtended(a, 20, 18) ||
+    fingerExtended(b, 20, 18)
+  )
+    return false;
+
+  const tipDistance = Math.hypot(a[8].x - b[8].x, a[8].y - b[8].y);
+  const palmScale =
+    (Math.hypot(a[0].x - a[9].x, a[0].y - a[9].y) +
+      Math.hypot(b[0].x - b[9].x, b[0].y - b[9].y)) /
+    2;
+  const vectorA = { x: a[8].x - a[6].x, y: a[8].y - a[6].y };
+  const vectorB = { x: b[8].x - b[6].x, y: b[8].y - b[6].y };
+  const cross = Math.abs(vectorA.x * vectorB.y - vectorA.y * vectorB.x);
+  const lengths = Math.max(
+    Math.hypot(vectorA.x, vectorA.y) * Math.hypot(vectorB.x, vectorB.y),
+    0.001,
+  );
+  return tipDistance < palmScale * 0.72 && cross / lengths > 0.42;
+}
+
+function updateCursorToggle(
+  detected: boolean,
+  now: number,
+  stateRef: { current: { since: number; triggered: boolean } },
+  onToggle?: () => void,
+) {
+  if (!detected) {
+    stateRef.current = { since: 0, triggered: false };
+    return;
+  }
+  if (!stateRef.current.since) stateRef.current.since = now;
+  if (
+    !stateRef.current.triggered &&
+    now - stateRef.current.since >= CURSOR_TOGGLE_HOLD_MS
+  ) {
+    stateRef.current.triggered = true;
+    onToggle?.();
+  }
 }
 
 function classifyGesture(

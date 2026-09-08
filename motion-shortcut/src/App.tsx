@@ -51,6 +51,7 @@ function App() {
   const petCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [motionOn, setMotionOn] = useState(false);
+  const [cursorOn, setCursorOn] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
   );
@@ -138,7 +139,19 @@ function App() {
   useEffect(() => {
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
+    void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
+    window.motionAPI?.onCursorChanged?.(setCursorOn);
   }, []);
+
+  const toggleCursor = async () => {
+    if (!window.motionAPI) return;
+    const result = await window.motionAPI.toggleCursor();
+    if (result.ok) {
+      addLog(`양손 검지 X · 커서 제어 ${result.enabled ? "ON" : "OFF"}`);
+    } else {
+      addLog(`커서 제어 실패 · ${result.error}`);
+    }
+  };
 
   const launch = async (id: AppId) => {
     const target = shortcuts.find((item) => item.id === id)!;
@@ -175,6 +188,8 @@ function App() {
         void launch(gesture);
       }
     },
+    () => void toggleCursor(),
+    (point) => window.motionAPI?.moveCursor(point),
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {
@@ -211,6 +226,14 @@ function App() {
         >
           <i />
           모션 {motionOn ? "ON" : "OFF"}
+        </button>
+        <button
+          className={`motion-toggle cursor-toggle ${cursorOn ? "on" : ""}`}
+          aria-pressed={cursorOn}
+          onClick={() => void toggleCursor()}
+        >
+          <i />
+          커서 {cursorOn ? "ON" : "OFF"}
         </button>
       </header>
 
@@ -332,6 +355,16 @@ function App() {
             <strong>{tracking.confidence}%</strong>
           </div>
           <div className="motion-examples" aria-label="모션 예시">
+            <button className="cursor-example" aria-label="커서 제어 예시">
+              <span>☝️×☝️</span>
+              <strong>양손 검지 X 2초</strong>
+              <small>커서 ON / OFF</small>
+            </button>
+            <button className="cursor-example" aria-label="커서 이동 예시">
+              <span>✌️</span>
+              <strong>두 손가락 붙이기</strong>
+              <small>{cursorOn ? "커서 이동 중" : "커서 이동"}</small>
+            </button>
             <button className="toggle-example" aria-label="모션 ON OFF 예시">
               <span>🤙</span>
               <strong>전화 모양 1.5초</strong>

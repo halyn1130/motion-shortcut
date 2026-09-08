@@ -12,6 +12,7 @@ export default function Overlay() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<OverlayMode>("person-pet");
   const [motionOn, setMotionOn] = useState(true);
+  const [cursorOn, setCursorOn] = useState(false);
   const [handColor, setHandColor] = useState("#65f6dc");
   const tracking = useHandTracking(
     videoRef,
@@ -23,6 +24,10 @@ export default function Overlay() {
       if (gesture === "toggle-motion") void window.motionAPI?.toggleMotion();
       else if (motionOn) void window.motionAPI?.launchApp(gesture);
     },
+    () => {
+      void window.motionAPI?.toggleCursor();
+    },
+    (point) => window.motionAPI?.moveCursor(point),
   );
 
   useEffect(() => {
@@ -30,6 +35,8 @@ export default function Overlay() {
     window.motionAPI?.onOverlayColor(setHandColor);
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
+    void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
+    window.motionAPI?.onCursorChanged?.(setCursorOn);
     let stream: MediaStream | null = null;
     void navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user" }, audio: false })
@@ -50,7 +57,10 @@ export default function Overlay() {
       <video ref={videoRef} muted playsInline />
       <canvas ref={guideCanvasRef} className="guide-canvas" />
       <canvas ref={handCanvasRef} className="pet-hand-canvas" />
-      <span>{motionOn ? "MOTION ON" : "MOTION OFF"}</span>
+      <span>
+        {motionOn ? "MOTION ON" : "MOTION OFF"} · CURSOR{" "}
+        {cursorOn ? "ON" : "OFF"}
+      </span>
     </main>
   );
 }

@@ -1,5 +1,13 @@
-const { app, BrowserWindow, ipcMain, session, screen } = require("electron");
-const { execFile } = require("node:child_process");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  session,
+  screen,
+  systemPreferences,
+} = require("electron");
+const { execFile, spawn, spawnSync } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 const { promisify } = require("node:util");
 
@@ -13,11 +21,87 @@ const allowedApps = Object.freeze({
 });
 let overlayWindow = null;
 let motionEnabled = true;
+let cursorEnabled = false;
+let cursorHelper = null;
+let cursorPosition = null;
 
 function broadcastMotionState() {
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send("motion:changed", motionEnabled);
   }
+}
+
+function broadcastCursorState() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("cursor:changed", cursorEnabled);
+  }
+}
+
+function stopCursorHelper() {
+  cursorHelper?.kill();
+  cursorHelper = null;
+  cursorPosition = null;
+}
+
+function ensureCursorHelper() {
+  if (process.platform !== "darwin") return false;
+  if (cursorHelper && !cursorHelper.killed) return true;
+  const helperDirectory = path.join(app.getPath("userData"), "native");
+  const helperPath = path.join(helperDirectory, "motion-cursor-helper");
+  const sourcePath = path.join(__dirname, "cursor-helper.c");
+  try {
+    fs.mkdirSync(helperDirectory, { recursive: true });
+    const sourceChanged =
+      !fs.existsSync(helperPath) ||
+      fs.statSync(sourcePath).mtimeMs > fs.statSync(helperPath).mtimeMs;
+    if (sourceChanged) {
+      const compiled = spawnSync(
+        "/usr/bin/clang",
+        [sourcePath, "-framework", "ApplicationServices", "-o", helperPath],
+        { encoding: "utf8" },
+      );
+      if (compiled.status !== 0) {
+        console.error(`[cursor-helper] ${compiled.stderr}`);
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error("[cursor-helper] build failed", error);
+    return false;
+  }
+  cursorHelper = spawn(helperPath, [], { stdio: ["pipe", "ignore", "pipe"] });
+  cursorHelper.on("exit", () => {
+    cursorHelper = null;
+    cursorPosition = null;
+  });
+  cursorHelper.stderr.on("data", (data) =>
+    console.error(`[cursor-helper] ${String(data).trim()}`),
+  );
+  return true;
+}
+
+function setCursorEnabled(enabled, promptForAccess = false) {
+  if (enabled && process.platform === "darwin") {
+    const trusted =
+      systemPreferences.isTrustedAccessibilityClient(promptForAccess);
+    if (!trusted)
+      return {
+        ok: false,
+        enabled: false,
+        error: "손쉬운 사용 권한을 허용한 뒤 다시 시도하세요.",
+      };
+    if (!ensureCursorHelper()) {
+      return {
+        ok: false,
+        enabled: false,
+        error: "커서 제어 모듈을 시작하지 못했습니다.",
+      };
+    }
+  }
+  cursorEnabled = Boolean(enabled);
+  if (!cursorEnabled) stopCursorHelper();
+  broadcastCursorState();
+  return { ok: true, enabled: cursorEnabled };
 }
 
 ipcMain.handle("motion:get", () => motionEnabled);
@@ -30,6 +114,32 @@ ipcMain.handle("motion:toggle", () => {
   motionEnabled = !motionEnabled;
   broadcastMotionState();
   return motionEnabled;
+});
+ipcMain.handle("cursor:get", () => cursorEnabled);
+ipcMain.handle("cursor:toggle", () => setCursorEnabled(!cursorEnabled, true));
+ipcMain.handle("cursor:set", (_event, enabled) =>
+  setCursorEnabled(Boolean(enabled), Boolean(enabled)),
+);
+ipcMain.on("cursor:move", (_event, point) => {
+  if (!cursorEnabled || !point || !ensureCursorHelper()) return;
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const area = display.bounds;
+  const target = {
+    x: area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width,
+    y: area.y + Math.max(0, Math.min(1, Number(point.y))) * area.height,
+  };
+  const smoothing = cursorPosition ? 0.28 : 1;
+  cursorPosition = {
+    x: cursorPosition
+      ? cursorPosition.x + (target.x - cursorPosition.x) * smoothing
+      : target.x,
+    y: cursorPosition
+      ? cursorPosition.y + (target.y - cursorPosition.y) * smoothing
+      : target.y,
+  };
+  cursorHelper.stdin.write(
+    `${cursorPosition.x.toFixed(1)} ${cursorPosition.y.toFixed(1)}\n`,
+  );
 });
 
 function createWindow() {
@@ -156,3 +266,4 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+app.on("before-quit", stopCursorHelper);

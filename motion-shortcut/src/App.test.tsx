@@ -37,6 +37,11 @@ describe("모션 앱 런처", () => {
       setMotionEnabled: vi.fn().mockResolvedValue(true),
       toggleMotion: vi.fn().mockResolvedValue(false),
       onMotionChanged: vi.fn(),
+      getCursorEnabled: vi.fn().mockResolvedValue(false),
+      setCursorEnabled: vi.fn().mockResolvedValue({ ok: true, enabled: false }),
+      toggleCursor: vi.fn().mockResolvedValue({ ok: true, enabled: true }),
+      moveCursor: vi.fn(),
+      onCursorChanged: vi.fn(),
     };
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "계산기 열기" }));

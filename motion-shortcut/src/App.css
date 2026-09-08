@@ -80,6 +80,15 @@
   background: #65f6dc;
   box-shadow: 0 0 12px #65f6dc;
 }
+
+.cursor-toggle {
+  margin-left: 8px;
+}
+
+.cursor-toggle.on {
+  border-color: rgba(104, 169, 255, 0.58);
+  color: #a9cdff;
+}
 .workspace {
   display: grid;
   grid-template-columns: minmax(430px, 1.05fr) minmax(500px, 1.35fr);
@@ -415,6 +424,15 @@
   border-color: #785a9266;
   background: #17111d;
   color: #d9b7f3;
+}
+
+.motion-examples button.cursor-example {
+  border-color: rgba(104, 169, 255, 0.22);
+  background: linear-gradient(
+    145deg,
+    rgba(54, 106, 180, 0.14),
+    rgba(12, 15, 18, 0.72)
+  );
 }
 .motion-examples button > span {
   display: grid;
