@@ -64,6 +64,7 @@ const setPlist = (key, value, type = "string") => {
   }
 };
 setPlist("CFBundleDisplayName", "모션 단축키");
+setPlist("CFBundleIdentifier", "com.motionshortcut.app");
 setPlist("CFBundleShortVersionString", version);
 setPlist("CFBundleVersion", version);
 setPlist(
@@ -71,6 +72,19 @@ setPlist(
   "손동작을 인식하여 모션 단축키를 실행하기 위해 카메라를 사용합니다.",
 );
 setPlist("LSApplicationCategoryType", "public.app-category.utilities");
+
+// app.asar와 Info.plist를 교체하면 Electron 원본 서명이 무효가 된다.
+// 배포 앱 전체를 하나의 안정된 macOS 신원으로 다시 서명한다.
+execFileSync(
+  "/usr/bin/codesign",
+  ["--force", "--deep", "--sign", "-", appPath],
+  { stdio: "inherit" },
+);
+execFileSync(
+  "/usr/bin/codesign",
+  ["--verify", "--deep", "--strict", "--verbose=2", appPath],
+  { stdio: "inherit" },
+);
 
 execFileSync(
   "/usr/bin/ditto",
