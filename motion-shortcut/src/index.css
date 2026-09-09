@@ -55,6 +55,17 @@ body {
   font-size: 10px;
   font-weight: 600;
 }
+.typing-preview {
+  min-width: 150px;
+  max-width: 240px;
+  overflow: hidden;
+  color: #65f6dc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
 .virtual-keyboard header button {
   margin-left: auto;
   padding: 5px 10px;
@@ -81,13 +92,20 @@ body {
 }
 .keyboard-row button:active,
 .keyboard-row button.active,
-.keyboard-row button.air-hover {
+.keyboard-row button.air-hover,
+.keyboard-row button.air-pressed {
   transform: translateY(2px);
   border-color: #65f6dc99;
   background: #183a34;
   box-shadow:
     0 1px 0 #080909,
     0 0 18px #65f6dc33;
+}
+.keyboard-row button.air-pressed {
+  transform: translateY(3px) scale(0.97);
+  border-color: #fff;
+  background: #65f6dc;
+  color: #07100e;
 }
 .virtual-keyboard.calibrated {
   border-color: #ffffff12;

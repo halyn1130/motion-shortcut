@@ -51,6 +51,10 @@ type TapState = {
   restOffset: number;
   lastOffset: number;
   lastAt: number;
+  hoverKey: string;
+  hoverSince: number;
+  minY: number;
+  lastY: number;
   armed: boolean;
   cooldownUntil: number;
 };
@@ -85,6 +89,7 @@ export default function Keyboard() {
   const lastTypedRef = useRef({ key: "", at: 0 });
   const calibrationRef = useRef<CalibrationRun | null>(null);
   const [shift, setShift] = useState(false);
+  const [typedPreview, setTypedPreview] = useState("");
   const [pointers, setPointers] = useState<FingerPointer[]>([]);
   const [profile, setProfile] = useState<CalibrationProfile | null>(() =>
     loadCalibrationProfile(),
@@ -105,11 +110,17 @@ export default function Keyboard() {
 
   const isHovered = (key: string) =>
     pointers.some((pointer) => pointer.key === key);
+  const isPressed = (key: string) =>
+    pointers.some((pointer) => pointer.key === key && pointer.pressing);
 
   const type = (key: string) => {
-    window.motionAPI?.typeKey(
-      shift && key.length === 1 ? key.toUpperCase() : key,
-    );
+    const outputKey = shift && key.length === 1 ? key.toUpperCase() : key;
+    window.motionAPI?.typeKey(outputKey);
+    setTypedPreview((current) => {
+      if (key === "Backspace") return current.slice(0, -1);
+      if (key === "Enter") return `${current}↵`.slice(-42);
+      return `${current}${outputKey}`.slice(-42);
+    });
     if (shift && key.length === 1) setShift(false);
   };
 
@@ -190,6 +201,9 @@ export default function Keyboard() {
         <small>
           양손 8개 손가락으로 타건 · 엄지는 Space · 왼손 세 손가락으로 닫기
         </small>
+        <output className="typing-preview">
+          {typedPreview || "입력 테스트…"}
+        </output>
         <button
           onClick={() => void window.motionAPI?.setKeyboardVisible(false)}
         >
@@ -205,7 +219,7 @@ export default function Keyboard() {
             <button
               key={key}
               data-key={key}
-              className={isHovered(key) ? "air-hover" : ""}
+              className={`${isHovered(key) ? "air-hover" : ""} ${isPressed(key) ? "air-pressed" : ""}`}
               onClick={() => type(key)}
             >
               {shift ? key.toUpperCase() : key}
@@ -223,7 +237,7 @@ export default function Keyboard() {
         </button>
         <button
           data-key="Space"
-          className={`space ${isHovered("Space") ? "air-hover" : ""}`}
+          className={`space ${isHovered("Space") ? "air-hover" : ""} ${isPressed("Space") ? "air-pressed" : ""}`}
           onClick={() => type(" ")}
         >
           Space
@@ -311,29 +325,51 @@ function trackFingerTaps(
         restOffset: offset,
         lastOffset: offset,
         lastAt: now,
+        hoverKey: key,
+        hoverSince: now,
+        minY: y,
+        lastY: y,
         armed: true,
         cooldownUntil: 0,
       };
       const elapsed = Math.max(now - state.lastAt, 1);
       const downwardSpeed = (offset - state.lastOffset) / elapsed;
+      const screenDownwardSpeed = (y - state.lastY) / elapsed;
       const pressDistance = profile?.[finger.name] ?? (isThumb ? 0.17 : 0.2);
       const releaseDistance = pressDistance * 0.48;
+
+      if (key !== state.hoverKey) {
+        state.hoverKey = key;
+        state.hoverSince = now;
+        state.minY = y;
+      } else if (state.armed) {
+        state.minY = Math.min(state.minY, y);
+      }
 
       if (offset < state.restOffset) state.restOffset = offset;
       else if (state.armed) {
         state.restOffset += (offset - state.restOffset) * 0.025;
       }
-      if (!state.armed && offset < state.restOffset + releaseDistance) {
+      if (
+        !state.armed &&
+        (offset < state.restOffset + releaseDistance || state.lastY - y > 5)
+      ) {
         state.armed = true;
+        state.minY = y;
       }
 
+      const relativeTap =
+        offset > state.restOffset + pressDistance && downwardSpeed > 0.0002;
+      const screenTap =
+        now - state.hoverSince > 80 &&
+        y - state.minY > 9 &&
+        screenDownwardSpeed > 0.025;
       let pressing =
         !calibrating &&
         Boolean(key) &&
         state.armed &&
         now >= state.cooldownUntil &&
-        offset > state.restOffset + pressDistance &&
-        downwardSpeed > 0.00025;
+        (relativeTap || screenTap);
 
       // 같은 키를 여러 손가락이 동시에 건드려도 한 글자만 입력한다.
       if (pressing && lastTyped.key === key && now - lastTyped.at < 170) {
@@ -348,6 +384,7 @@ function trackFingerTaps(
 
       state.lastOffset = offset;
       state.lastAt = now;
+      state.lastY = y;
       states[id] = state;
       pointers.push({
         id,
