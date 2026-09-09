@@ -31,6 +31,44 @@ const rows = [
   ["z", "x", "c", "v", "b", "n", "m"],
 ];
 
+const koreanLabels: Record<string, string> = {
+  q: "ㅂ",
+  w: "ㅈ",
+  e: "ㄷ",
+  r: "ㄱ",
+  t: "ㅅ",
+  y: "ㅛ",
+  u: "ㅕ",
+  i: "ㅑ",
+  o: "ㅐ",
+  p: "ㅔ",
+  a: "ㅁ",
+  s: "ㄴ",
+  d: "ㅇ",
+  f: "ㄹ",
+  g: "ㅎ",
+  h: "ㅗ",
+  j: "ㅓ",
+  k: "ㅏ",
+  l: "ㅣ",
+  z: "ㅋ",
+  x: "ㅌ",
+  c: "ㅊ",
+  v: "ㅍ",
+  b: "ㅠ",
+  n: "ㅜ",
+  m: "ㅡ",
+};
+const shiftedKoreanLabels: Record<string, string> = {
+  q: "ㅃ",
+  w: "ㅉ",
+  e: "ㄸ",
+  r: "ㄲ",
+  t: "ㅆ",
+  o: "ㅒ",
+  p: "ㅖ",
+};
+
 type Handedness = "Left" | "Right";
 type HandSample = {
   handedness: Handedness;
@@ -119,7 +157,8 @@ export default function Keyboard() {
     setTypedPreview((current) => {
       if (key === "Backspace") return current.slice(0, -1);
       if (key === "Enter") return `${current}↵`.slice(-42);
-      return `${current}${outputKey}`.slice(-42);
+      const previewKey = key === " " ? " " : getKoreanLabel(key, shift);
+      return `${current}${previewKey}`.slice(-42);
     });
     if (shift && key.length === 1) setShift(false);
   };
@@ -198,9 +237,7 @@ export default function Keyboard() {
     >
       <header>
         <span>모션 키보드</span>
-        <small>
-          양손 8개 손가락으로 타건 · 엄지는 Space · 왼손 세 손가락으로 닫기
-        </small>
+        <small>두벌식 한글 입력 · 먼저 입력할 앱에서 커서를 둔 뒤 사용</small>
         <output className="typing-preview">
           {typedPreview || "입력 테스트…"}
         </output>
@@ -222,7 +259,7 @@ export default function Keyboard() {
               className={`${isHovered(key) ? "air-hover" : ""} ${isPressed(key) ? "air-pressed" : ""}`}
               onClick={() => type(key)}
             >
-              {shift ? key.toUpperCase() : key}
+              {getKoreanLabel(key, shift)}
             </button>
           ))}
         </div>
@@ -285,6 +322,11 @@ export default function Keyboard() {
       )}
     </main>
   );
+}
+
+function getKoreanLabel(key: string, shift: boolean) {
+  if (shift && shiftedKoreanLabels[key]) return shiftedKoreanLabels[key];
+  return koreanLabels[key] ?? key;
 }
 
 function trackFingerTaps(

@@ -72,7 +72,15 @@ function ensureCursorHelper() {
       } else {
         const compiled = spawnSync(
           "/usr/bin/clang",
-          [sourcePath, "-framework", "ApplicationServices", "-o", helperPath],
+          [
+            sourcePath,
+            "-framework",
+            "ApplicationServices",
+            "-framework",
+            "Carbon",
+            "-o",
+            helperPath,
+          ],
           { encoding: "utf8" },
         );
         if (compiled.status !== 0) {
@@ -217,12 +225,19 @@ function setKeyboardVisible(visible) {
   if (!keyboardWindow) createKeyboardWindow();
   keyboardVisible = Boolean(visible);
   if (keyboardVisible) {
+    if (process.platform === "darwin") {
+      systemPreferences.isTrustedAccessibilityClient(true);
+      if (ensureCursorHelper()) cursorHelper.stdin.write("input-korean\n");
+    }
     if (overlayMode !== "camera" && overlayWindow) {
       overlayWindow.setOpacity(0);
       overlayWindow.showInactive();
     }
     keyboardWindow.showInactive();
   } else {
+    if (cursorHelper && !cursorHelper.killed) {
+      cursorHelper.stdin.write("input-restore\n");
+    }
     keyboardWindow.hide();
     if (overlayMode !== "camera" && overlayWindow) {
       overlayWindow.setOpacity(1);
@@ -238,14 +253,57 @@ ipcMain.handle("keyboard:set", (_event, visible) =>
   setKeyboardVisible(visible),
 );
 ipcMain.handle("keyboard:toggle", () => setKeyboardVisible(!keyboardVisible));
+const macKeyCodes = Object.freeze({
+  a: 0,
+  s: 1,
+  d: 2,
+  f: 3,
+  h: 4,
+  g: 5,
+  z: 6,
+  x: 7,
+  c: 8,
+  v: 9,
+  b: 11,
+  q: 12,
+  w: 13,
+  e: 14,
+  r: 15,
+  y: 16,
+  t: 17,
+  1: 18,
+  2: 19,
+  3: 20,
+  4: 21,
+  6: 22,
+  5: 23,
+  9: 25,
+  7: 26,
+  8: 28,
+  0: 29,
+  o: 31,
+  u: 32,
+  i: 34,
+  p: 35,
+  l: 37,
+  j: 38,
+  k: 40,
+  n: 45,
+  m: 46,
+  Space: 49,
+  Backspace: 51,
+  Enter: 36,
+  Tab: 48,
+});
 ipcMain.on("keyboard:type", (_event, key) => {
   if (!keyboardVisible || !ensureCursorHelper()) return;
-  const specialKeys = { Backspace: 51, Enter: 36, Tab: 48 };
-  if (Object.hasOwn(specialKeys, key)) {
-    cursorHelper.stdin.write(`key ${specialKeys[key]}\n`);
-  } else if (typeof key === "string" && key.length === 1) {
-    cursorHelper.stdin.write(`type ${key.charCodeAt(0)}\n`);
-  }
+  const normalized = key === " " ? "Space" : String(key);
+  const baseKey =
+    normalized.length === 1 ? normalized.toLowerCase() : normalized;
+  const keyCode = macKeyCodes[baseKey];
+  if (keyCode === undefined) return;
+  const shifted = normalized.length === 1 && normalized !== baseKey;
+  cursorHelper.stdin.write(`${shifted ? "keyshift" : "key"} ${keyCode}\n`);
 });
 ipcMain.on("keyboard:pointer", (_event, sample) => {
   if (!keyboardVisible || !keyboardWindow || !sample) return;

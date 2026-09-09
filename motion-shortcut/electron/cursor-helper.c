@@ -1,6 +1,38 @@
 #include <ApplicationServices/ApplicationServices.h>
+#include <Carbon/Carbon.h>
 #include <stdio.h>
 #include <string.h>
+
+static TISInputSourceRef previousInputSource = NULL;
+
+static void selectKoreanInputSource(void) {
+  if (previousInputSource == NULL) {
+    previousInputSource = TISCopyCurrentKeyboardInputSource();
+  }
+  CFArrayRef sources = TISCreateInputSourceList(NULL, false);
+  if (sources == NULL) return;
+  CFIndex count = CFArrayGetCount(sources);
+  for (CFIndex index = 0; index < count; index++) {
+    TISInputSourceRef source =
+        (TISInputSourceRef)CFArrayGetValueAtIndex(sources, index);
+    CFStringRef sourceId =
+        (CFStringRef)TISGetInputSourceProperty(source, kTISPropertyInputSourceID);
+    if (sourceId != NULL &&
+        CFStringFind(sourceId, CFSTR("Korean"), kCFCompareCaseInsensitive)
+                .location != kCFNotFound) {
+      TISEnableInputSource(source);
+      if (TISSelectInputSource(source) == noErr) break;
+    }
+  }
+  CFRelease(sources);
+}
+
+static void restoreInputSource(void) {
+  if (previousInputSource == NULL) return;
+  TISSelectInputSource(previousInputSource);
+  CFRelease(previousInputSource);
+  previousInputSource = NULL;
+}
 
 int main(void) {
   char line[128];
@@ -60,7 +92,26 @@ int main(void) {
       }
       if (down != NULL) CFRelease(down);
       if (up != NULL) CFRelease(up);
+    } else if (sscanf(line, "%15s %d", command, &value) == 2 &&
+               strcmp(command, "keyshift") == 0 && value >= 0 && value <= 127) {
+      CGEventRef down = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)value, true);
+      CGEventRef up = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)value, false);
+      if (down != NULL && up != NULL) {
+        CGEventSetFlags(down, kCGEventFlagMaskShift);
+        CGEventSetFlags(up, kCGEventFlagMaskShift);
+        CGEventPost(kCGHIDEventTap, down);
+        CGEventPost(kCGHIDEventTap, up);
+      }
+      if (down != NULL) CFRelease(down);
+      if (up != NULL) CFRelease(up);
+    } else if (sscanf(line, "%15s", command) == 1 &&
+               strcmp(command, "input-korean") == 0) {
+      selectKoreanInputSource();
+    } else if (sscanf(line, "%15s", command) == 1 &&
+               strcmp(command, "input-restore") == 0) {
+      restoreInputSource();
     }
   }
+  restoreInputSource();
   return 0;
 }

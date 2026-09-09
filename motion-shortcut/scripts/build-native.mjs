@@ -12,6 +12,8 @@ execFileSync(
     resolve("electron/cursor-helper.c"),
     "-framework",
     "ApplicationServices",
+    "-framework",
+    "Carbon",
     "-o",
     resolve(outputDirectory, "motion-cursor-helper"),
   ],
