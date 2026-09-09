@@ -5,6 +5,21 @@ import {
 } from "./features/camera/useHandTracking";
 
 type OverlayMode = "person-pet" | "hand-pet";
+const MAPPINGS_KEY = "motion-app-mappings-v1";
+
+function appPathForGesture(gesture: MotionGestureId) {
+  try {
+    const mappings = JSON.parse(
+      localStorage.getItem(MAPPINGS_KEY) ?? "[]",
+    ) as Array<{
+      gesture: string;
+      path: string;
+    }>;
+    return mappings.find((mapping) => mapping.gesture === gesture)?.path;
+  } catch {
+    return undefined;
+  }
+}
 
 export default function Overlay() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -25,7 +40,10 @@ export default function Overlay() {
     handColor,
     (gesture: MotionGestureId) => {
       if (gesture === "toggle-motion") void window.motionAPI?.toggleMotion();
-      else if (motionOn) void window.motionAPI?.launchApp(gesture);
+      else if (motionOn) {
+        const appPath = appPathForGesture(gesture);
+        if (appPath) void window.motionAPI?.launchCustomApp(appPath);
+      }
     },
     () => {
       void window.motionAPI?.toggleCursor();

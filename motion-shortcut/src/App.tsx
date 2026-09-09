@@ -2,48 +2,41 @@ import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import {
   useHandTracking,
+  type GestureId,
   type MotionGestureId,
 } from "./features/camera/useHandTracking";
 
-type AppId = "calculator" | "notes" | "chrome" | "spotlight";
 type DisplayMode = "camera" | "person-pet" | "hand-pet";
-
-const shortcuts: Array<{
-  id: AppId;
+type AppMapping = {
+  id: string;
   name: string;
-  icon: string;
-  gesture: string;
-  detail: string;
-}> = [
-  {
-    id: "calculator",
-    name: "계산기",
-    icon: "＋",
-    gesture: "검지 하나",
-    detail: "빠른 계산 시작",
-  },
-  {
-    id: "notes",
-    name: "메모",
-    icon: "✎",
-    gesture: "V 사인",
-    detail: "새로운 생각 기록",
-  },
-  {
-    id: "chrome",
-    name: "Chrome",
-    icon: "◎",
-    gesture: "손바닥 펼치기",
-    detail: "웹 브라우저 열기",
-  },
-  {
-    id: "spotlight",
-    name: "Spotlight",
-    icon: "⌕",
-    gesture: "주먹 쥐기",
-    detail: "빠른 검색 열기",
-  },
+  path: string;
+  gesture: GestureId;
+};
+const MAPPINGS_KEY = "motion-app-mappings-v1";
+const gestureOptions: Array<{ id: GestureId; label: string; icon: string }> = [
+  { id: "index", label: "검지 하나", icon: "☝️" },
+  { id: "victory", label: "V 사인", icon: "✌️" },
+  { id: "three", label: "오른손 세 손가락", icon: "🖖" },
+  { id: "open-palm", label: "손바닥 펼치기", icon: "🖐️" },
+  { id: "fist", label: "주먹 쥐기", icon: "✊" },
+  { id: "horns", label: "검지·새끼손가락", icon: "🤘" },
+  { id: "thumb-up", label: "엄지 위로", icon: "👍" },
+  { id: "l-shape", label: "L 모양", icon: "👆" },
+  { id: "pinch", label: "핀치", icon: "🤏" },
+  { id: "ok-sign", label: "OK 사인", icon: "👌" },
+  { id: "tilt-left", label: "손바닥 왼쪽 기울이기", icon: "↙" },
+  { id: "tilt-right", label: "손바닥 오른쪽 기울이기", icon: "↘" },
 ];
+
+function loadMappings(): AppMapping[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MAPPINGS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,8 +62,9 @@ function App() {
     "idle" | "requesting" | "active" | "error"
   >("idle");
   const [cameraError, setCameraError] = useState("");
-  const [launching, setLaunching] = useState<AppId | null>(null);
-  const [selected, setSelected] = useState<AppId>("calculator");
+  const [mappings, setMappings] = useState<AppMapping[]>(loadMappings);
+  const [launching, setLaunching] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>(["앱 실행기가 준비되었습니다."]);
 
   const addLog = (message: string) => {
@@ -173,10 +167,28 @@ function App() {
     }
   };
 
-  const launch = async (id: AppId) => {
-    const target = shortcuts.find((item) => item.id === id)!;
-    setLaunching(id);
-    setSelected(id);
+  const saveMappings = (next: AppMapping[]) => {
+    setMappings(next);
+    localStorage.setItem(MAPPINGS_KEY, JSON.stringify(next));
+  };
+
+  const chooseApp = async () => {
+    const chosen = await window.motionAPI?.chooseApp();
+    if (!chosen) return;
+    const used = new Set(mappings.map((mapping) => mapping.gesture));
+    const gesture = gestureOptions.find((option) => !used.has(option.id))?.id;
+    if (!gesture) {
+      addLog("추가 실패 · 사용할 수 있는 모션이 없습니다.");
+      return;
+    }
+    const mapping = { id: crypto.randomUUID(), ...chosen, gesture };
+    saveMappings([...mappings, mapping]);
+    setSelected(mapping.id);
+  };
+
+  const launch = async (target: AppMapping) => {
+    setLaunching(target.id);
+    setSelected(target.id);
 
     if (!window.motionAPI) {
       addLog(`${target.name} 실행 미리보기 · Electron에서 실행하세요.`);
@@ -184,7 +196,7 @@ function App() {
       return;
     }
 
-    const result = await window.motionAPI.launchApp(id);
+    const result = await window.motionAPI.launchCustomApp(target.path);
     addLog(
       result.ok ? `${result.appName} 실행 성공` : `실행 실패 · ${result.error}`,
     );
@@ -205,7 +217,8 @@ function App() {
             addLog(`전화 모양 · 모션 인식 ${enabled ? "ON" : "OFF"}`),
           );
       } else if (motionOn) {
-        void launch(gesture);
+        const mapping = mappings.find((item) => item.gesture === gesture);
+        if (mapping) void launch(mapping);
       }
     },
     () => void toggleCursor(),
@@ -243,7 +256,7 @@ function App() {
     );
   };
 
-  const activeShortcut = shortcuts.find((item) => item.id === selected)!;
+  const activeShortcut = mappings.find((item) => item.id === selected) ?? null;
 
   return (
     <main className="app-shell">
@@ -492,18 +505,25 @@ function App() {
               <strong>전화 모양 1.5초</strong>
               <small>모션 ON / OFF</small>
             </button>
-            {shortcuts.map((item) => (
-              <button
-                key={item.id}
-                className={selected === item.id ? "selected" : ""}
-                aria-label={`${item.name} 모션 예시`}
-                onClick={() => setSelected(item.id)}
-              >
-                <span>{item.icon}</span>
-                <strong>{item.gesture}</strong>
-                <small>{item.name} 열기</small>
+            {activeShortcut && (
+              <button aria-label={`${activeShortcut.name} 모션 예시`}>
+                <span>
+                  {
+                    gestureOptions.find(
+                      (item) => item.id === activeShortcut.gesture,
+                    )?.icon
+                  }
+                </span>
+                <strong>
+                  {
+                    gestureOptions.find(
+                      (item) => item.id === activeShortcut.gesture,
+                    )?.label
+                  }
+                </strong>
+                <small>{activeShortcut.name} 열기</small>
               </button>
-            ))}
+            )}
           </div>
         </article>
 
@@ -511,28 +531,82 @@ function App() {
           <div className="section-title">
             <div>
               <span className="eyebrow">APP SHORTCUTS</span>
-              <h2>프로그램 실행</h2>
+              <h2>내 앱과 모션 연결</h2>
             </div>
-            <p>카드를 눌러 명령 연결을 먼저 테스트하세요.</p>
+            <button className="add-app-button" onClick={() => void chooseApp()}>
+              + 실행할 앱 선택
+            </button>
           </div>
           <div className="shortcut-grid">
-            {shortcuts.map((item) => (
-              <button
+            {!mappings.length && (
+              <div className="empty-mappings">
+                기본 연결은 없습니다. 앱을 선택하고 원하는 손모양을 연결하세요.
+              </div>
+            )}
+            {mappings.map((item) => (
+              <article
                 key={item.id}
-                aria-label={`${item.name} 열기`}
                 className={`shortcut ${selected === item.id ? "selected" : ""}`}
-                onClick={() => void launch(item.id)}
+                onClick={() => setSelected(item.id)}
               >
-                <span className={`app-icon ${item.id}`}>{item.icon}</span>
+                <button
+                  className="app-icon custom-app-icon"
+                  aria-label={`${item.name} 열기`}
+                  onClick={() => void launch(item)}
+                >
+                  ↗
+                </button>
                 <span className="shortcut-copy">
                   <strong>{item.name}</strong>
-                  <small>{item.detail}</small>
+                  <small title={item.path}>{item.path}</small>
                 </span>
-                <span className="gesture">{item.gesture}</span>
+                <select
+                  className="gesture-select"
+                  aria-label={`${item.name} 모션 선택`}
+                  value={item.gesture}
+                  onChange={(event) => {
+                    const gesture = event.target.value as GestureId;
+                    const duplicate = mappings.find(
+                      (mapping) =>
+                        mapping.id !== item.id && mapping.gesture === gesture,
+                    );
+                    if (duplicate) {
+                      addLog(
+                        `${gestureOptions.find((option) => option.id === gesture)?.label} · 이미 ${duplicate.name}에 연결됨`,
+                      );
+                      return;
+                    }
+                    saveMappings(
+                      mappings.map((mapping) =>
+                        mapping.id === item.id
+                          ? { ...mapping, gesture }
+                          : mapping,
+                      ),
+                    );
+                  }}
+                >
+                  {gestureOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.icon} {option.label}
+                    </option>
+                  ))}
+                </select>
                 <span className="launch-status">
                   {launching === item.id ? "여는 중…" : "열기 ↗"}
                 </span>
-              </button>
+                <button
+                  className="remove-mapping"
+                  aria-label={`${item.name} 연결 삭제`}
+                  onClick={() => {
+                    saveMappings(
+                      mappings.filter((mapping) => mapping.id !== item.id),
+                    );
+                    if (selected === item.id) setSelected(null);
+                  }}
+                >
+                  삭제
+                </button>
+              </article>
             ))}
           </div>
         </section>
@@ -540,16 +614,24 @@ function App() {
         <aside className="panel mapping">
           <Heading
             eyebrow="SELECTED COMMAND"
-            title={activeShortcut.name}
-            aside="연결됨"
+            title={activeShortcut?.name ?? "연결을 선택하세요"}
+            aside={activeShortcut ? "연결됨" : "비어 있음"}
           />
-          <div className="mapping-flow">
-            <span>{activeShortcut.gesture}</span>
-            <b>→</b>
-            <span>{activeShortcut.name} 열기</span>
-          </div>
+          {activeShortcut && (
+            <div className="mapping-flow">
+              <span>
+                {
+                  gestureOptions.find(
+                    (item) => item.id === activeShortcut.gesture,
+                  )?.label
+                }
+              </span>
+              <b>→</b>
+              <span>{activeShortcut.name} 열기</span>
+            </div>
+          )}
           <p>
-            제스처가 확정되면 Electron의 안전한 허용 목록을 통해 실행됩니다.
+            전화 모양과 양손 검지 X는 각각 모션과 커서 ON/OFF용으로 예약됩니다.
           </p>
         </aside>
 

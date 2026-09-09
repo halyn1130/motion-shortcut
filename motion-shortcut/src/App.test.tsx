@@ -5,6 +5,7 @@ import App from "./App";
 
 describe("모션 앱 런처", () => {
   beforeEach(() => {
+    localStorage.clear();
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
       value: {
@@ -23,12 +24,17 @@ describe("모션 앱 런처", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("Electron 브리지로 허용된 앱을 실행한다", async () => {
-    const launchApp = vi
+  it("선택한 앱에 모션을 연결하고 실행한다", async () => {
+    const launchCustomApp = vi
       .fn()
-      .mockResolvedValue({ ok: true, appName: "계산기" });
+      .mockResolvedValue({ ok: true, appName: "Chrome" });
     window.motionAPI = {
-      launchApp,
+      launchApp: vi.fn(),
+      chooseApp: vi.fn().mockResolvedValue({
+        name: "Chrome",
+        path: "/Applications/Google Chrome.app",
+      }),
+      launchCustomApp,
       setOverlayMode: vi.fn().mockResolvedValue(true),
       onOverlayMode: vi.fn(),
       setOverlayColor: vi.fn().mockResolvedValue(true),
@@ -64,9 +70,16 @@ describe("모션 앱 런처", () => {
       onCursorChanged: vi.fn(),
     };
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "계산기 열기" }));
-    expect(launchApp).toHaveBeenCalledWith("calculator");
-    expect(await screen.findByText(/계산기 실행 성공/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "+ 실행할 앱 선택" }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Chrome 열기" }),
+    );
+    expect(launchCustomApp).toHaveBeenCalledWith(
+      "/Applications/Google Chrome.app",
+    );
+    expect(await screen.findByText(/Chrome 실행 성공/)).toBeInTheDocument();
     delete window.motionAPI;
   });
 });

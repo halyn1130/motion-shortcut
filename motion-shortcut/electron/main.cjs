@@ -1,6 +1,7 @@
 const {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   session,
   screen,
@@ -545,6 +546,34 @@ ipcMain.handle("apps:launch", async (_event, appId) => {
       };
     }
     return { ok: false, error: `${target.name}을(를) 열지 못했습니다.` };
+  }
+});
+
+ipcMain.handle("apps:choose", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "모션으로 실행할 앱 선택",
+    defaultPath: "/Applications",
+    properties: ["openFile"],
+    filters: [{ name: "macOS 애플리케이션", extensions: ["app"] }],
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  const appPath = path.resolve(result.filePaths[0]);
+  if (path.extname(appPath).toLowerCase() !== ".app") return null;
+  return { path: appPath, name: path.basename(appPath, ".app") };
+});
+
+ipcMain.handle("apps:launch-custom", async (_event, appPath) => {
+  const resolved = path.resolve(String(appPath ?? ""));
+  if (
+    path.extname(resolved).toLowerCase() !== ".app" ||
+    !fs.existsSync(resolved)
+  )
+    return { ok: false, error: "선택한 앱을 찾을 수 없습니다." };
+  try {
+    await execFileAsync("/usr/bin/open", [resolved]);
+    return { ok: true, appName: path.basename(resolved, ".app") };
+  } catch {
+    return { ok: false, error: "선택한 앱을 열지 못했습니다." };
   }
 });
 
