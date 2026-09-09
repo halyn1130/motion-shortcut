@@ -82,6 +82,18 @@ execFileSync(
 );
 execFileSync(
   "/usr/bin/codesign",
+  [
+    "--force",
+    "--sign",
+    "-",
+    "--requirements",
+    '=designated => identifier "com.motionshortcut.app"',
+    appPath,
+  ],
+  { stdio: "inherit" },
+);
+execFileSync(
+  "/usr/bin/codesign",
   ["--verify", "--deep", "--strict", "--verbose=2", appPath],
   { stdio: "inherit" },
 );

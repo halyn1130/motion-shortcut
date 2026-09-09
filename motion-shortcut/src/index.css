@@ -89,6 +89,15 @@ body {
   gap: 7px;
   margin-bottom: 7px;
 }
+.keyboard-surface {
+  max-width: 100%;
+  margin: 0 auto;
+  transition: width 240ms ease;
+}
+.keyboard-surface .keyboard-row button {
+  min-width: 0;
+  flex: 1 1 0;
+}
 .keyboard-row button,
 .virtual-keyboard header button {
   min-width: 68px;
@@ -240,7 +249,8 @@ body {
   background: #fff;
 }
 .keyboard-row.controls .space {
-  width: 340px;
+  width: auto;
+  flex-grow: 4;
 }
 button {
   font: inherit;

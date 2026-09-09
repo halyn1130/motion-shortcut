@@ -105,21 +105,54 @@ const fingers: Array<{ name: FingerName; tip: number; base: number }> = [
   { name: "pinky", tip: 20, base: 17 },
 ];
 
-const calibrationSteps: Array<{ finger: FingerName; label: string }> = [
-  { finger: "index", label: "양손 검지" },
-  { finger: "middle", label: "양손 중지" },
-  { finger: "ring", label: "양손 약지" },
-  { finger: "pinky", label: "양손 새끼손가락" },
-  { finger: "thumb", label: "편한 쪽 엄지" },
+const calibrationSteps: Array<{
+  finger: FingerName | null;
+  label: string;
+  instruction: string;
+}> = [
+  {
+    finger: "index",
+    label: "양손 검지",
+    instruction: "아래로 2~3번 톡 눌러주세요.",
+  },
+  {
+    finger: "middle",
+    label: "양손 중지",
+    instruction: "아래로 2~3번 톡 눌러주세요.",
+  },
+  {
+    finger: "ring",
+    label: "양손 약지",
+    instruction: "아래로 2~3번 톡 눌러주세요.",
+  },
+  {
+    finger: "pinky",
+    label: "양손 새끼손가락",
+    instruction: "아래로 2~3번 톡 눌러주세요.",
+  },
+  {
+    finger: "thumb",
+    label: "편한 쪽 엄지",
+    instruction: "아래로 2~3번 톡 눌러주세요.",
+  },
+  {
+    finger: null,
+    label: "편안한 손 이동 범위",
+    instruction: "양손을 타자 치듯 편하게 좌우로 움직여주세요.",
+  },
 ];
-type CalibrationProfile = Record<FingerName, number>;
+type CalibrationProfile = Record<FingerName, number> & {
+  keyboardWidth: number;
+};
 type CalibrationRun = {
   step: number;
   startedAt: number;
   ranges: Record<string, { min: number; max: number }>;
+  reachMinX: number;
+  reachMaxX: number;
   profile: Partial<CalibrationProfile>;
 };
-const PROFILE_KEY = "motion-keyboard-calibration-v2";
+const PROFILE_KEY = "motion-keyboard-calibration-v3";
 
 export default function Keyboard() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -173,6 +206,8 @@ export default function Keyboard() {
       step: 0,
       startedAt: performance.now(),
       ranges: {},
+      reachMinX: Infinity,
+      reachMaxX: -Infinity,
       profile: {},
     };
     setCalibrationStep(0);
@@ -183,6 +218,13 @@ export default function Keyboard() {
     if (!run) return;
     const target = calibrationSteps[run.step];
     for (const pointer of nextPointers) {
+      if (target.finger === null) {
+        if (pointer.finger !== "thumb") {
+          run.reachMinX = Math.min(run.reachMinX, pointer.x);
+          run.reachMaxX = Math.max(run.reachMaxX, pointer.x);
+        }
+        continue;
+      }
       if (pointer.finger !== target.finger) continue;
       const range = run.ranges[pointer.id] ?? {
         min: pointer.offset,
@@ -192,16 +234,24 @@ export default function Keyboard() {
       range.max = Math.max(range.max, pointer.offset);
       run.ranges[pointer.id] = range;
     }
-    if (performance.now() - run.startedAt < 2600) return;
+    if (performance.now() - run.startedAt < (target.finger ? 2600 : 3400))
+      return;
 
-    const measuredRanges = Object.values(run.ranges)
-      .map((range) => range.max - range.min)
-      .filter((range) => range > 0.015);
-    const measuredRange = measuredRanges.length
-      ? measuredRanges.reduce((sum, range) => sum + range, 0) /
-        measuredRanges.length
-      : 0.16;
-    run.profile[target.finger] = clamp(measuredRange * 0.38, 0.04, 0.13);
+    if (target.finger) {
+      const measuredRanges = Object.values(run.ranges)
+        .map((range) => range.max - range.min)
+        .filter((range) => range > 0.015);
+      const measuredRange = measuredRanges.length
+        ? measuredRanges.reduce((sum, range) => sum + range, 0) /
+          measuredRanges.length
+        : 0.16;
+      run.profile[target.finger] = clamp(measuredRange * 0.38, 0.04, 0.13);
+    } else {
+      const reach = Number.isFinite(run.reachMinX)
+        ? run.reachMaxX - run.reachMinX
+        : 520;
+      run.profile.keyboardWidth = clamp(reach * 1.08, 360, 720);
+    }
     run.step += 1;
     if (run.step < calibrationSteps.length) {
       run.startedAt = performance.now();
@@ -257,49 +307,54 @@ export default function Keyboard() {
           다시 보정
         </button>
       </header>
-      {rows.map((row, rowIndex) => (
-        <div className="keyboard-row" key={rowIndex}>
-          {row.map((key) => (
-            <button
-              key={key}
-              data-key={key}
-              className={`${isHovered(key) ? "air-hover" : ""} ${isPressed(key) ? "air-pressed" : ""}`}
-              onClick={() => type(key)}
-            >
-              {getKoreanLabel(key, shift)}
-            </button>
-          ))}
+      <div
+        className="keyboard-surface"
+        style={{ width: profile?.keyboardWidth ?? 720 }}
+      >
+        {rows.map((row, rowIndex) => (
+          <div className="keyboard-row" key={rowIndex}>
+            {row.map((key) => (
+              <button
+                key={key}
+                data-key={key}
+                className={`${isHovered(key) ? "air-hover" : ""} ${isPressed(key) ? "air-pressed" : ""}`}
+                onClick={() => type(key)}
+              >
+                {getKoreanLabel(key, shift)}
+              </button>
+            ))}
+          </div>
+        ))}
+        <div className="keyboard-row controls">
+          <button
+            data-key="Shift"
+            className={`${shift ? "active" : ""} ${isHovered("Shift") ? "air-hover" : ""}`}
+            onClick={() => setShift(!shift)}
+          >
+            Shift
+          </button>
+          <button
+            data-key="Space"
+            className={`space ${isHovered("Space") ? "air-hover" : ""} ${isPressed("Space") ? "air-pressed" : ""}`}
+            onClick={() => type(" ")}
+          >
+            Space
+          </button>
+          <button
+            data-key="Backspace"
+            className={isHovered("Backspace") ? "air-hover" : ""}
+            onClick={() => type("Backspace")}
+          >
+            ⌫
+          </button>
+          <button
+            data-key="Enter"
+            className={isHovered("Enter") ? "air-hover" : ""}
+            onClick={() => type("Enter")}
+          >
+            Enter
+          </button>
         </div>
-      ))}
-      <div className="keyboard-row controls">
-        <button
-          data-key="Shift"
-          className={`${shift ? "active" : ""} ${isHovered("Shift") ? "air-hover" : ""}`}
-          onClick={() => setShift(!shift)}
-        >
-          Shift
-        </button>
-        <button
-          data-key="Space"
-          className={`space ${isHovered("Space") ? "air-hover" : ""} ${isPressed("Space") ? "air-pressed" : ""}`}
-          onClick={() => type(" ")}
-        >
-          Space
-        </button>
-        <button
-          data-key="Backspace"
-          className={isHovered("Backspace") ? "air-hover" : ""}
-          onClick={() => type("Backspace")}
-        >
-          ⌫
-        </button>
-        <button
-          data-key="Enter"
-          className={isHovered("Enter") ? "air-hover" : ""}
-          onClick={() => type("Enter")}
-        >
-          Enter
-        </button>
       </div>
       <canvas ref={handCanvasRef} className="keyboard-hands" />
       {pointers.map((pointer) => (
@@ -323,7 +378,7 @@ export default function Keyboard() {
             {calibrationStep + 1} / {calibrationSteps.length}
           </small>
           <strong>{calibrationSteps[calibrationStep].label}</strong>
-          <p>편하게 둔 상태에서 아래로 2~3번 톡 눌러주세요.</p>
+          <p>{calibrationSteps[calibrationStep].instruction}</p>
           <i key={calibrationStep} className="calibration-progress" />
         </section>
       )}
@@ -462,7 +517,10 @@ function loadCalibrationProfile(): CalibrationProfile | null {
     const parsed = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "null");
     if (
       parsed &&
-      calibrationSteps.every(({ finger }) => Number.isFinite(parsed[finger]))
+      calibrationSteps.every(
+        ({ finger }) => finger === null || Number.isFinite(parsed[finger]),
+      ) &&
+      Number.isFinite(parsed.keyboardWidth)
     ) {
       return parsed as CalibrationProfile;
     }
