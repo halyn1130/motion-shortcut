@@ -26,34 +26,14 @@ const CONNECTIONS: Array<[number, number]> = [
 ];
 
 type TrackerState = "idle" | "loading" | "tracking" | "no-hand" | "error";
-export type GestureId =
-  | "index"
-  | "victory"
-  | "three"
-  | "open-palm"
-  | "fist"
-  | "horns"
-  | "thumb-up"
-  | "l-shape"
-  | "pinch"
-  | "ok-sign"
-  | "tilt-left"
-  | "tilt-right";
+type GestureId = "calculator" | "notes" | "chrome" | "spotlight";
 export type MotionGestureId = GestureId | "toggle-motion";
 
 const GESTURE_LABELS: Record<MotionGestureId, string> = {
-  index: "검지 하나",
-  victory: "V 사인",
-  three: "오른손 세 손가락",
-  "open-palm": "손바닥 펼치기",
-  fist: "주먹 쥐기",
-  horns: "검지·새끼손가락",
-  "thumb-up": "엄지 위로",
-  "l-shape": "L 모양",
-  pinch: "핀치",
-  "ok-sign": "OK 사인",
-  "tilt-left": "손바닥 왼쪽 기울이기",
-  "tilt-right": "손바닥 오른쪽 기울이기",
+  calculator: "검지 하나",
+  notes: "V 사인",
+  chrome: "손바닥 펼치기",
+  spotlight: "주먹 쥐기",
   "toggle-motion": "전화 모양",
 };
 
@@ -596,30 +576,10 @@ function classifyGesture(
   const phoneSpread = distance(4, 20) > palmScale * 1.25;
   if (thumb && phoneSpread && !index && !middle && !ring && pinky)
     return "toggle-motion";
-  const pinched = distance(4, 8) < palmScale * 0.34;
-  if (pinched && middle && ring && pinky) return "ok-sign";
-  if (pinched && !middle && !ring && !pinky) return "pinch";
-  if (thumb && index && !middle && !ring && !pinky) return "l-shape";
-  if (
-    thumb &&
-    !index &&
-    !middle &&
-    !ring &&
-    !pinky &&
-    landmarks[4].y < landmarks[3].y
-  )
-    return "thumb-up";
-  if (index && !middle && !ring && pinky) return "horns";
-  if (index && middle && ring && pinky) {
-    const palmTilt = (landmarks[9].x - landmarks[0].x) / palmScale;
-    if (palmTilt < -0.42) return "tilt-left";
-    if (palmTilt > 0.42) return "tilt-right";
-    return "open-palm";
-  }
-  if (index && middle && ring && !pinky) return "three";
-  if (index && middle && !ring && !pinky) return "victory";
-  if (index && !middle && !ring && !pinky) return "index";
-  if (!index && !middle && !ring && !pinky) return "fist";
+  if (index && middle && ring && pinky) return "chrome";
+  if (index && middle && !ring && !pinky) return "notes";
+  if (index && !middle && !ring && !pinky) return "calculator";
+  if (!index && !middle && !ring && !pinky) return "spotlight";
   return null;
 }
 

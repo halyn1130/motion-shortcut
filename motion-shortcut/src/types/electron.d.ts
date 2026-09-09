@@ -6,10 +6,6 @@ declare global {
       launchApp(
         appId: string,
       ): Promise<{ ok: boolean; appName?: string; error?: string }>;
-      chooseApp(): Promise<{ name: string; path: string } | null>;
-      launchCustomApp(
-        appPath: string,
-      ): Promise<{ ok: boolean; appName?: string; error?: string }>;
       setOverlayMode(mode: string): Promise<boolean>;
       onOverlayMode(callback: (mode: "person-pet" | "hand-pet") => void): void;
       setOverlayColor(color: string): Promise<boolean>;
