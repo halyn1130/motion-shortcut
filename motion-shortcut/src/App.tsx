@@ -89,12 +89,14 @@ function App() {
     if (videoRef.current) videoRef.current.srcObject = null;
     setCameraState("idle");
     setMotionOn(false);
+    void window.motionAPI?.setMotionEnabled(false);
     addLog("카메라 중지");
   };
 
   const startCamera = async () => {
     if (streamRef.current) {
       setMotionOn(true);
+      await window.motionAPI?.setMotionEnabled(true);
       return;
     }
 
@@ -116,6 +118,7 @@ function App() {
       }
       setCameraState("active");
       setMotionOn(true);
+      await window.motionAPI?.setMotionEnabled(true);
       addLog("카메라 연결 성공");
     } catch (error) {
       const message =

@@ -470,15 +470,16 @@ function createOverlayWindow() {
   });
 }
 
+ipcMain.handle("overlay:get-mode", () => overlayMode);
 ipcMain.handle("overlay:set-mode", (_event, mode) => {
   if (!["camera", "person-pet", "hand-pet"].includes(mode)) return false;
   overlayMode = mode;
   if (!overlayWindow) createOverlayWindow();
+  overlayWindow.webContents.send("overlay:mode", mode);
   if (mode === "camera") overlayWindow.hide();
   else {
     overlayWindow.setOpacity(keyboardVisible ? 0 : 1);
     overlayWindow.showInactive();
-    overlayWindow.webContents.send("overlay:mode", mode);
   }
   return true;
 });

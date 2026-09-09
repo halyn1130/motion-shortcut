@@ -29,6 +29,7 @@ describe("모션 앱 런처", () => {
       .mockResolvedValue({ ok: true, appName: "계산기" });
     window.motionAPI = {
       launchApp,
+      getOverlayMode: vi.fn().mockResolvedValue("camera"),
       setOverlayMode: vi.fn().mockResolvedValue(true),
       onOverlayMode: vi.fn(),
       setOverlayColor: vi.fn().mockResolvedValue(true),

@@ -4,13 +4,13 @@ import {
   type MotionGestureId,
 } from "./features/camera/useHandTracking";
 
-type OverlayMode = "person-pet" | "hand-pet";
+type OverlayMode = "camera" | "person-pet" | "hand-pet";
 
 export default function Overlay() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const guideCanvasRef = useRef<HTMLCanvasElement>(null);
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [mode, setMode] = useState<OverlayMode>("person-pet");
+  const [mode, setMode] = useState<OverlayMode>("camera");
   const [motionOn, setMotionOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
@@ -21,7 +21,7 @@ export default function Overlay() {
     videoRef,
     guideCanvasRef,
     handCanvasRef,
-    true,
+    mode !== "camera",
     handColor,
     (gesture: MotionGestureId) => {
       if (gesture === "toggle-motion") void window.motionAPI?.toggleMotion();
@@ -43,6 +43,7 @@ export default function Overlay() {
   );
 
   useEffect(() => {
+    void window.motionAPI?.getOverlayMode().then(setMode);
     window.motionAPI?.onOverlayMode(setMode);
     window.motionAPI?.onOverlayColor(setHandColor);
     void window.motionAPI

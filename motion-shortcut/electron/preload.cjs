@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("motionAPI", {
   launchApp: (appId) => ipcRenderer.invoke("apps:launch", appId),
+  getOverlayMode: () => ipcRenderer.invoke("overlay:get-mode"),
   setOverlayMode: (mode) => ipcRenderer.invoke("overlay:set-mode", mode),
   onOverlayMode: (callback) =>
     ipcRenderer.on("overlay:mode", (_event, mode) => callback(mode)),
