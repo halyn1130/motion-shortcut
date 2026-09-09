@@ -411,7 +411,7 @@ function createWindow() {
     height: 820,
     minWidth: 880,
     minHeight: 640,
-    title: "모션 단축키",
+    title: "Flickey",
     backgroundColor: "#080909",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),

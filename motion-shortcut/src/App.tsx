@@ -249,11 +249,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand">M</div>
-        <div>
-          <h1>모션 단축키</h1>
-          <p>손짓으로 여는 나의 기본 프로그램</p>
-        </div>
+        <h1 className="wordmark">Flickey</h1>
         <span className="platform">macOS MVP</span>
         <button
           className={`motion-toggle ${motionOn ? "on" : ""}`}

@@ -36,6 +36,26 @@
   font-weight: 650;
   letter-spacing: -0.035em;
 }
+.topbar .wordmark {
+  margin-right: auto;
+  background: linear-gradient(
+    112deg,
+    #70828c 0%,
+    #eefbff 38%,
+    #a9c5d1 60%,
+    #f8fdff 78%,
+    #778993 100%
+  );
+  background-clip: text;
+  color: transparent;
+  font-size: 27px;
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  text-shadow: 0 0 18px #75dfff18;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .topbar p {
   margin: 2px 0 0;
   color: #777e7e;
