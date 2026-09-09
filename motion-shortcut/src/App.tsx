@@ -249,7 +249,9 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <h1 className="wordmark">Flickey</h1>
+        <h1 className="wordmark">
+          <img src="./assets/flickey-logo.png" alt="Flickey" />
+        </h1>
         <span className="platform">macOS MVP</span>
         <button
           className={`motion-toggle ${motionOn ? "on" : ""}`}

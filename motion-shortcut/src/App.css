@@ -37,59 +37,19 @@
   letter-spacing: -0.035em;
 }
 .topbar .wordmark {
+  display: flex;
+  align-items: center;
+  width: 124px;
+  height: 56px;
   margin-right: auto;
-  background-image:
-    linear-gradient(
-      104deg,
-      #34444c 2%,
-      #718791 14%,
-      #d8e8ed 24%,
-      #ffffff 28%,
-      #8197a1 34%,
-      #41535c 43%,
-      #b9cbd2 51%,
-      #f9feff 55%,
-      #667b85 63%,
-      #d5e5ea 72%,
-      #ffffff 76%,
-      #586b74 88%,
-      #2e3b42 98%
-    ),
-    repeating-linear-gradient(
-      0deg,
-      #ffffff18 0,
-      #ffffff18 1px,
-      #18262d14 1px,
-      #18262d14 3px
-    );
-  background-size:
-    280% 100%,
-    100% 100%;
-  background-clip: text;
-  background-blend-mode: screen;
-  color: transparent;
-  font-family: "Snell Roundhand", "SignPainter-HouseScript", cursive;
-  font-size: 36px;
-  font-style: normal;
-  font-weight: 900;
-  letter-spacing: -0.045em;
-  line-height: 0.9;
-  filter: drop-shadow(0 1px 0 #ffffff73) drop-shadow(0 2px 0 #26363e)
-    drop-shadow(0 4px 4px #000d) drop-shadow(0 0 10px #75dfff12);
-  animation: wordmark-metal-sweep 5.6s cubic-bezier(0.45, 0, 0.25, 1) infinite;
-  -webkit-background-clip: text;
-  -webkit-text-stroke: 0.25px #eaf6f94d;
-  -webkit-text-fill-color: transparent;
+  line-height: 0;
 }
-@keyframes wordmark-metal-sweep {
-  0%,
-  20% {
-    background-position: 100% 50%;
-  }
-  58%,
-  100% {
-    background-position: 0% 50%;
-  }
+.topbar .wordmark img {
+  display: block;
+  width: 124px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px #000c) drop-shadow(0 0 8px #7edcff1c);
 }
 .topbar p {
   margin: 2px 0 0;
