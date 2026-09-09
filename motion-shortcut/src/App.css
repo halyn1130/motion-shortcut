@@ -883,3 +883,143 @@
   color: #8de8ff;
   text-shadow: 0 0 12px #4ad6ff;
 }
+
+/* Refined gunmetal palette: cool steel first, restrained oxblood accents. */
+.app-shell::before {
+  background:
+    radial-gradient(circle at 82% 4%, #26343b26 0, transparent 28%),
+    radial-gradient(circle at 7% 94%, #54151c0c 0, transparent 18%),
+    linear-gradient(
+      135deg,
+      transparent 49.88%,
+      #95a6ae08 50%,
+      transparent 50.12%
+    );
+  background-size:
+    auto,
+    auto,
+    72px 72px;
+}
+.topbar {
+  border-bottom-color: #3a2025;
+  box-shadow: 0 12px 34px #0009;
+}
+.brand {
+  border-color: #654f34;
+  background: linear-gradient(145deg, #22292d, #0c0f11 68%);
+  color: #b99a62;
+  box-shadow:
+    inset 0 0 18px #66808b12,
+    0 0 18px #0008;
+}
+.platform {
+  border-color: #394248;
+  background: #101417;
+  color: #899399;
+}
+.mode-switcher,
+.panel,
+.mapping,
+.shortcut,
+.log li {
+  border-color: #2a3338;
+  background-color: #0b0f12;
+}
+.mode-switcher {
+  background: linear-gradient(180deg, #12181c, #090c0e);
+  box-shadow: inset 0 1px #ffffff08;
+}
+.mode-switcher button.active {
+  border-color: #63232b;
+  background: linear-gradient(180deg, #22292d, #111518);
+  color: #c8b181;
+  box-shadow: inset 2px 0 #741f29;
+}
+.sensitivity-control input,
+.pet-size-control input,
+.typing-sensitivity-control input {
+  accent-color: #88734e;
+}
+.sensitivity-control strong {
+  color: #b6a47e;
+}
+.badge {
+  border-color: #52232a;
+  background: #161113;
+  color: #ae9568;
+}
+.camera-view {
+  background:
+    linear-gradient(180deg, #0c1114, #06090b),
+    radial-gradient(circle at 50% 45%, #17232a, #030405 72%);
+}
+.motion-examples button,
+.motion-examples button.cursor-example {
+  border-color: #30393e;
+  background: linear-gradient(145deg, #151b1f, #090c0e 72%);
+  color: #858f94;
+}
+.motion-examples button.selected {
+  border-color: #66232c;
+  background: linear-gradient(145deg, #22171a, #0b0d0f 72%);
+  color: #c5ad7d;
+  box-shadow: inset 2px 0 #751f29;
+}
+.shortcut {
+  background:
+    linear-gradient(145deg, #161d21, #090c0e 58%),
+    radial-gradient(circle at 50% 35%, #1a2227, #07090a 68%);
+  box-shadow: inset 0 1px #ffffff08;
+}
+.shortcut::after {
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    #afc5ce0b 50%,
+    transparent 70%
+  );
+}
+.shortcut:hover,
+.shortcut.selected {
+  border-color: #5d252c;
+}
+.shortcut.selected {
+  box-shadow:
+    inset 3px 0 #681923,
+    inset 0 0 32px #6e171f0d,
+    0 10px 28px #0006;
+}
+.app-icon {
+  border-color: #4a3639;
+  background: radial-gradient(circle at 45% 35%, #252e33, #0a0d0f 68%);
+  color: #b59a66;
+  box-shadow:
+    0 10px 24px #0008,
+    inset 0 1px #ffffff0d;
+}
+.app-icon.notes {
+  border-color: #574a36;
+  color: #b8a77f;
+}
+.app-icon.chrome,
+.app-icon.spotlight {
+  border-color: #38515b;
+  color: #d5f3fa;
+  box-shadow:
+    inset 0 1px #ffffff12,
+    0 0 16px #5ed9fa17;
+}
+.gesture {
+  border-color: #4c272c;
+  background: #151113;
+  color: #ad956b;
+}
+.motion-toggle.on,
+.cursor-toggle.on {
+  border-color: #45616c;
+  background: linear-gradient(180deg, #172229, #0a0f12);
+  color: #c8edf5;
+  box-shadow:
+    inset 0 1px #ffffff0b,
+    0 0 12px #64d9f514;
+}

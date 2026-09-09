@@ -23,8 +23,8 @@ body {
 }
 body:not(.overlay-page):not(.keyboard-page) {
   background:
-    radial-gradient(circle at 88% 3%, #6e122016 0, transparent 26%),
-    radial-gradient(circle at 5% 94%, #8a5a1810 0, transparent 20%), #030405;
+    radial-gradient(circle at 86% 2%, #26343d24 0, transparent 28%),
+    radial-gradient(circle at 6% 95%, #4e151b0a 0, transparent 18%), #050709;
 }
 .overlay-page,
 .overlay-page body,
@@ -557,4 +557,43 @@ button:focus-visible {
 ::selection {
   background: #a52234;
   color: #fff4df;
+}
+
+/* Refined gunmetal surfaces with muted oxblood details. */
+.virtual-keyboard {
+  border-color: #3d2b2f;
+  background: rgba(8, 11, 13, 0.94);
+  box-shadow:
+    0 20px 64px #000c,
+    inset 0 1px #ffffff09;
+}
+.keyboard-row button,
+.virtual-keyboard header button {
+  border-color: #343c40;
+  background: linear-gradient(#1b2226, #0c1012);
+}
+.virtual-keyboard.calibrated {
+  border-color: #42272d38;
+  background: rgba(7, 10, 12, 0.42);
+}
+.calibration-panel,
+.training-panel {
+  border-color: #58272e;
+  background: linear-gradient(
+    145deg,
+    rgba(25, 31, 35, 0.88),
+    rgba(7, 10, 12, 0.8)
+  );
+}
+.calibration-panel button,
+.calibration-progress::after,
+.training-progress b {
+  background: linear-gradient(90deg, #5f1b25, #88734e);
+  color: #e7e0d2;
+}
+.pet-edit-hint,
+.desktop-pet > span {
+  border-color: #493238;
+  background: #0d1114e6;
+  color: #b7a078;
 }
