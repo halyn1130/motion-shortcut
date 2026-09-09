@@ -143,6 +143,7 @@ const calibrationSteps: Array<{
 ];
 type CalibrationProfile = Record<FingerName, number> & {
   keyboardWidth: number;
+  learnedKeyCenters?: Record<string, { x: number; y: number }>;
 };
 type CalibrationRun = {
   step: number;
@@ -152,13 +153,24 @@ type CalibrationRun = {
   reachMaxX: number;
   profile: Partial<CalibrationProfile>;
 };
+type TrainingRun = {
+  index: number;
+  startedAt: number;
+  samples: FingerPointer[];
+  centers: Record<string, Array<{ x: number; y: number }>>;
+};
 const PROFILE_KEY = "motion-keyboard-calibration-v3";
+const TRAINING_TEXT =
+  "키스의 고유조건은 입술끼리 만나야 하고 특별한 기술은 필요치 않다 빠르게 쫓겨온 여우가 예쁜 새 옆을 맴돈다";
+const TRAINING_KEYS = hangulToKeyboardKeys(TRAINING_TEXT);
+const TRAINING_BEAT_MS = 850;
 
 export default function Keyboard() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
   const tapStatesRef = useRef<Record<string, TapState>>({});
   const lastTypedRef = useRef({ key: "", at: 0 });
   const calibrationRef = useRef<CalibrationRun | null>(null);
+  const trainingRef = useRef<TrainingRun | null>(null);
   const typingSensitivityRef = useRef(0.35);
   const [shift, setShift] = useState(false);
   const [typedPreview, setTypedPreview] = useState("");
@@ -169,6 +181,9 @@ export default function Keyboard() {
   );
   const profileRef = useRef(profile);
   const [calibrationStep, setCalibrationStep] = useState(-1);
+  const [trainingReady, setTrainingReady] = useState(false);
+  const [trainingIndex, setTrainingIndex] = useState(-1);
+  const [trainingComplete, setTrainingComplete] = useState(false);
 
   useEffect(() => {
     for (const pointer of pointers) {
@@ -202,6 +217,10 @@ export default function Keyboard() {
   };
 
   const startCalibration = () => {
+    trainingRef.current = null;
+    setTrainingReady(false);
+    setTrainingIndex(-1);
+    setTrainingComplete(false);
     tapStatesRef.current = {};
     calibrationRef.current = {
       step: 0,
@@ -213,6 +232,80 @@ export default function Keyboard() {
     };
     setCalibrationStep(0);
   };
+
+  const startTraining = () => {
+    if (!profileRef.current) {
+      startCalibration();
+      return;
+    }
+    tapStatesRef.current = {};
+    trainingRef.current = {
+      index: 0,
+      startedAt: performance.now(),
+      samples: [],
+      centers: {},
+    };
+    setTrainingComplete(false);
+    setTrainingReady(false);
+    setTrainingIndex(0);
+  };
+
+  function updateTraining(nextPointers: FingerPointer[]) {
+    const run = trainingRef.current;
+    if (!run) return;
+    const expected = TRAINING_KEYS[run.index];
+    const assignment = fingerForKey(expected);
+    const elapsed = performance.now() - run.startedAt;
+
+    // 박자의 앞부분은 손가락을 준비하는 시간으로 두고, 후반 눌림만 학습한다.
+    if (elapsed > TRAINING_BEAT_MS * 0.38) {
+      run.samples.push(
+        ...nextPointers.filter(
+          (pointer) =>
+            pointer.finger === assignment.finger &&
+            (assignment.hand === null || pointer.hand === assignment.hand),
+        ),
+      );
+    }
+    if (elapsed < TRAINING_BEAT_MS) return;
+
+    if (run.samples.length) {
+      const peak = run.samples.reduce((best, sample) =>
+        sample.offset > best.offset ? sample : best,
+      );
+      const key = expected.toLowerCase();
+      (run.centers[key] ??= []).push({
+        x: peak.x / window.innerWidth,
+        y: peak.y / window.innerHeight,
+      });
+    }
+
+    run.index += 1;
+    run.startedAt = performance.now();
+    run.samples = [];
+    if (run.index < TRAINING_KEYS.length) {
+      setTrainingIndex(run.index);
+      return;
+    }
+
+    const learnedKeyCenters = Object.fromEntries(
+      Object.entries(run.centers).map(([key, points]) => [
+        key,
+        {
+          x: median(points.map((point) => point.x)),
+          y: median(points.map((point) => point.y)),
+        },
+      ]),
+    );
+    const completed = { ...profileRef.current!, learnedKeyCenters };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(completed));
+    profileRef.current = completed;
+    setProfile(completed);
+    trainingRef.current = null;
+    tapStatesRef.current = {};
+    setTrainingIndex(-1);
+    setTrainingComplete(true);
+  }
 
   function updateCalibration(nextPointers: FingerPointer[]) {
     const run = calibrationRef.current;
@@ -268,6 +361,7 @@ export default function Keyboard() {
     profileRef.current = completed;
     setProfile(completed);
     setCalibrationStep(-1);
+    setTrainingReady(true);
   }
 
   useEffect(() => {
@@ -284,10 +378,11 @@ export default function Keyboard() {
         tapStatesRef.current,
         lastTypedRef.current,
         profileRef.current,
-        calibrationRef.current !== null,
+        calibrationRef.current !== null || trainingRef.current !== null,
         typingSensitivityRef.current,
       );
       updateCalibration(nextPointers);
+      updateTraining(nextPointers);
       setPointers(nextPointers);
     });
   }, []);
@@ -313,6 +408,9 @@ export default function Keyboard() {
         </button>
         <button className="calibrate-button" onClick={startCalibration}>
           다시 보정
+        </button>
+        <button className="train-button" onClick={startTraining}>
+          문장 학습
         </button>
       </header>
       <div
@@ -390,6 +488,51 @@ export default function Keyboard() {
           <i key={calibrationStep} className="calibration-progress" />
         </section>
       )}
+      {trainingReady && (
+        <section className="training-panel training-intro">
+          <small>마지막 단계 · 개인 타건 학습</small>
+          <strong>화면의 박자에 맞춰 허공에 자연스럽게 타자 치기</strong>
+          <p className="training-copy">{TRAINING_TEXT}</p>
+          <span>
+            키보드 위치에 손을 억지로 맞추지 마세요. 평소 타자 치는 자리에서
+            표시되는 키만 한 번씩 누르면 됩니다.
+          </span>
+          <button onClick={startTraining}>문장 학습 시작</button>
+        </section>
+      )}
+      {trainingIndex >= 0 && (
+        <section className="training-panel">
+          <small>
+            개인 타건 학습 · {trainingIndex + 1} / {TRAINING_KEYS.length}
+          </small>
+          <p className="training-copy">{TRAINING_TEXT}</p>
+          <span>박자에 맞춰 지금 이 키를 자연스럽게 톡 누르세요</span>
+          <strong className="training-key" key={trainingIndex}>
+            {trainingKeyLabel(TRAINING_KEYS[trainingIndex])}
+          </strong>
+          <i className="training-progress">
+            <b
+              style={{
+                width: `${((trainingIndex + 1) / TRAINING_KEYS.length) * 100}%`,
+              }}
+            />
+          </i>
+          <button
+            onClick={() => {
+              trainingRef.current = null;
+              setTrainingIndex(-1);
+            }}
+          >
+            학습 취소
+          </button>
+        </section>
+      )}
+      {trainingComplete && (
+        <section className="training-toast">
+          개인 타건 위치 학습 완료
+          <button onClick={() => setTrainingComplete(false)}>확인</button>
+        </section>
+      )}
     </main>
   );
 }
@@ -428,7 +571,14 @@ function trackFingerTaps(
       const button = document
         .elementFromPoint(x, y)
         ?.closest<HTMLButtonElement>("button[data-key]");
-      let key = button?.dataset.key ?? "";
+      const learnedKey = nearestLearnedKey(
+        x,
+        y,
+        hand.handedness,
+        finger.name,
+        profile?.learnedKeyCenters,
+      );
+      let key = learnedKey ?? button?.dataset.key ?? "";
       const isThumb = finger.name === "thumb";
       if (isThumb && key !== "Space") key = "";
 
@@ -542,6 +692,157 @@ function loadCalibrationProfile(): CalibrationProfile | null {
     // 손상된 이전 설정은 무시하고 다시 보정한다.
   }
   return null;
+}
+
+const initialKeys = [
+  "r",
+  "R",
+  "s",
+  "e",
+  "E",
+  "f",
+  "a",
+  "q",
+  "Q",
+  "t",
+  "T",
+  "d",
+  "w",
+  "W",
+  "c",
+  "z",
+  "x",
+  "v",
+  "g",
+];
+const medialKeys = [
+  "k",
+  "o",
+  "i",
+  "O",
+  "j",
+  "p",
+  "u",
+  "P",
+  "h",
+  "hk",
+  "ho",
+  "hl",
+  "y",
+  "n",
+  "nj",
+  "np",
+  "nl",
+  "b",
+  "m",
+  "ml",
+  "l",
+];
+const finalKeys = [
+  "",
+  "r",
+  "R",
+  "rt",
+  "s",
+  "sw",
+  "sg",
+  "e",
+  "f",
+  "fr",
+  "fa",
+  "fq",
+  "ft",
+  "fx",
+  "fv",
+  "fg",
+  "a",
+  "q",
+  "qt",
+  "t",
+  "T",
+  "d",
+  "w",
+  "c",
+  "z",
+  "x",
+  "v",
+  "g",
+];
+
+function hangulToKeyboardKeys(text: string) {
+  const keys: string[] = [];
+  for (const character of text) {
+    if (character === " ") {
+      keys.push(" ");
+      continue;
+    }
+    const syllable = character.charCodeAt(0) - 0xac00;
+    if (syllable < 0 || syllable > 11171) continue;
+    const initial = Math.floor(syllable / 588);
+    const medial = Math.floor((syllable % 588) / 28);
+    const final = syllable % 28;
+    keys.push(
+      ...initialKeys[initial],
+      ...medialKeys[medial],
+      ...finalKeys[final],
+    );
+  }
+  return keys;
+}
+
+function fingerForKey(key: string): {
+  hand: Handedness | null;
+  finger: FingerName;
+} {
+  const normalized = key.toLowerCase();
+  if (normalized === " ") return { hand: null, finger: "thumb" };
+  if ("qaz".includes(normalized)) return { hand: "Left", finger: "pinky" };
+  if ("wsx".includes(normalized)) return { hand: "Left", finger: "ring" };
+  if ("edc".includes(normalized)) return { hand: "Left", finger: "middle" };
+  if ("rfvtgb".includes(normalized)) return { hand: "Left", finger: "index" };
+  if ("yhnujm".includes(normalized)) return { hand: "Right", finger: "index" };
+  if ("ik".includes(normalized)) return { hand: "Right", finger: "middle" };
+  if ("ol".includes(normalized)) return { hand: "Right", finger: "ring" };
+  return { hand: "Right", finger: "pinky" };
+}
+
+function nearestLearnedKey(
+  x: number,
+  y: number,
+  hand: Handedness,
+  finger: FingerName,
+  centers?: Record<string, { x: number; y: number }>,
+) {
+  if (!centers || !Object.keys(centers).length) return null;
+  let nearest: { key: string; distance: number } | null = null;
+  for (const [key, center] of Object.entries(centers)) {
+    const assignment = fingerForKey(key);
+    if (
+      assignment.finger !== finger ||
+      (assignment.hand !== null && assignment.hand !== hand)
+    )
+      continue;
+    const distance = Math.hypot(
+      x / window.innerWidth - center.x,
+      y / window.innerHeight - center.y,
+    );
+    if (!nearest || distance < nearest.distance) nearest = { key, distance };
+  }
+  return nearest?.key ?? null;
+}
+
+function trainingKeyLabel(key: string) {
+  if (key === " ") return "SPACE";
+  const normalized = key.toLowerCase();
+  return `${getKoreanLabel(normalized, key !== normalized)} · ${key.toUpperCase()}`;
+}
+
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 function clamp(value: number, min: number, max: number) {
