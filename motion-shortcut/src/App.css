@@ -916,8 +916,10 @@
     72px 72px;
 }
 .topbar {
-  border-bottom-color: #3a2025;
-  box-shadow: 0 12px 34px #0009;
+  border-bottom-color: #b7e9f58f;
+  box-shadow:
+    0 1px 8px #8cddf21a,
+    0 12px 34px #0009;
 }
 .brand {
   border-color: #654f34;
