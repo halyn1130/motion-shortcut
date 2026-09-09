@@ -21,6 +21,11 @@ body {
   background:
     radial-gradient(circle at 50% -20%, #172324 0, transparent 38%), #080909;
 }
+body:not(.overlay-page):not(.keyboard-page) {
+  background:
+    radial-gradient(circle at 88% 3%, #6e122016 0, transparent 26%),
+    radial-gradient(circle at 5% 94%, #8a5a1810 0, transparent 20%), #030405;
+}
 .overlay-page,
 .overlay-page body,
 .overlay-page #root {
@@ -453,4 +458,103 @@ button:focus-visible {
 }
 .desktop-pet.hand-pet:not(.has-hand) > span {
   opacity: 0;
+}
+
+/* Shared black-armor surfaces; cyan is reserved for live energy feedback. */
+.virtual-keyboard {
+  border-color: #6f2630;
+  background: rgba(4, 5, 7, 0.94);
+  box-shadow:
+    0 18px 60px #000c,
+    inset 0 1px #d6a64a12;
+}
+.virtual-keyboard header {
+  border-bottom: 1px solid #6d20292e;
+}
+.typing-preview,
+.virtual-keyboard header em.ok {
+  color: #a9edff;
+  text-shadow: 0 0 12px #4fd8ff66;
+}
+.keyboard-row button,
+.virtual-keyboard header button {
+  border-color: #4b292e;
+  background: linear-gradient(#181316, #090a0b);
+  box-shadow: 0 3px 0 #020203;
+}
+.keyboard-row button:active,
+.keyboard-row button.active,
+.keyboard-row button.air-hover,
+.keyboard-row button.air-pressed {
+  border-color: #72dfffaa;
+  background: #10242c;
+  box-shadow:
+    0 1px 0 #020203,
+    0 0 18px #55d9ff3d;
+}
+.keyboard-row button.air-pressed {
+  background: #dff9ff;
+  color: #071016;
+}
+.virtual-keyboard.calibrated {
+  border-color: #7e26302c;
+  background: rgba(4, 5, 7, 0.38);
+}
+.virtual-keyboard.calibrated .keyboard-row button.air-hover,
+.virtual-keyboard.calibrated .keyboard-row button.active {
+  border-color: #6ddfff99;
+  background: #10242cdd;
+}
+.calibration-panel,
+.training-panel {
+  border-color: #9d303f77;
+  background: linear-gradient(
+    145deg,
+    rgba(27, 13, 17, 0.84),
+    rgba(5, 7, 9, 0.72)
+  );
+  box-shadow:
+    0 24px 80px #000c,
+    0 0 34px #b4233514;
+}
+.calibration-panel button,
+.calibration-progress::after,
+.training-progress b {
+  background: linear-gradient(90deg, #9f1f32, #d5a13f);
+  color: #fff4dd;
+}
+.training-key {
+  border-color: #78e2ffaa;
+  background: #10242c;
+  color: #dffaff;
+  box-shadow:
+    0 0 8px #fff2,
+    0 0 28px #51d8ff38;
+}
+.finger-pointer,
+.finger-pointer.right {
+  background: #dffaffdd;
+  box-shadow:
+    0 0 6px #fff,
+    0 0 22px #51d8ff;
+}
+.keyboard-hands,
+.desktop-pet.hand-pet.has-hand canvas {
+  filter: drop-shadow(0 0 5px #fff8) drop-shadow(0 0 13px #54d9ff);
+}
+.desktop-pet.editing {
+  border-color: #c7943faa;
+}
+.pet-edit-hint,
+.desktop-pet > span {
+  border-color: #842b36;
+  background: #0c0709dc;
+  color: #e2b45f;
+}
+button:focus-visible {
+  outline-color: #74e2ff;
+}
+::selection {
+  background: #a52234;
+  color: #fff4df;
 }

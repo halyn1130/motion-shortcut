@@ -727,3 +727,159 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Black armor theme: red/gold structure with arc-blue active energy. */
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+.app-shell::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(circle at 88% 7%, #7e142417 0, transparent 23%),
+    radial-gradient(circle at 8% 92%, #b8832510 0, transparent 20%),
+    linear-gradient(135deg, transparent 49.8%, #ffffff07 50%, transparent 50.2%);
+  background-size:
+    auto,
+    auto,
+    54px 54px;
+  pointer-events: none;
+  content: "";
+}
+.topbar {
+  border-bottom-color: #621a24;
+  box-shadow: 0 12px 34px #0008;
+}
+.brand {
+  border-color: #c8943f88;
+  background: linear-gradient(145deg, #21160d, #090808 64%);
+  color: #f2c568;
+  box-shadow:
+    inset 0 0 18px #8c15262b,
+    0 0 20px #d5a03a12;
+}
+.platform {
+  border-color: #5d2028;
+  background: #120b0d;
+  color: #b98e53;
+}
+.motion-toggle.on,
+.cursor-toggle.on {
+  border-color: #79e4ff73;
+  background: linear-gradient(180deg, #10222a, #080c0f);
+  color: #bdefff;
+  box-shadow:
+    inset 0 0 16px #70dcff12,
+    0 0 16px #4dd3ff12;
+}
+.motion-toggle.on i {
+  background: #eafcff;
+  box-shadow:
+    0 0 5px #fff,
+    0 0 14px #5cddff,
+    0 0 26px #249ccc;
+}
+.sensitivity-control input,
+.pet-size-control input,
+.typing-sensitivity-control input {
+  accent-color: #c99136;
+}
+.sensitivity-control strong {
+  color: #e2bb71;
+}
+.mode-switcher,
+.panel,
+.shortcut,
+.log li {
+  border-color: #30262a;
+  background-color: #08090a;
+}
+.mode-switcher button.active {
+  border-color: #a32b3b73;
+  background: linear-gradient(180deg, #251116, #100a0c);
+  color: #f0be62;
+  box-shadow: inset 3px 0 #b62639;
+}
+.camera-view {
+  background: radial-gradient(circle at 50% 45%, #101a20, #010203 72%);
+}
+.camera-view::after {
+  background: linear-gradient(transparent 49%, #65ddff0a 50%);
+}
+.hand-canvas {
+  filter: drop-shadow(0 0 5px #e9fbff) drop-shadow(0 0 14px #55d9ff);
+}
+.badge {
+  border-color: #7c2632;
+  background: #160b0e;
+  color: #d6a34a;
+}
+.recognition i,
+.log li i {
+  background: #eafcff;
+  box-shadow:
+    0 0 5px #fff,
+    0 0 13px #59dcff;
+}
+.motion-examples button {
+  border-color: #38272b;
+  background: linear-gradient(145deg, #110a0c, #08090a 70%);
+}
+.motion-examples button.selected {
+  border-color: #b52d3f8c;
+  background: #1c0c10;
+  color: #f3c56d;
+}
+.motion-examples button.cursor-example {
+  border-color: #784f264f;
+  background: linear-gradient(145deg, #171006, #08090a 72%);
+}
+.shortcut {
+  background:
+    linear-gradient(135deg, #64142212, transparent 38%),
+    radial-gradient(circle at 50% 38%, #131619 0, #050607 62%);
+}
+.shortcut::after {
+  background: linear-gradient(
+    120deg,
+    transparent 25%,
+    #f2c5680a 50%,
+    transparent 75%
+  );
+}
+.shortcut:hover,
+.shortcut.selected {
+  border-color: #8f2937;
+}
+.shortcut.selected {
+  box-shadow:
+    inset 3px 0 #b92438,
+    inset 0 0 35px #d79f3210;
+}
+.app-icon {
+  border-color: #8a2a37;
+  background: radial-gradient(circle, #1d1114, #08090a 70%);
+  color: #efbd5c;
+  box-shadow:
+    0 0 24px #a823321a,
+    inset 0 0 18px #d19b3314;
+}
+.app-icon.chrome,
+.app-icon.spotlight {
+  border-color: #60d8ff73;
+  color: #dffaff;
+  box-shadow:
+    0 0 7px #fff4,
+    0 0 25px #4fd8ff29;
+}
+.gesture {
+  border-color: #6c2730;
+  background: #140a0d;
+  color: #d9a84e;
+}
+.mapping-flow b {
+  color: #8de8ff;
+  text-shadow: 0 0 12px #4ad6ff;
+}

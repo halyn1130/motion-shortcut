@@ -15,7 +15,7 @@ export default function Overlay() {
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [handColor, setHandColor] = useState("#65f6dc");
+  const [handColor, setHandColor] = useState("#72dcff");
   const [editing, setEditing] = useState(false);
   const tracking = useHandTracking(
     videoRef,

@@ -62,9 +62,10 @@ function App() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>(
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
   );
-  const [handColor, setHandColor] = useState(
-    () => localStorage.getItem("handColor") || "#65f6dc",
-  );
+  const [handColor, setHandColor] = useState(() => {
+    const saved = localStorage.getItem("handColor");
+    return !saved || saved.toLowerCase() === "#65f6dc" ? "#72dcff" : saved;
+  });
   const [cameraState, setCameraState] = useState<
     "idle" | "requesting" | "active" | "error"
   >("idle");
