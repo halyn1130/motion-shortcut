@@ -39,22 +39,42 @@
 .topbar .wordmark {
   margin-right: auto;
   background: linear-gradient(
-    112deg,
-    #70828c 0%,
-    #eefbff 38%,
-    #a9c5d1 60%,
-    #f8fdff 78%,
-    #778993 100%
+    105deg,
+    #53646d 3%,
+    #a7bbc4 18%,
+    #f7fdff 31%,
+    #78909b 43%,
+    #dcecf1 55%,
+    #ffffff 61%,
+    #8ba2ac 72%,
+    #4b5c64 92%
   );
+  background-size: 240% 100%;
   background-clip: text;
   color: transparent;
-  font-size: 27px;
-  font-weight: 900;
-  letter-spacing: -0.055em;
-  line-height: 1;
-  text-shadow: 0 0 18px #75dfff18;
+  font-family:
+    "SignPainter-HouseScript", "SignPainter", "Snell Roundhand", cursive;
+  font-size: 38px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 0.9;
+  filter: drop-shadow(0 1px 0 #e9fbff55) drop-shadow(0 3px 3px #000c)
+    drop-shadow(0 0 12px #75dfff18);
+  animation: wordmark-metal-sweep 4.8s ease-in-out infinite;
   -webkit-background-clip: text;
+  -webkit-text-stroke: 0.35px #dcecf166;
   -webkit-text-fill-color: transparent;
+}
+@keyframes wordmark-metal-sweep {
+  0%,
+  20% {
+    background-position: 100% 50%;
+  }
+  58%,
+  100% {
+    background-position: 0% 50%;
+  }
 }
 .topbar p {
   margin: 2px 0 0;
