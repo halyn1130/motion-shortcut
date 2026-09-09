@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld("motionAPI", {
   getKeyboardVisible: () => ipcRenderer.invoke("keyboard:get"),
   setKeyboardVisible: (visible) => ipcRenderer.invoke("keyboard:set", visible),
   toggleKeyboard: () => ipcRenderer.invoke("keyboard:toggle"),
-  typeKey: (key) => ipcRenderer.send("keyboard:type", key),
+  typeKey: (key) => ipcRenderer.invoke("keyboard:type", key),
   sendKeyboardPointer: (sample) => ipcRenderer.send("keyboard:pointer", sample),
   onKeyboardPointer: (callback) =>
     ipcRenderer.on("keyboard:pointer", (_event, sample) => callback(sample)),

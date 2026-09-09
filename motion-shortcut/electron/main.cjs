@@ -21,6 +21,8 @@ const allowedApps = Object.freeze({
 });
 let overlayWindow = null;
 let keyboardWindow = null;
+let mainWindow = null;
+let restoreMainWindowAfterKeyboard = false;
 let keyboardVisible = false;
 let overlayMode = "camera";
 let motionEnabled = true;
@@ -229,6 +231,10 @@ function setKeyboardVisible(visible) {
       systemPreferences.isTrustedAccessibilityClient(true);
       if (ensureCursorHelper()) cursorHelper.stdin.write("input-korean\n");
     }
+    if (mainWindow?.isFocused()) {
+      restoreMainWindowAfterKeyboard = true;
+      mainWindow.hide();
+    }
     if (overlayMode !== "camera" && overlayWindow) {
       overlayWindow.setOpacity(0);
       overlayWindow.showInactive();
@@ -239,6 +245,10 @@ function setKeyboardVisible(visible) {
       cursorHelper.stdin.write("input-restore\n");
     }
     keyboardWindow.hide();
+    if (restoreMainWindowAfterKeyboard && mainWindow) {
+      mainWindow.show();
+      restoreMainWindowAfterKeyboard = false;
+    }
     if (overlayMode !== "camera" && overlayWindow) {
       overlayWindow.setOpacity(1);
       overlayWindow.showInactive();
@@ -295,15 +305,29 @@ const macKeyCodes = Object.freeze({
   Enter: 36,
   Tab: 48,
 });
-ipcMain.on("keyboard:type", (_event, key) => {
-  if (!keyboardVisible || !ensureCursorHelper()) return;
+ipcMain.handle("keyboard:type", (_event, key) => {
+  if (!keyboardVisible) return { ok: false, error: "키보드가 닫혀 있습니다." };
+  if (
+    process.platform === "darwin" &&
+    !systemPreferences.isTrustedAccessibilityClient(true)
+  ) {
+    return {
+      ok: false,
+      error: "시스템 설정에서 모션 단축키의 손쉬운 사용 권한이 필요합니다.",
+    };
+  }
+  if (!ensureCursorHelper()) {
+    return { ok: false, error: "macOS 입력 모듈을 시작하지 못했습니다." };
+  }
   const normalized = key === " " ? "Space" : String(key);
   const baseKey =
     normalized.length === 1 ? normalized.toLowerCase() : normalized;
   const keyCode = macKeyCodes[baseKey];
-  if (keyCode === undefined) return;
+  if (keyCode === undefined)
+    return { ok: false, error: "지원하지 않는 키입니다." };
   const shifted = normalized.length === 1 && normalized !== baseKey;
   cursorHelper.stdin.write(`${shifted ? "keyshift" : "key"} ${keyCode}\n`);
+  return { ok: true };
 });
 ipcMain.on("keyboard:pointer", (_event, sample) => {
   if (!keyboardVisible || !keyboardWindow || !sample) return;
@@ -326,7 +350,7 @@ ipcMain.on("keyboard:hands", (_event, hands) => {
 });
 
 function createWindow() {
-  const window = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 880,
@@ -343,10 +367,13 @@ function createWindow() {
   });
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    window.loadURL(process.env.VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+    mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   }
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 function createOverlayWindow() {

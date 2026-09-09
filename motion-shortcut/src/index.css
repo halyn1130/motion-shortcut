@@ -66,6 +66,16 @@ body {
   text-overflow: ellipsis;
   white-space: pre;
 }
+.virtual-keyboard header em {
+  max-width: 210px;
+  color: #ff9c8f;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+.virtual-keyboard header em.ok {
+  color: #65f6dc;
+}
 .virtual-keyboard header button {
   margin-left: auto;
   padding: 5px 10px;
