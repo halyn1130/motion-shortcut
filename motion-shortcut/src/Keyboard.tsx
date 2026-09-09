@@ -162,7 +162,6 @@ type TrainingRun = {
 const PROFILE_KEY = "motion-keyboard-calibration-v3";
 const TRAINING_TEXT =
   "키스의 고유조건은 입술끼리 만나야 하고 특별한 기술은 필요치 않다 빠르게 쫓겨온 여우가 예쁜 새 옆을 맴돈다";
-const TRAINING_KEYS = hangulToKeyboardKeys(TRAINING_TEXT);
 const TRAINING_BEAT_MS = 850;
 
 export default function Keyboard() {
@@ -768,6 +767,7 @@ const finalKeys = [
   "v",
   "g",
 ];
+const TRAINING_KEYS = hangulToKeyboardKeys(TRAINING_TEXT);
 
 function hangulToKeyboardKeys(text: string) {
   const keys: string[] = [];
