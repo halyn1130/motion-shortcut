@@ -74,11 +74,10 @@ type CalibrationProfile = Record<FingerName, number>;
 type CalibrationRun = {
   step: number;
   startedAt: number;
-  min: number;
-  max: number;
+  ranges: Record<string, { min: number; max: number }>;
   profile: Partial<CalibrationProfile>;
 };
-const PROFILE_KEY = "motion-keyboard-calibration-v1";
+const PROFILE_KEY = "motion-keyboard-calibration-v2";
 
 export default function Keyboard() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -119,8 +118,7 @@ export default function Keyboard() {
     calibrationRef.current = {
       step: 0,
       startedAt: performance.now(),
-      min: Infinity,
-      max: -Infinity,
+      ranges: {},
       profile: {},
     };
     setCalibrationStep(0);
@@ -132,18 +130,28 @@ export default function Keyboard() {
     const target = calibrationSteps[run.step];
     for (const pointer of nextPointers) {
       if (pointer.finger !== target.finger) continue;
-      run.min = Math.min(run.min, pointer.offset);
-      run.max = Math.max(run.max, pointer.offset);
+      const range = run.ranges[pointer.id] ?? {
+        min: pointer.offset,
+        max: pointer.offset,
+      };
+      range.min = Math.min(range.min, pointer.offset);
+      range.max = Math.max(range.max, pointer.offset);
+      run.ranges[pointer.id] = range;
     }
     if (performance.now() - run.startedAt < 2600) return;
 
-    const measuredRange = Number.isFinite(run.min) ? run.max - run.min : 0;
-    run.profile[target.finger] = clamp(measuredRange * 0.55, 0.1, 0.28);
+    const measuredRanges = Object.values(run.ranges)
+      .map((range) => range.max - range.min)
+      .filter((range) => range > 0.015);
+    const measuredRange = measuredRanges.length
+      ? measuredRanges.reduce((sum, range) => sum + range, 0) /
+        measuredRanges.length
+      : 0.16;
+    run.profile[target.finger] = clamp(measuredRange * 0.38, 0.04, 0.13);
     run.step += 1;
     if (run.step < calibrationSteps.length) {
       run.startedAt = performance.now();
-      run.min = Infinity;
-      run.max = -Infinity;
+      run.ranges = {};
       setCalibrationStep(run.step);
       return;
     }
@@ -325,7 +333,7 @@ function trackFingerTaps(
         state.armed &&
         now >= state.cooldownUntil &&
         offset > state.restOffset + pressDistance &&
-        downwardSpeed > 0.0011;
+        downwardSpeed > 0.00025;
 
       // 같은 키를 여러 손가락이 동시에 건드려도 한 글자만 입력한다.
       if (pressing && lastTyped.key === key && now - lastTyped.at < 170) {
