@@ -51,13 +51,14 @@ function stopCursorHelper() {
 function ensureCursorHelper() {
   if (process.platform !== "darwin") return false;
   if (cursorHelper && !cursorHelper.killed) return true;
+  const isBundled = app.isPackaged || __dirname.includes("app.asar");
   const helperDirectory = path.join(app.getPath("userData"), "native");
-  const helperPath = app.isPackaged
+  const helperPath = isBundled
     ? path.join(process.resourcesPath, "native", "motion-cursor-helper")
     : path.join(helperDirectory, "motion-cursor-helper");
   const sourcePath = path.join(__dirname, "cursor-helper.c");
   try {
-    if (app.isPackaged) {
+    if (isBundled) {
       if (!fs.existsSync(helperPath)) return false;
     } else {
       fs.mkdirSync(helperDirectory, { recursive: true });

@@ -130,11 +130,15 @@ export function useHandTracking(
       try {
         setState("loading");
         if (!landmarkerRef.current) {
-          const vision =
-            await FilesetResolver.forVisionTasks("/mediapipe/wasm");
+          const vision = await FilesetResolver.forVisionTasks(
+            new URL("./mediapipe/wasm", document.baseURI).href,
+          );
           const options = {
             baseOptions: {
-              modelAssetPath: "/mediapipe/models/hand_landmarker.task",
+              modelAssetPath: new URL(
+                "./mediapipe/models/hand_landmarker.task",
+                document.baseURI,
+              ).href,
             },
             runningMode: "VIDEO" as const,
             numHands: 2,
