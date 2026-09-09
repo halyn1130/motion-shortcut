@@ -10,6 +10,10 @@ declare global {
       onOverlayMode(callback: (mode: "person-pet" | "hand-pet") => void): void;
       setOverlayColor(color: string): Promise<boolean>;
       onOverlayColor(callback: (color: string) => void): void;
+      getOverlayLayout(): Promise<{ scale: number; editing: boolean }>;
+      setOverlayScale(scale: number): Promise<number>;
+      setOverlayEditing(editing: boolean): Promise<boolean>;
+      onOverlayEditing(callback: (editing: boolean) => void): void;
       getMotionEnabled(): Promise<boolean>;
       setMotionEnabled(enabled: boolean): Promise<boolean>;
       toggleMotion(): Promise<boolean>;

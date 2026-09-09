@@ -265,10 +265,33 @@ button:focus-visible {
 }
 .desktop-pet {
   position: relative;
-  width: 320px;
-  height: 420px;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
   background: transparent;
+}
+.desktop-pet.editing {
+  -webkit-app-region: drag;
+  border: 1px dashed #65f6dcaa;
+  border-radius: 18px;
+  cursor: grab;
+}
+.desktop-pet.editing:active {
+  cursor: grabbing;
+}
+.pet-edit-hint {
+  position: absolute;
+  z-index: 8;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid #65f6dc66;
+  border-radius: 999px;
+  background: #07100ecc;
+  color: #65f6dc;
+  font-size: 10px;
+  white-space: nowrap;
 }
 .desktop-pet video,
 .desktop-pet canvas {

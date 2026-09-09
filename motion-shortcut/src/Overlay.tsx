@@ -16,6 +16,7 @@ export default function Overlay() {
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [handColor, setHandColor] = useState("#65f6dc");
+  const [editing, setEditing] = useState(false);
   const tracking = useHandTracking(
     videoRef,
     guideCanvasRef,
@@ -44,6 +45,10 @@ export default function Overlay() {
   useEffect(() => {
     window.motionAPI?.onOverlayMode(setMode);
     window.motionAPI?.onOverlayColor(setHandColor);
+    void window.motionAPI
+      ?.getOverlayLayout?.()
+      .then((layout) => setEditing(layout.editing));
+    window.motionAPI?.onOverlayEditing?.(setEditing);
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
     void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
@@ -67,7 +72,7 @@ export default function Overlay() {
 
   return (
     <main
-      className={`desktop-pet ${mode} ${tracking.state === "tracking" ? "has-hand" : ""}`}
+      className={`desktop-pet ${mode} ${tracking.state === "tracking" ? "has-hand" : ""} ${editing ? "editing" : ""}`}
     >
       <video ref={videoRef} muted playsInline />
       <canvas ref={guideCanvasRef} className="guide-canvas" />
@@ -76,6 +81,7 @@ export default function Overlay() {
         {motionOn ? "MOTION ON" : "MOTION OFF"} · CURSOR{" "}
         {cursorOn ? "ON" : "OFF"}
       </span>
+      {editing && <b className="pet-edit-hint">드래그해서 이동</b>}
     </main>
   );
 }

@@ -30,7 +30,52 @@ let cursorEnabled = false;
 let cursorSensitivity = 1;
 let cursorHelper = null;
 let cursorPosition = null;
+let overlayEditing = false;
+let overlayScale = 1;
 const lastKeyboardTap = { Left: 0, Right: 0 };
+const OVERLAY_BASE_SIZE = { width: 320, height: 420 };
+
+function overlayLayoutPath() {
+  return path.join(app.getPath("userData"), "overlay-layout.json");
+}
+
+function readOverlayLayout(area) {
+  try {
+    const saved = JSON.parse(fs.readFileSync(overlayLayoutPath(), "utf8"));
+    const scale = Math.max(0.6, Math.min(1.6, Number(saved.scale) || 1));
+    const width = Math.round(OVERLAY_BASE_SIZE.width * scale);
+    const height = Math.round(OVERLAY_BASE_SIZE.height * scale);
+    const savedX = Number.isFinite(Number(saved.x))
+      ? Number(saved.x)
+      : area.x + area.width - width - 20;
+    const savedY = Number.isFinite(Number(saved.y))
+      ? Number(saved.y)
+      : area.y + area.height - height - 20;
+    return {
+      x: Math.max(area.x, Math.min(area.x + area.width - width, savedX)),
+      y: Math.max(area.y, Math.min(area.y + area.height - height, savedY)),
+      width,
+      height,
+      scale,
+    };
+  } catch {
+    return {
+      x: area.x + area.width - 340,
+      y: area.y + area.height - 440,
+      ...OVERLAY_BASE_SIZE,
+      scale: 1,
+    };
+  }
+}
+
+function saveOverlayLayout() {
+  if (!overlayWindow) return;
+  const { x, y } = overlayWindow.getBounds();
+  fs.writeFileSync(
+    overlayLayoutPath(),
+    JSON.stringify({ x, y, scale: overlayScale }),
+  );
+}
 
 function broadcastMotionState() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -378,11 +423,13 @@ function createWindow() {
 
 function createOverlayWindow() {
   const area = screen.getPrimaryDisplay().workArea;
+  const layout = readOverlayLayout(area);
+  overlayScale = layout.scale;
   overlayWindow = new BrowserWindow({
-    width: 320,
-    height: 420,
-    x: area.x + area.width - 340,
-    y: area.y + area.height - 440,
+    width: layout.width,
+    height: layout.height,
+    x: layout.x,
+    y: layout.y,
     transparent: true,
     frame: false,
     resizable: false,
@@ -402,6 +449,7 @@ function createOverlayWindow() {
   overlayWindow.setAlwaysOnTop(true, "floating");
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   overlayWindow.setIgnoreMouseEvents(true);
+  overlayWindow.on("moved", saveOverlayLayout);
   const target = process.env.VITE_DEV_SERVER_URL
     ? `${process.env.VITE_DEV_SERVER_URL}?overlay=1`
     : `file://${path.join(__dirname, "..", "dist", "index.html")}?overlay=1`;
@@ -428,6 +476,34 @@ ipcMain.handle("overlay:set-color", (_event, color) => {
   if (!/^#[0-9a-f]{6}$/i.test(color)) return false;
   overlayWindow?.webContents.send("overlay:color", color);
   return true;
+});
+
+ipcMain.handle("overlay:get-layout", () => ({
+  scale: overlayScale,
+  editing: overlayEditing,
+}));
+ipcMain.handle("overlay:set-scale", (_event, nextScale) => {
+  if (!overlayWindow) createOverlayWindow();
+  overlayScale = Math.max(0.6, Math.min(1.6, Number(nextScale) || 1));
+  const bounds = overlayWindow.getBounds();
+  const width = Math.round(OVERLAY_BASE_SIZE.width * overlayScale);
+  const height = Math.round(OVERLAY_BASE_SIZE.height * overlayScale);
+  overlayWindow.setBounds({
+    x: Math.round(bounds.x + (bounds.width - width) / 2),
+    y: Math.round(bounds.y + bounds.height - height),
+    width,
+    height,
+  });
+  saveOverlayLayout();
+  return overlayScale;
+});
+ipcMain.handle("overlay:set-editing", (_event, editing) => {
+  if (!overlayWindow) createOverlayWindow();
+  overlayEditing = Boolean(editing);
+  overlayWindow.setIgnoreMouseEvents(!overlayEditing);
+  overlayWindow.webContents.send("overlay:editing", overlayEditing);
+  if (overlayEditing && overlayMode !== "camera") overlayWindow.showInactive();
+  return overlayEditing;
 });
 
 ipcMain.handle("apps:launch", async (_event, appId) => {

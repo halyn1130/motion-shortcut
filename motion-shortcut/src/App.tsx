@@ -53,6 +53,8 @@ function App() {
   const [motionOn, setMotionOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
+  const [petScale, setPetScale] = useState(1);
+  const [petEditing, setPetEditing] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
@@ -147,6 +149,10 @@ function App() {
     window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
     void window.motionAPI?.getKeyboardVisible?.().then(setKeyboardVisible);
     window.motionAPI?.onKeyboardChanged?.(setKeyboardVisible);
+    void window.motionAPI?.getOverlayLayout?.().then(({ scale, editing }) => {
+      setPetScale(scale);
+      setPetEditing(editing);
+    });
   }, []);
 
   const toggleCursor = async () => {
@@ -217,6 +223,10 @@ function App() {
   );
 
   const changeDisplayMode = (mode: DisplayMode) => {
+    if (mode === "camera" && petEditing) {
+      setPetEditing(false);
+      void window.motionAPI?.setOverlayEditing(false);
+    }
     setDisplayMode(mode);
     localStorage.setItem("displayMode", mode);
     void window.motionAPI?.setOverlayMode(mode);
@@ -310,6 +320,36 @@ function App() {
           />
           <strong>{cursorSensitivity.toFixed(1)}×</strong>
         </label>
+        {displayMode !== "camera" && (
+          <>
+            <label className="sensitivity-control pet-size-control">
+              팻 크기
+              <input
+                type="range"
+                min="0.6"
+                max="1.6"
+                step="0.05"
+                value={petScale}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  setPetScale(value);
+                  void window.motionAPI?.setOverlayScale(value);
+                }}
+              />
+              <strong>{Math.round(petScale * 100)}%</strong>
+            </label>
+            <button
+              className={petEditing ? "active" : ""}
+              onClick={() => {
+                const editing = !petEditing;
+                setPetEditing(editing);
+                void window.motionAPI?.setOverlayEditing(editing);
+              }}
+            >
+              {petEditing ? "배치 완료" : "팻 위치 이동"}
+            </button>
+          </>
+        )}
         <button
           className={keyboardVisible ? "active" : ""}
           onClick={() =>

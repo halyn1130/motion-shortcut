@@ -8,6 +8,12 @@ contextBridge.exposeInMainWorld("motionAPI", {
   setOverlayColor: (color) => ipcRenderer.invoke("overlay:set-color", color),
   onOverlayColor: (callback) =>
     ipcRenderer.on("overlay:color", (_event, color) => callback(color)),
+  getOverlayLayout: () => ipcRenderer.invoke("overlay:get-layout"),
+  setOverlayScale: (scale) => ipcRenderer.invoke("overlay:set-scale", scale),
+  setOverlayEditing: (editing) =>
+    ipcRenderer.invoke("overlay:set-editing", editing),
+  onOverlayEditing: (callback) =>
+    ipcRenderer.on("overlay:editing", (_event, editing) => callback(editing)),
   getMotionEnabled: () => ipcRenderer.invoke("motion:get"),
   setMotionEnabled: (enabled) => ipcRenderer.invoke("motion:set", enabled),
   toggleMotion: () => ipcRenderer.invoke("motion:toggle"),

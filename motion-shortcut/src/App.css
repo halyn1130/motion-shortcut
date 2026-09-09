@@ -110,6 +110,13 @@
   color: #bcd8ff;
   font-variant-numeric: tabular-nums;
 }
+.pet-size-control {
+  margin-left: 4px;
+}
+.pet-size-control input {
+  width: 90px;
+  accent-color: #65f6dc;
+}
 .workspace {
   display: grid;
   grid-template-columns: minmax(430px, 1.05fr) minmax(500px, 1.35fr);
