@@ -11,7 +11,7 @@ export default function Overlay() {
   const guideCanvasRef = useRef<HTMLCanvasElement>(null);
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<OverlayMode>("person-pet");
-  const [motionOn, setMotionOn] = useState(true);
+  const [motionOn, setMotionOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
