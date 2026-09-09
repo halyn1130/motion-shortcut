@@ -20,6 +20,19 @@ const version = JSON.parse(
   readFileSync(join(root, "package.json"), "utf8"),
 ).version;
 const artifactBase = `Motion-Shortcut-${version}-arm64`;
+const localIdentity = "Motion Shortcut Local Code Signing";
+let signingIdentity = "-";
+try {
+  const identities = execFileSync(
+    "/usr/bin/security",
+    ["find-identity", "-v", "-p", "codesigning"],
+    { encoding: "utf8" },
+  );
+  if (identities.includes(`\"${localIdentity}\"`))
+    signingIdentity = localIdentity;
+} catch {
+  // 인증서가 없는 Mac에서는 ad-hoc 서명으로 폴백한다.
+}
 
 rmSync(releaseDirectory, { recursive: true, force: true });
 rmSync(stagingDirectory, { recursive: true, force: true });
@@ -77,21 +90,23 @@ setPlist("LSApplicationCategoryType", "public.app-category.utilities");
 // 배포 앱 전체를 하나의 안정된 macOS 신원으로 다시 서명한다.
 execFileSync(
   "/usr/bin/codesign",
-  ["--force", "--deep", "--sign", "-", appPath],
+  ["--force", "--deep", "--sign", signingIdentity, appPath],
   { stdio: "inherit" },
 );
-execFileSync(
-  "/usr/bin/codesign",
-  [
-    "--force",
-    "--sign",
-    "-",
-    "--requirements",
-    '=designated => identifier "com.motionshortcut.app"',
-    appPath,
-  ],
-  { stdio: "inherit" },
-);
+if (signingIdentity === "-") {
+  execFileSync(
+    "/usr/bin/codesign",
+    [
+      "--force",
+      "--sign",
+      "-",
+      "--requirements",
+      '=designated => identifier "com.motionshortcut.app"',
+      appPath,
+    ],
+    { stdio: "inherit" },
+  );
+}
 execFileSync(
   "/usr/bin/codesign",
   ["--verify", "--deep", "--strict", "--verbose=2", appPath],
