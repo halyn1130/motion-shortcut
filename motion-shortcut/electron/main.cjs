@@ -274,8 +274,10 @@ function setKeyboardVisible(visible) {
   keyboardVisible = Boolean(visible);
   if (keyboardVisible) {
     if (process.platform === "darwin") {
-      systemPreferences.isTrustedAccessibilityClient(false);
-      if (ensureCursorHelper()) cursorHelper.stdin.write("input-korean\n");
+      const trusted = systemPreferences.isTrustedAccessibilityClient(false);
+      if (trusted && ensureCursorHelper()) {
+        cursorHelper.stdin.write("input-korean\n");
+      }
     }
     if (mainWindow?.isFocused()) {
       restoreMainWindowAfterKeyboard = true;
