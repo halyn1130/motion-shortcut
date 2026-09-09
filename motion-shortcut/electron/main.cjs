@@ -52,29 +52,42 @@ function ensureCursorHelper() {
   if (process.platform !== "darwin") return false;
   if (cursorHelper && !cursorHelper.killed) return true;
   const helperDirectory = path.join(app.getPath("userData"), "native");
-  const helperPath = path.join(helperDirectory, "motion-cursor-helper");
+  const helperPath = app.isPackaged
+    ? path.join(process.resourcesPath, "native", "motion-cursor-helper")
+    : path.join(helperDirectory, "motion-cursor-helper");
   const sourcePath = path.join(__dirname, "cursor-helper.c");
   try {
-    fs.mkdirSync(helperDirectory, { recursive: true });
-    const sourceChanged =
-      !fs.existsSync(helperPath) ||
-      fs.statSync(sourcePath).mtimeMs > fs.statSync(helperPath).mtimeMs;
-    if (sourceChanged) {
-      const compiled = spawnSync(
-        "/usr/bin/clang",
-        [sourcePath, "-framework", "ApplicationServices", "-o", helperPath],
-        { encoding: "utf8" },
-      );
-      if (compiled.status !== 0) {
-        console.error(`[cursor-helper] ${compiled.stderr}`);
-        return false;
+    if (app.isPackaged) {
+      if (!fs.existsSync(helperPath)) return false;
+    } else {
+      fs.mkdirSync(helperDirectory, { recursive: true });
+      const sourceChanged =
+        !fs.existsSync(helperPath) ||
+        fs.statSync(sourcePath).mtimeMs > fs.statSync(helperPath).mtimeMs;
+      if (!sourceChanged) {
+        cursorHelper = spawn(helperPath, [], {
+          stdio: ["pipe", "ignore", "pipe"],
+        });
+      } else {
+        const compiled = spawnSync(
+          "/usr/bin/clang",
+          [sourcePath, "-framework", "ApplicationServices", "-o", helperPath],
+          { encoding: "utf8" },
+        );
+        if (compiled.status !== 0) {
+          console.error(`[cursor-helper] ${compiled.stderr}`);
+          return false;
+        }
       }
     }
   } catch (error) {
     console.error("[cursor-helper] build failed", error);
     return false;
   }
-  cursorHelper = spawn(helperPath, [], { stdio: ["pipe", "ignore", "pipe"] });
+  if (!cursorHelper)
+    cursorHelper = spawn(helperPath, [], {
+      stdio: ["pipe", "ignore", "pipe"],
+    });
   cursorHelper.on("exit", () => {
     cursorHelper = null;
     cursorPosition = null;

@@ -9,6 +9,10 @@ lerna-debug.log*
 
 node_modules
 dist
+release
+build/native
+build/icon.iconset
+build/icon.png
 dist-ssr
 *.local
 

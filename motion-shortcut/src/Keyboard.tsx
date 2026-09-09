@@ -31,35 +31,81 @@ const rows = [
   ["z", "x", "c", "v", "b", "n", "m"],
 ];
 
+type Handedness = "Left" | "Right";
+type HandSample = {
+  handedness: Handedness;
+  landmarks: Array<{ x: number; y: number }>;
+};
+type FingerName = "thumb" | "index" | "middle" | "ring" | "pinky";
+type FingerPointer = {
+  id: string;
+  hand: Handedness;
+  finger: FingerName;
+  x: number;
+  y: number;
+  key: string;
+  pressing: boolean;
+  offset: number;
+};
+type TapState = {
+  restOffset: number;
+  lastOffset: number;
+  lastAt: number;
+  armed: boolean;
+  cooldownUntil: number;
+};
+
+const fingers: Array<{ name: FingerName; tip: number; base: number }> = [
+  { name: "thumb", tip: 4, base: 2 },
+  { name: "index", tip: 8, base: 5 },
+  { name: "middle", tip: 12, base: 9 },
+  { name: "ring", tip: 16, base: 13 },
+  { name: "pinky", tip: 20, base: 17 },
+];
+
+const calibrationSteps: Array<{ finger: FingerName; label: string }> = [
+  { finger: "index", label: "양손 검지" },
+  { finger: "middle", label: "양손 중지" },
+  { finger: "ring", label: "양손 약지" },
+  { finger: "pinky", label: "양손 새끼손가락" },
+  { finger: "thumb", label: "편한 쪽 엄지" },
+];
+type CalibrationProfile = Record<FingerName, number>;
+type CalibrationRun = {
+  step: number;
+  startedAt: number;
+  min: number;
+  max: number;
+  profile: Partial<CalibrationProfile>;
+};
+const PROFILE_KEY = "motion-keyboard-calibration-v1";
+
 export default function Keyboard() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
+  const tapStatesRef = useRef<Record<string, TapState>>({});
+  const lastTypedRef = useRef({ key: "", at: 0 });
+  const calibrationRef = useRef<CalibrationRun | null>(null);
   const [shift, setShift] = useState(false);
-  const [pointers, setPointers] = useState({
-    Left: { x: -100, y: -100, key: "" },
-    Right: { x: -100, y: -100, key: "" },
-  });
+  const [pointers, setPointers] = useState<FingerPointer[]>([]);
+  const [profile, setProfile] = useState<CalibrationProfile | null>(() =>
+    loadCalibrationProfile(),
+  );
+  const profileRef = useRef(profile);
+  const [calibrationStep, setCalibrationStep] = useState(-1);
 
   useEffect(() => {
-    window.motionAPI?.onKeyboardPointer((sample) => {
-      const element = document.elementFromPoint(sample.x, sample.y);
-      const keyButton = element?.closest<HTMLButtonElement>("button[data-key]");
-      setPointers((current) => ({
-        ...current,
-        [sample.hand]: {
-          x: sample.x,
-          y: sample.y,
-          key: keyButton?.dataset.key ?? "",
-        },
-      }));
-      if (sample.tap) keyButton?.click();
-    });
-    window.motionAPI?.onKeyboardHands((hands) => {
-      drawKeyboardHands(handCanvasRef.current, hands);
-    });
-  }, []);
+    for (const pointer of pointers) {
+      if (!pointer.pressing || !pointer.key) continue;
+      document
+        .querySelector<HTMLButtonElement>(
+          `button[data-key="${CSS.escape(pointer.key)}"]`,
+        )
+        ?.click();
+    }
+  }, [pointers]);
 
   const isHovered = (key: string) =>
-    pointers.Left.key === key || pointers.Right.key === key;
+    pointers.some((pointer) => pointer.key === key);
 
   const type = (key: string) => {
     window.motionAPI?.typeKey(
@@ -68,15 +114,81 @@ export default function Keyboard() {
     if (shift && key.length === 1) setShift(false);
   };
 
+  const startCalibration = () => {
+    tapStatesRef.current = {};
+    calibrationRef.current = {
+      step: 0,
+      startedAt: performance.now(),
+      min: Infinity,
+      max: -Infinity,
+      profile: {},
+    };
+    setCalibrationStep(0);
+  };
+
+  function updateCalibration(nextPointers: FingerPointer[]) {
+    const run = calibrationRef.current;
+    if (!run) return;
+    const target = calibrationSteps[run.step];
+    for (const pointer of nextPointers) {
+      if (pointer.finger !== target.finger) continue;
+      run.min = Math.min(run.min, pointer.offset);
+      run.max = Math.max(run.max, pointer.offset);
+    }
+    if (performance.now() - run.startedAt < 2600) return;
+
+    const measuredRange = Number.isFinite(run.min) ? run.max - run.min : 0;
+    run.profile[target.finger] = clamp(measuredRange * 0.55, 0.1, 0.28);
+    run.step += 1;
+    if (run.step < calibrationSteps.length) {
+      run.startedAt = performance.now();
+      run.min = Infinity;
+      run.max = -Infinity;
+      setCalibrationStep(run.step);
+      return;
+    }
+
+    const completed = run.profile as CalibrationProfile;
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(completed));
+    calibrationRef.current = null;
+    tapStatesRef.current = {};
+    profileRef.current = completed;
+    setProfile(completed);
+    setCalibrationStep(-1);
+  }
+
+  useEffect(() => {
+    window.motionAPI?.onKeyboardHands((hands) => {
+      drawKeyboardHands(handCanvasRef.current, hands);
+      const nextPointers = trackFingerTaps(
+        hands,
+        tapStatesRef.current,
+        lastTypedRef.current,
+        profileRef.current,
+        calibrationRef.current !== null,
+      );
+      updateCalibration(nextPointers);
+      setPointers(nextPointers);
+    });
+  }, []);
+
   return (
-    <main className="virtual-keyboard" aria-label="모션 가상 키보드">
+    <main
+      className={`virtual-keyboard ${profile ? "calibrated" : "needs-calibration"}`}
+      aria-label="모션 가상 키보드"
+    >
       <header>
         <span>모션 키보드</span>
-        <small>검지를 아래로 톡 내려 입력 · 왼손 세 손가락으로 닫기</small>
+        <small>
+          양손 8개 손가락으로 타건 · 엄지는 Space · 왼손 세 손가락으로 닫기
+        </small>
         <button
           onClick={() => void window.motionAPI?.setKeyboardVisible(false)}
         >
           닫기
+        </button>
+        <button className="calibrate-button" onClick={startCalibration}>
+          다시 보정
         </button>
       </header>
       {rows.map((row, rowIndex) => (
@@ -124,25 +236,156 @@ export default function Keyboard() {
         </button>
       </div>
       <canvas ref={handCanvasRef} className="keyboard-hands" />
-      {(["Left", "Right"] as const).map((hand) => (
+      {pointers.map((pointer) => (
         <i
-          key={hand}
-          className={`air-pointer ${hand.toLowerCase()}`}
-          style={{ left: pointers[hand].x, top: pointers[hand].y }}
-        >
-          {hand === "Left" ? "L" : "R"}
-        </i>
+          key={pointer.id}
+          className={`finger-pointer ${pointer.hand.toLowerCase()} ${pointer.finger} ${pointer.pressing ? "pressing" : ""}`}
+          style={{ left: pointer.x, top: pointer.y }}
+          aria-hidden="true"
+        />
       ))}
+      {!profile && calibrationStep < 0 && (
+        <section className="calibration-panel">
+          <strong>내 손에 맞추기</strong>
+          <p>손가락별 눌림 깊이를 측정하면 투명 키보드가 열립니다.</p>
+          <button onClick={startCalibration}>손가락 보정 시작</button>
+        </section>
+      )}
+      {calibrationStep >= 0 && (
+        <section className="calibration-panel active">
+          <small>
+            {calibrationStep + 1} / {calibrationSteps.length}
+          </small>
+          <strong>{calibrationSteps[calibrationStep].label}</strong>
+          <p>편하게 둔 상태에서 아래로 2~3번 톡 눌러주세요.</p>
+          <i key={calibrationStep} className="calibration-progress" />
+        </section>
+      )}
     </main>
   );
 }
 
+function trackFingerTaps(
+  hands: HandSample[],
+  states: Record<string, TapState>,
+  lastTyped: { key: string; at: number },
+  profile: CalibrationProfile | null,
+  calibrating: boolean,
+) {
+  const now = performance.now();
+  const visible = new Set<string>();
+  const pointers: FingerPointer[] = [];
+
+  for (const hand of hands) {
+    if (hand.landmarks.length < 21) continue;
+    const palmScale = Math.max(
+      distance(hand.landmarks[0], hand.landmarks[9]),
+      0.04,
+    );
+
+    for (const finger of fingers) {
+      const id = `${hand.handedness}-${finger.name}`;
+      visible.add(id);
+      const tip = hand.landmarks[finger.tip];
+      const base = hand.landmarks[finger.base];
+      const x = tip.x * window.innerWidth;
+      const y = tip.y * window.innerHeight;
+      const button = document
+        .elementFromPoint(x, y)
+        ?.closest<HTMLButtonElement>("button[data-key]");
+      let key = button?.dataset.key ?? "";
+      const isThumb = finger.name === "thumb";
+      if (isThumb && key !== "Space") key = "";
+
+      // 손 전체 이동이 아닌 손바닥 관절에 대한 손끝의 상대 이동으로 타건한다.
+      const offset = (tip.y - base.y) / palmScale;
+      const state = states[id] ?? {
+        restOffset: offset,
+        lastOffset: offset,
+        lastAt: now,
+        armed: true,
+        cooldownUntil: 0,
+      };
+      const elapsed = Math.max(now - state.lastAt, 1);
+      const downwardSpeed = (offset - state.lastOffset) / elapsed;
+      const pressDistance = profile?.[finger.name] ?? (isThumb ? 0.17 : 0.2);
+      const releaseDistance = pressDistance * 0.48;
+
+      if (offset < state.restOffset) state.restOffset = offset;
+      else if (state.armed) {
+        state.restOffset += (offset - state.restOffset) * 0.025;
+      }
+      if (!state.armed && offset < state.restOffset + releaseDistance) {
+        state.armed = true;
+      }
+
+      let pressing =
+        !calibrating &&
+        Boolean(key) &&
+        state.armed &&
+        now >= state.cooldownUntil &&
+        offset > state.restOffset + pressDistance &&
+        downwardSpeed > 0.0011;
+
+      // 같은 키를 여러 손가락이 동시에 건드려도 한 글자만 입력한다.
+      if (pressing && lastTyped.key === key && now - lastTyped.at < 170) {
+        pressing = false;
+      }
+      if (pressing) {
+        state.armed = false;
+        state.cooldownUntil = now + 300;
+        lastTyped.key = key;
+        lastTyped.at = now;
+      }
+
+      state.lastOffset = offset;
+      state.lastAt = now;
+      states[id] = state;
+      pointers.push({
+        id,
+        hand: hand.handedness,
+        finger: finger.name,
+        x,
+        y,
+        key,
+        pressing,
+        offset,
+      });
+    }
+  }
+
+  for (const id of Object.keys(states)) {
+    if (!visible.has(id)) delete states[id];
+  }
+  return pointers;
+}
+
+function loadCalibrationProfile(): CalibrationProfile | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "null");
+    if (
+      parsed &&
+      calibrationSteps.every(({ finger }) => Number.isFinite(parsed[finger]))
+    ) {
+      return parsed as CalibrationProfile;
+    }
+  } catch {
+    // 손상된 이전 설정은 무시하고 다시 보정한다.
+  }
+  return null;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
 function drawKeyboardHands(
   canvas: HTMLCanvasElement | null,
-  hands: Array<{
-    handedness: "Left" | "Right";
-    landmarks: Array<{ x: number; y: number }>;
-  }>,
+  hands: HandSample[],
 ) {
   if (!canvas) return;
   const scale = window.devicePixelRatio || 1;
@@ -178,12 +421,18 @@ function drawKeyboardHands(
       context.lineTo(b.x, b.y);
       context.stroke();
     }
-    for (let index = 0; index < hand.landmarks.length; index += 1) {
+    hand.landmarks.forEach((_landmark, index) => {
       const p = point(index);
       context.beginPath();
-      context.arc(p.x, p.y, index === 8 ? 6 : 3, 0, Math.PI * 2);
+      context.arc(
+        p.x,
+        p.y,
+        [4, 8, 12, 16, 20].includes(index) ? 6 : 3,
+        0,
+        Math.PI * 2,
+      );
       context.fill();
-    }
+    });
     context.restore();
   }
 }
