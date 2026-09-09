@@ -28,6 +28,7 @@ let overlayMode = "camera";
 let motionEnabled = true;
 let cursorEnabled = false;
 let cursorSensitivity = 1;
+let typingSensitivity = 0.35;
 let cursorHelper = null;
 let cursorPosition = null;
 let overlayEditing = false;
@@ -273,7 +274,7 @@ function setKeyboardVisible(visible) {
   keyboardVisible = Boolean(visible);
   if (keyboardVisible) {
     if (process.platform === "darwin") {
-      systemPreferences.isTrustedAccessibilityClient(true);
+      systemPreferences.isTrustedAccessibilityClient(false);
       if (ensureCursorHelper()) cursorHelper.stdin.write("input-korean\n");
     }
     if (mainWindow?.isFocused()) {
@@ -304,6 +305,14 @@ function setKeyboardVisible(visible) {
 }
 
 ipcMain.handle("keyboard:get", () => keyboardVisible);
+ipcMain.handle("keyboard:get-sensitivity", () => typingSensitivity);
+ipcMain.handle("keyboard:set-sensitivity", (_event, value) => {
+  typingSensitivity = Math.max(0.2, Math.min(1, Number(value) || 0.35));
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("keyboard:sensitivity-changed", typingSensitivity);
+  }
+  return typingSensitivity;
+});
 ipcMain.handle("keyboard:set", (_event, visible) =>
   setKeyboardVisible(visible),
 );
@@ -354,7 +363,7 @@ ipcMain.handle("keyboard:type", (_event, key) => {
   if (!keyboardVisible) return { ok: false, error: "키보드가 닫혀 있습니다." };
   if (
     process.platform === "darwin" &&
-    !systemPreferences.isTrustedAccessibilityClient(true)
+    !systemPreferences.isTrustedAccessibilityClient(false)
   ) {
     return {
       ok: false,

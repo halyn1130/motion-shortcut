@@ -36,6 +36,13 @@ contextBridge.exposeInMainWorld("motionAPI", {
   getKeyboardVisible: () => ipcRenderer.invoke("keyboard:get"),
   setKeyboardVisible: (visible) => ipcRenderer.invoke("keyboard:set", visible),
   toggleKeyboard: () => ipcRenderer.invoke("keyboard:toggle"),
+  getTypingSensitivity: () => ipcRenderer.invoke("keyboard:get-sensitivity"),
+  setTypingSensitivity: (value) =>
+    ipcRenderer.invoke("keyboard:set-sensitivity", value),
+  onTypingSensitivityChanged: (callback) =>
+    ipcRenderer.on("keyboard:sensitivity-changed", (_event, value) =>
+      callback(value),
+    ),
   typeKey: (key) => ipcRenderer.invoke("keyboard:type", key),
   sendKeyboardPointer: (sample) => ipcRenderer.send("keyboard:pointer", sample),
   onKeyboardPointer: (callback) =>

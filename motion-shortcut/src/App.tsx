@@ -53,6 +53,9 @@ function App() {
   const [motionOn, setMotionOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
+  const [typingSensitivity, setTypingSensitivity] = useState(
+    () => Number(localStorage.getItem("typingSensitivity")) || 0.35,
+  );
   const [petScale, setPetScale] = useState(1);
   const [petEditing, setPetEditing] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -141,6 +144,10 @@ function App() {
   }, [handColor]);
 
   useEffect(() => {
+    void window.motionAPI?.setTypingSensitivity?.(typingSensitivity);
+  }, [typingSensitivity]);
+
+  useEffect(() => {
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
     void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
@@ -149,6 +156,7 @@ function App() {
     window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
     void window.motionAPI?.getKeyboardVisible?.().then(setKeyboardVisible);
     window.motionAPI?.onKeyboardChanged?.(setKeyboardVisible);
+    window.motionAPI?.onTypingSensitivityChanged?.(setTypingSensitivity);
     void window.motionAPI?.getOverlayLayout?.().then(({ scale, editing }) => {
       setPetScale(scale);
       setPetEditing(editing);
@@ -319,6 +327,22 @@ function App() {
             }}
           />
           <strong>{cursorSensitivity.toFixed(1)}×</strong>
+        </label>
+        <label className="sensitivity-control typing-sensitivity-control">
+          타건 민감도
+          <input
+            type="range"
+            min="0.2"
+            max="1"
+            step="0.05"
+            value={typingSensitivity}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              setTypingSensitivity(value);
+              localStorage.setItem("typingSensitivity", String(value));
+            }}
+          />
+          <strong>{Math.round(typingSensitivity * 100)}%</strong>
         </label>
         {displayMode !== "camera" && (
           <>
