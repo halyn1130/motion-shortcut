@@ -66,6 +66,9 @@ declare global {
       setMotionEnabled(enabled: boolean): Promise<boolean>;
       toggleMotion(): Promise<boolean>;
       onMotionChanged(callback: (enabled: boolean) => void): void;
+      getCameraEnabled(): Promise<boolean>;
+      setCameraEnabled(enabled: boolean): Promise<boolean>;
+      onCameraChanged(callback: (enabled: boolean) => void): void;
       getCursorEnabled(): Promise<boolean>;
       setCursorEnabled(
         enabled: boolean,

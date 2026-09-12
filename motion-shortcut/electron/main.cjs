@@ -30,6 +30,7 @@ let keyboardVisible = false;
 let overlayMode = "camera";
 let presentationMode = "slide";
 let motionEnabled = false;
+let cameraEnabled = false;
 let cursorEnabled = false;
 let cursorSensitivity = 1;
 let typingSensitivity = 0.35;
@@ -119,6 +120,11 @@ function broadcastMotionState() {
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send("motion:changed", motionEnabled);
   }
+}
+
+function broadcastCameraState() {
+  for (const window of BrowserWindow.getAllWindows())
+    window.webContents.send("camera:changed", cameraEnabled);
 }
 
 function broadcastCursorState() {
@@ -218,6 +224,7 @@ function setCursorEnabled(enabled, promptForAccess = false) {
 
 ipcMain.handle("motion:get", () => motionEnabled);
 ipcMain.handle("motion:set", (_event, enabled) => {
+  if (enabled && !cameraEnabled) return false;
   motionEnabled = Boolean(enabled);
   if (!motionEnabled) {
     setCursorEnabled(false);
@@ -229,6 +236,7 @@ ipcMain.handle("motion:set", (_event, enabled) => {
   return motionEnabled;
 });
 ipcMain.handle("motion:toggle", () => {
+  if (!motionEnabled && !cameraEnabled) return false;
   motionEnabled = !motionEnabled;
   if (!motionEnabled) {
     setCursorEnabled(false);
@@ -238,6 +246,18 @@ ipcMain.handle("motion:toggle", () => {
   }
   broadcastMotionState();
   return motionEnabled;
+});
+ipcMain.handle("camera:get", () => cameraEnabled);
+ipcMain.handle("camera:set", (_event, enabled) => {
+  cameraEnabled = Boolean(enabled);
+  if (!cameraEnabled) {
+    motionEnabled = false;
+    setCursorEnabled(false);
+    laserWindow?.hide();
+    broadcastMotionState();
+  }
+  broadcastCameraState();
+  return cameraEnabled;
 });
 ipcMain.handle("cursor:get", () => cursorEnabled);
 ipcMain.handle("cursor:get-sensitivity", () => cursorSensitivity);

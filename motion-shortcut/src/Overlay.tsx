@@ -17,6 +17,7 @@ export default function Overlay() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<OverlayMode>("camera");
   const [motionOn, setMotionOn] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
   const [presentationMode, setPresentationMode] =
     useState<PresentationMode>("slide");
   const [profile, setProfile] = useState(loadProfile);
@@ -28,7 +29,7 @@ export default function Overlay() {
     videoRef,
     guideCanvasRef,
     handCanvasRef,
-    mode !== "camera",
+    cameraEnabled && mode !== "camera",
     handColor,
     (gesture: MotionGestureId) => {
       if (gesture === "toggle-motion") void window.motionAPI?.toggleMotion();
@@ -78,24 +79,37 @@ export default function Overlay() {
     window.motionAPI?.onOverlayEditing?.(setEditing);
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
+    void window.motionAPI?.getCameraEnabled().then(setCameraEnabled);
+    window.motionAPI?.onCameraChanged(setCameraEnabled);
     void window.motionAPI?.getPresentationMode().then(setPresentationMode);
     window.motionAPI?.onPresentationModeChanged(setPresentationMode);
     void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
     window.motionAPI?.onCursorChanged?.(setCursorOn);
     void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
     window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!cameraEnabled || mode === "camera") {
+      if (video) video.srcObject = null;
+      return;
+    }
     let stream: MediaStream | null = null;
     void navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user" }, audio: false })
       .then(async (next) => {
         stream = next;
-        if (videoRef.current) {
-          videoRef.current.srcObject = next;
-          await videoRef.current.play();
+        if (video) {
+          video.srcObject = next;
+          await video.play();
         }
       });
-    return () => stream?.getTracks().forEach((track) => track.stop());
-  }, []);
+    return () => {
+      stream?.getTracks().forEach((track) => track.stop());
+      if (video) video.srcObject = null;
+    };
+  }, [cameraEnabled, mode]);
 
   useEffect(() => {
     const updateProfile = () => setProfile(loadProfile());

@@ -95,6 +95,7 @@ function App() {
         await videoRef.current.play();
       }
       setCameraState("active");
+      await window.motionAPI?.setCameraEnabled(true);
       addLog("카메라 연결 완료");
       return true;
     } catch (error) {
@@ -109,6 +110,16 @@ function App() {
     }
   };
 
+  const stopCamera = async () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    await window.motionAPI?.setCameraEnabled(false);
+    setCameraState("idle");
+    setMotionOn(false);
+    addLog("카메라 OFF · 모션 안전 정지");
+  };
+
   const toggleMotion = async () => {
     if (motionOn) {
       await window.motionAPI?.setMotionEnabled(false);
@@ -118,9 +129,9 @@ function App() {
     }
     const cameraReady = await startCamera();
     if (!cameraReady) return;
-    await window.motionAPI?.setMotionEnabled(true);
-    setMotionOn(true);
-    addLog("모션 ON");
+    const enabled = await window.motionAPI?.setMotionEnabled(true);
+    setMotionOn(Boolean(enabled));
+    addLog(enabled ? "모션 ON" : "모션을 켜지 못했습니다.");
   };
 
   const setPresentationMode = async (next: PresentationMode) => {
@@ -218,6 +229,13 @@ function App() {
   useEffect(() => {
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
+    window.motionAPI?.onCameraChanged((enabled) => {
+      if (enabled) return;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+      setCameraState("idle");
+    });
     void window.motionAPI?.getPresentationMode().then(setMode);
     window.motionAPI?.onPresentationModeChanged(setMode);
     void window.motionAPI?.getCursorSensitivity().then(setCursorSensitivity);
@@ -452,6 +470,11 @@ function App() {
               <button onClick={() => void cyclePresentationMode()}>
                 모드 전환 테스트
               </button>
+              {cameraState === "active" && (
+                <button className="danger" onClick={() => void stopCamera()}>
+                  카메라 끄기
+                </button>
+              )}
               <span>
                 고정 모션을 바로 사용할 수 있습니다. 양손 펼치기·검지 X·V
                 사인으로 원하는 모드를 직접 선택합니다.
