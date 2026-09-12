@@ -47,9 +47,11 @@ body:not(.overlay-page):not(.keyboard-page) {
 .laser-pointer {
   position: relative;
   display: grid;
-  width: 84px;
-  height: 84px;
+  width: 140px;
+  height: 140px;
   place-items: center;
+  --laser-color: #9fe9ff;
+  --laser-size: 24px;
 }
 .laser-pointer::before,
 .laser-pointer::after,
@@ -59,26 +61,66 @@ body:not(.overlay-page):not(.keyboard-page) {
   border-radius: 50%;
   content: "";
 }
+.laser-pointer em {
+  position: absolute;
+  width: calc(var(--laser-size) * 0.7);
+  height: calc(var(--laser-size) * 0.7);
+  border-radius: 50%;
+  background: var(--laser-color);
+  opacity: 0;
+  filter: blur(3px);
+}
 .laser-pointer::before {
-  width: 42px;
-  height: 42px;
-  border: 1px solid #a9edff99;
-  box-shadow: 0 0 18px #64dfff5e;
+  width: calc(var(--laser-size) * 1.8);
+  height: calc(var(--laser-size) * 1.8);
+  border: 1px solid color-mix(in srgb, var(--laser-color) 65%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--laser-color) 40%, transparent);
 }
 .laser-pointer::after {
-  width: 14px;
-  height: 14px;
-  background: #e9fbff;
+  width: var(--laser-size);
+  height: var(--laser-size);
+  background: color-mix(in srgb, var(--laser-color) 25%, white);
   box-shadow:
     0 0 8px #fff,
-    0 0 20px #65ddff,
-    0 0 34px #58ccec99;
+    0 0 20px var(--laser-color),
+    0 0 34px color-mix(in srgb, var(--laser-color) 65%, transparent);
 }
 .laser-pointer i {
-  width: 66px;
-  height: 66px;
-  border: 1px solid #85ddf52b;
+  width: calc(var(--laser-size) * 2.8);
+  height: calc(var(--laser-size) * 2.8);
+  border: 1px solid color-mix(in srgb, var(--laser-color) 25%, transparent);
   animation: laser-pulse 1.4s ease-out infinite;
+}
+.laser-pointer.trail em {
+  animation: laser-trail 520ms ease-out infinite;
+}
+.laser-pointer.trail em:nth-of-type(1) {
+  transform: translate(-18px, 9px) scale(0.75);
+}
+.laser-pointer.trail em:nth-of-type(2) {
+  transform: translate(-32px, 15px) scale(0.5);
+  animation-delay: 90ms;
+}
+.laser-pointer.trail em:nth-of-type(3) {
+  transform: translate(-44px, 20px) scale(0.3);
+  animation-delay: 180ms;
+}
+.laser-pointer.holding::before {
+  animation: laser-hold 900ms ease-in-out infinite alternate;
+}
+@keyframes laser-trail {
+  0% {
+    opacity: 0.42;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes laser-hold {
+  to {
+    transform: scale(1.35);
+    opacity: 0.35;
+  }
 }
 @keyframes laser-pulse {
   from {

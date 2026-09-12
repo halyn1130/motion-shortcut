@@ -2,11 +2,14 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("motionAPI", {
   launchApp: (appId) => ipcRenderer.invoke("apps:launch", appId),
-  executePresentationCommand: (command) =>
-    ipcRenderer.invoke("presentation:execute", command),
-  pickPresentationFile: () => ipcRenderer.invoke("presentation:pick-file"),
+  executePresentationCommand: (command, presentationApp) =>
+    ipcRenderer.invoke("presentation:execute", command, presentationApp),
+  pickPresentationFile: (applicationOnly = false) =>
+    ipcRenderer.invoke("presentation:pick-file", applicationOnly),
   openPresentationResource: (resource) =>
     ipcRenderer.invoke("presentation:open-resource", resource),
+  restorePresentation: () => ipcRenderer.invoke("presentation:restore"),
+  goToSlide: (slide) => ipcRenderer.invoke("presentation:go-to-slide", slide),
   getPresentationMode: () => ipcRenderer.invoke("presentation:get-mode"),
   setPresentationMode: (mode) =>
     ipcRenderer.invoke("presentation:set-mode", mode),
@@ -16,6 +19,14 @@ contextBridge.exposeInMainWorld("motionAPI", {
       callback(mode),
     ),
   moveLaser: (point) => ipcRenderer.send("laser:move", point),
+  getLaserSettings: () => ipcRenderer.invoke("laser:get-settings"),
+  setLaserSettings: (settings) =>
+    ipcRenderer.invoke("laser:set-settings", settings),
+  onLaserSettingsChanged: (callback) =>
+    ipcRenderer.on("laser:settings-changed", (_event, settings) =>
+      callback(settings),
+    ),
+  onLaserMoved: (callback) => ipcRenderer.on("laser:moved", () => callback()),
   getOverlayMode: () => ipcRenderer.invoke("overlay:get-mode"),
   setOverlayMode: (mode) => ipcRenderer.invoke("overlay:set-mode", mode),
   onOverlayMode: (callback) =>

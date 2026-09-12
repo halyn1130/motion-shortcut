@@ -41,7 +41,10 @@ export default function Overlay() {
           if (resource?.value)
             void window.motionAPI?.openPresentationResource(resource);
         } else if (action) {
-          void window.motionAPI?.executePresentationCommand(action);
+          void window.motionAPI?.executePresentationCommand(
+            action,
+            profile.app,
+          );
         }
       }
     },
@@ -60,6 +63,9 @@ export default function Overlay() {
         window.motionAPI?.clickCursor();
     },
     cursorSensitivity,
+    () => {
+      if (motionOn) void window.motionAPI?.setMotionEnabled(false);
+    },
   );
 
   useEffect(() => {

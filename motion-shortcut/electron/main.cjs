@@ -37,9 +37,41 @@ let cursorHelper = null;
 let cursorPosition = null;
 let overlayEditing = false;
 let overlayScale = 1;
+let presentationAppName = null;
+let laserSettings = { color: "#9fe9ff", size: 24, trail: true };
+const resourceOpenedAt = new Map();
 const lastKeyboardTap = { Left: 0, Right: 0 };
 const OVERLAY_BASE_SIZE = { width: 320, height: 420 };
-const LASER_SIZE = 84;
+const LASER_WINDOW_SIZE = 140;
+
+async function getFrontmostAppName() {
+  if (process.platform !== "darwin") return null;
+  try {
+    const { stdout } = await execFileAsync("/usr/bin/osascript", [
+      "-e",
+      'tell application "System Events" to get name of first application process whose frontmost is true',
+    ]);
+    const name = stdout.trim();
+    return name && !/^(Flickey|Electron)$/i.test(name) ? name : null;
+  } catch {
+    return null;
+  }
+}
+
+async function activateAppByName(name) {
+  if (!name || process.platform !== "darwin")
+    return { ok: false, error: "복귀할 발표 창을 찾지 못했습니다." };
+  try {
+    await execFileAsync("/usr/bin/osascript", [
+      "-e",
+      "on run argv\ntell application (item 1 of argv) to activate\nend run",
+      name,
+    ]);
+    return { ok: true };
+  } catch {
+    return { ok: false, error: `${name} 창으로 복귀하지 못했습니다.` };
+  }
+}
 
 function overlayLayoutPath() {
   return path.join(app.getPath("userData"), "overlay-layout.json");
@@ -417,7 +449,7 @@ function sendMacKey(key) {
   return { ok: true };
 }
 
-ipcMain.handle("presentation:execute", (_event, command) => {
+ipcMain.handle("presentation:execute", async (_event, command, appId) => {
   const keys = {
     "next-slide": "ArrowRight",
     "previous-slide": "ArrowLeft",
@@ -425,15 +457,36 @@ ipcMain.handle("presentation:execute", (_event, command) => {
     "exit-presentation": "Escape",
   };
   const key = keys[command];
+  const appNames = {
+    powerpoint: "Microsoft PowerPoint",
+    keynote: "Keynote",
+    "google-slides": "Google Chrome",
+  };
+  const expectedApp = appNames[appId];
+  const frontmost = await getFrontmostAppName();
+  if (expectedApp && frontmost && frontmost !== expectedApp)
+    return {
+      ok: false,
+      error: `${expectedApp}이(가) 활성 창이 아닙니다. 발표 화면으로 돌아간 뒤 시도하세요.`,
+    };
+  if (expectedApp && !frontmost) {
+    const focused = await activateAppByName(expectedApp);
+    if (!focused.ok) return focused;
+    await new Promise((resolve) => setTimeout(resolve, 180));
+  }
+  if (expectedApp) presentationAppName = expectedApp;
   return key
     ? sendMacKey(key)
     : { ok: false, error: "허용되지 않은 발표 명령입니다." };
 });
 
-ipcMain.handle("presentation:pick-file", async () => {
+ipcMain.handle("presentation:pick-file", async (_event, applicationOnly) => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: "발표 자료 선택",
+    title: applicationOnly ? "애플리케이션 선택" : "발표 자료 선택",
     properties: ["openFile"],
+    filters: applicationOnly
+      ? [{ name: "Applications", extensions: ["app"] }]
+      : undefined,
   });
   return result.canceled ? null : result.filePaths[0];
 });
@@ -442,6 +495,15 @@ ipcMain.handle("presentation:open-resource", async (_event, resource) => {
   if (!resource || typeof resource.value !== "string" || !resource.value)
     return { ok: false, error: "등록된 자료가 없습니다." };
   try {
+    const key = `${resource.kind}:${resource.value}`;
+    const now = Date.now();
+    if (now - (resourceOpenedAt.get(key) || 0) < 2500)
+      return {
+        ok: false,
+        error: "방금 실행한 자료입니다. 잠시 후 다시 시도하세요.",
+      };
+    const frontmost = await getFrontmostAppName();
+    if (frontmost) presentationAppName = frontmost;
     if (resource.kind === "url") {
       const url = new URL(resource.value);
       if (!["http:", "https:"].includes(url.protocol)) throw new Error();
@@ -450,10 +512,42 @@ ipcMain.handle("presentation:open-resource", async (_event, resource) => {
       const error = await shell.openPath(resource.value);
       if (error) return { ok: false, error };
     }
+    resourceOpenedAt.set(key, now);
+    if (resource.returnAfterMs && presentationAppName) {
+      const delay = Math.max(
+        1000,
+        Math.min(30000, Number(resource.returnAfterMs)),
+      );
+      setTimeout(() => void activateAppByName(presentationAppName), delay);
+    }
     return { ok: true };
   } catch {
     return { ok: false, error: "자료를 열지 못했습니다." };
   }
+});
+
+ipcMain.handle("presentation:restore", () =>
+  activateAppByName(presentationAppName),
+);
+
+ipcMain.handle("presentation:go-to-slide", (_event, requestedSlide) => {
+  const slide = Math.max(1, Math.min(9999, Math.floor(Number(requestedSlide))));
+  if (!Number.isFinite(slide))
+    return { ok: false, error: "올바른 슬라이드 번호를 입력하세요." };
+  if (
+    process.platform === "darwin" &&
+    !systemPreferences.isTrustedAccessibilityClient(true)
+  )
+    return {
+      ok: false,
+      error: "슬라이드 이동에 손쉬운 사용 권한이 필요합니다.",
+    };
+  if (!ensureCursorHelper())
+    return { ok: false, error: "macOS 입력 모듈을 시작하지 못했습니다." };
+  for (const digit of String(slide))
+    cursorHelper.stdin.write(`type ${digit.charCodeAt(0)}\n`);
+  cursorHelper.stdin.write(`key ${macKeyCodes.Enter}\n`);
+  return { ok: true };
 });
 ipcMain.handle("keyboard:type", (_event, key) => {
   if (!keyboardVisible) return { ok: false, error: "키보드가 닫혀 있습니다." };
@@ -528,8 +622,8 @@ function createWindow() {
 
 function createLaserWindow() {
   laserWindow = new BrowserWindow({
-    width: LASER_SIZE,
-    height: LASER_SIZE,
+    width: LASER_WINDOW_SIZE,
+    height: LASER_WINDOW_SIZE,
     transparent: true,
     frame: false,
     resizable: false,
@@ -557,6 +651,25 @@ function createLaserWindow() {
     laserWindow = null;
   });
 }
+
+function broadcastLaserSettings() {
+  for (const window of BrowserWindow.getAllWindows())
+    window.webContents.send("laser:settings-changed", laserSettings);
+}
+
+ipcMain.handle("laser:get-settings", () => laserSettings);
+ipcMain.handle("laser:set-settings", (_event, next) => {
+  const color = /^#[0-9a-f]{6}$/i.test(next?.color)
+    ? next.color
+    : laserSettings.color;
+  laserSettings = {
+    color,
+    size: Math.max(12, Math.min(48, Number(next?.size) || laserSettings.size)),
+    trail: Boolean(next?.trail),
+  };
+  broadcastLaserSettings();
+  return laserSettings;
+});
 
 function broadcastPresentationMode() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -599,10 +712,11 @@ ipcMain.on("laser:move", (_event, point) => {
   const x = area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width;
   const y = area.y + Math.max(0, Math.min(1, Number(point.y))) * area.height;
   laserWindow.setPosition(
-    Math.round(x - LASER_SIZE / 2),
-    Math.round(y - LASER_SIZE / 2),
+    Math.round(x - LASER_WINDOW_SIZE / 2),
+    Math.round(y - LASER_WINDOW_SIZE / 2),
     false,
   );
+  laserWindow.webContents.send("laser:moved");
   laserWindow.showInactive();
 });
 

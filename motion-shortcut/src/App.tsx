@@ -50,6 +50,12 @@ function App() {
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
   );
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
+  const [slideNumber, setSlideNumber] = useState(1);
+  const [laserSettings, setLaserSettings] = useState({
+    color: "#9fe9ff",
+    size: 24,
+    trail: true,
+  });
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState("");
   const [logs, setLogs] = useState<string[]>([
@@ -152,12 +158,46 @@ function App() {
       );
       return;
     }
-    const result = await window.motionAPI?.executePresentationCommand(action);
+    const result = await window.motionAPI?.executePresentationCommand(
+      action,
+      profile.app,
+    );
     addLog(
       result?.ok
         ? `${ACTION_LABELS[action]} 실행`
         : `${ACTION_LABELS[action]} 실패 · ${result?.error ?? "Electron에서 실행하세요."}`,
     );
+  };
+
+  const openResource = async (
+    resource: PresentationProfile["resources"][number],
+  ) => {
+    if (!resource.value) {
+      addLog(`${resource.name} 실패 · 등록된 자료가 없습니다.`);
+      return;
+    }
+    const result = await window.motionAPI?.openPresentationResource(resource);
+    addLog(
+      result?.ok
+        ? `${resource.name} 열기 성공`
+        : `${resource.name} 열기 실패 · ${result?.error ?? "Electron에서 실행하세요."}`,
+    );
+  };
+
+  const addResource = () => {
+    const id = `resource-${Date.now()}`;
+    updateProfile({
+      ...profile,
+      resources: [
+        ...profile.resources,
+        {
+          id,
+          name: `자료 ${profile.resources.length + 1}`,
+          kind: "url",
+          value: "",
+        },
+      ],
+    });
   };
 
   const handleGesture = (gesture: MotionGestureId) => {
@@ -182,6 +222,8 @@ function App() {
     window.motionAPI?.onPresentationModeChanged(setMode);
     void window.motionAPI?.getCursorSensitivity().then(setCursorSensitivity);
     window.motionAPI?.onCursorSensitivityChanged(setCursorSensitivity);
+    void window.motionAPI?.getLaserSettings?.().then(setLaserSettings);
+    window.motionAPI?.onLaserSettingsChanged?.(setLaserSettings);
   }, []);
 
   useEffect(() => {
@@ -217,6 +259,12 @@ function App() {
       }
     },
     cursorSensitivity,
+    () => {
+      if (!motionOn) return;
+      void window.motionAPI?.setMotionEnabled(false);
+      setMotionOn(false);
+      addLog("양손 주먹 · 긴급 정지");
+    },
   );
 
   return (
@@ -312,6 +360,48 @@ function App() {
             />
             <strong>{cursorSensitivity.toFixed(1)}×</strong>
           </label>
+
+          <SectionTitle index="03B" title="레이저 설정" />
+          <label className="range-control">
+            <input
+              type="range"
+              min="12"
+              max="48"
+              step="2"
+              value={laserSettings.size}
+              onChange={(event) =>
+                void window.motionAPI?.setLaserSettings({
+                  ...laserSettings,
+                  size: Number(event.target.value),
+                })
+              }
+            />
+            <strong>{laserSettings.size}px</strong>
+          </label>
+          <div className="laser-options">
+            <input
+              type="color"
+              aria-label="레이저 색상"
+              value={laserSettings.color}
+              onChange={(event) =>
+                void window.motionAPI?.setLaserSettings({
+                  ...laserSettings,
+                  color: event.target.value,
+                })
+              }
+            />
+            <button
+              className={laserSettings.trail ? "active" : ""}
+              onClick={() =>
+                void window.motionAPI?.setLaserSettings({
+                  ...laserSettings,
+                  trail: !laserSettings.trail,
+                })
+              }
+            >
+              잔상 {laserSettings.trail ? "ON" : "OFF"}
+            </button>
+          </div>
 
           <div className="privacy-note">
             <i>●</i>
@@ -413,12 +503,18 @@ function App() {
                   </span>
                 </div>
                 <p>각 모션을 1.6초 유지하면 해당 모드로 바로 전환합니다.</p>
+                <p className="emergency-guide">
+                  양손 주먹을 1.2초 유지하면 모션을 즉시 긴급 정지합니다.
+                </p>
               </div>
             </article>
           </div>
 
           <article className="control-panel resource-panel">
-            <SectionTitle index="06" title="발표 자료 슬롯" />
+            <div className="resource-heading">
+              <SectionTitle index="06" title="발표 자료 슬롯" />
+              <button onClick={addResource}>+ 자료 추가</button>
+            </div>
             <div className="resource-grid">
               {profile.resources.map((resource, index) => (
                 <div className="resource-card" key={resource.id}>
@@ -447,7 +543,8 @@ function App() {
                           item.id === resource.id
                             ? {
                                 ...item,
-                                kind: event.target.value as "url" | "file",
+                                kind: event.target.value as
+                                  "url" | "file" | "app",
                                 value: "",
                               }
                             : item,
@@ -457,15 +554,18 @@ function App() {
                   >
                     <option value="url">웹 링크</option>
                     <option value="file">로컬 파일</option>
+                    <option value="app">애플리케이션</option>
                   </select>
                   <input
                     className="resource-path"
                     placeholder={
                       resource.kind === "url"
                         ? "https://example.com"
-                        : "파일을 선택하세요"
+                        : resource.kind === "app"
+                          ? "애플리케이션을 선택하세요"
+                          : "파일을 선택하세요"
                     }
-                    readOnly={resource.kind === "file"}
+                    readOnly={resource.kind !== "url"}
                     value={resource.value}
                     onChange={(event) =>
                       updateProfile({
@@ -478,11 +578,11 @@ function App() {
                       })
                     }
                   />
-                  {resource.kind === "file" && (
+                  {resource.kind !== "url" && (
                     <button
                       onClick={() =>
                         void window.motionAPI
-                          ?.pickPresentationFile()
+                          ?.pickPresentationFile(resource.kind === "app")
                           .then((value) => {
                             if (!value) return;
                             updateProfile({
@@ -496,11 +596,95 @@ function App() {
                           })
                       }
                     >
-                      파일 선택
+                      {resource.kind === "app" ? "앱 선택" : "파일 선택"}
                     </button>
                   )}
+                  <div className="resource-actions">
+                    <button onClick={() => void openResource(resource)}>
+                      TEST
+                    </button>
+                    {profile.resources.length > 2 && (
+                      <button
+                        onClick={() =>
+                          updateProfile({
+                            ...profile,
+                            resources: profile.resources.filter(
+                              (item) => item.id !== resource.id,
+                            ),
+                          })
+                        }
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                  <label className="return-option">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(resource.returnAfterMs)}
+                      onChange={(event) =>
+                        updateProfile({
+                          ...profile,
+                          resources: profile.resources.map((item) =>
+                            item.id === resource.id
+                              ? {
+                                  ...item,
+                                  returnAfterMs: event.target.checked
+                                    ? 5000
+                                    : 0,
+                                }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                    5초 후 발표 화면 복귀
+                  </label>
                 </div>
               ))}
+            </div>
+            <div className="slide-jump">
+              <label>
+                슬라이드 번호
+                <input
+                  type="number"
+                  min="1"
+                  value={slideNumber}
+                  onChange={(event) =>
+                    setSlideNumber(Number(event.target.value))
+                  }
+                />
+              </label>
+              <button
+                onClick={() =>
+                  void window.motionAPI
+                    ?.goToSlide(slideNumber)
+                    .then((result) =>
+                      addLog(
+                        result?.ok
+                          ? `${slideNumber}번 슬라이드로 이동`
+                          : `슬라이드 이동 실패 · ${result?.error}`,
+                      ),
+                    )
+                }
+              >
+                이동
+              </button>
+              <button
+                onClick={() =>
+                  void window.motionAPI
+                    ?.restorePresentation()
+                    .then((result) =>
+                      addLog(
+                        result?.ok
+                          ? "발표 화면으로 복귀"
+                          : `복귀 실패 · ${result?.error}`,
+                      ),
+                    )
+                }
+              >
+                발표 화면 복귀
+              </button>
             </div>
           </article>
         </section>

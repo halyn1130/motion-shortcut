@@ -8,12 +8,16 @@ declare global {
       ): Promise<{ ok: boolean; appName?: string; error?: string }>;
       executePresentationCommand(
         command: string,
+        presentationApp?: "powerpoint" | "keynote" | "google-slides",
       ): Promise<{ ok: boolean; error?: string }>;
-      pickPresentationFile(): Promise<string | null>;
+      pickPresentationFile(applicationOnly?: boolean): Promise<string | null>;
       openPresentationResource(resource: {
-        kind: "url" | "file";
+        kind: "url" | "file" | "app";
         value: string;
+        returnAfterMs?: number;
       }): Promise<{ ok: boolean; error?: string }>;
+      restorePresentation(): Promise<{ ok: boolean; error?: string }>;
+      goToSlide(slide: number): Promise<{ ok: boolean; error?: string }>;
       getPresentationMode(): Promise<"slide" | "cursor" | "laser">;
       setPresentationMode(mode: string): Promise<{
         ok: boolean;
@@ -29,6 +33,24 @@ declare global {
         callback: (mode: "slide" | "cursor" | "laser") => void,
       ): void;
       moveLaser(point: { x: number; y: number }): void;
+      getLaserSettings(): Promise<{
+        color: string;
+        size: number;
+        trail: boolean;
+      }>;
+      setLaserSettings(settings: {
+        color: string;
+        size: number;
+        trail: boolean;
+      }): Promise<{ color: string; size: number; trail: boolean }>;
+      onLaserSettingsChanged(
+        callback: (settings: {
+          color: string;
+          size: number;
+          trail: boolean;
+        }) => void,
+      ): void;
+      onLaserMoved(callback: () => void): void;
       getOverlayMode(): Promise<"camera" | "person-pet" | "hand-pet">;
       setOverlayMode(mode: string): Promise<boolean>;
       onOverlayMode(

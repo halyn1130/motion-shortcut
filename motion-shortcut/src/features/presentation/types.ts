@@ -13,13 +13,14 @@ export type PresentationAction =
   | "resource-1"
   | "resource-2";
 
-export type ResourceKind = "url" | "file";
+export type ResourceKind = "url" | "file" | "app";
 
 export interface PresentationResource {
-  id: "resource-1" | "resource-2";
+  id: string;
   name: string;
   kind: ResourceKind;
   value: string;
+  returnAfterMs?: number;
 }
 
 export interface PresentationProfile {

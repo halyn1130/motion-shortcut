@@ -54,6 +54,7 @@ export function useHandTracking(
   onCursorMove?: (point: { x: number; y: number }) => void,
   onCursorClick?: () => void,
   cursorSensitivity = 1,
+  onEmergencyStop?: () => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -69,6 +70,7 @@ export function useHandTracking(
   const onModeGestureRef = useRef(onModeGesture);
   const onCursorMoveRef = useRef(onCursorMove);
   const onCursorClickRef = useRef(onCursorClick);
+  const onEmergencyStopRef = useRef(onEmergencyStop);
   const swipeHistoryRef = useRef<
     Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
   >({ Left: [], Right: [] });
@@ -79,6 +81,7 @@ export function useHandTracking(
     triggered: boolean;
   }>({ mode: null, since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
+  const emergencyStopRef = useRef({ since: 0, triggered: false });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -89,7 +92,8 @@ export function useHandTracking(
     onModeGestureRef.current = onModeGesture;
     onCursorMoveRef.current = onCursorMove;
     onCursorClickRef.current = onCursorClick;
-  }, [onCursorClick, onCursorMove, onModeGesture, onGesture]);
+    onEmergencyStopRef.current = onEmergencyStop;
+  }, [onCursorClick, onCursorMove, onEmergencyStop, onModeGesture, onGesture]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -196,7 +200,15 @@ export function useHandTracking(
             swipeCooldownRef,
           );
           if (swipeGesture) onGestureRef.current(swipeGesture);
-          const modeGesture = detectModeGesture(hands);
+          const emergencyStop = hands.length >= 2 && hands.every(isFist);
+          updateHeldAction(
+            emergencyStop,
+            now,
+            1200,
+            emergencyStopRef,
+            onEmergencyStopRef.current,
+          );
+          const modeGesture = emergencyStop ? null : detectModeGesture(hands);
           updateModeGesture(
             modeGesture,
             now,
@@ -209,7 +221,7 @@ export function useHandTracking(
               (isCursorMovePose(tracked.landmarks) ||
                 isIndexOnlyPose(tracked.landmarks)),
           )?.landmarks;
-          if (moveHand && !modeGesture) {
+          if (moveHand && !modeGesture && !emergencyStop) {
             const tip = {
               x: 1 - (moveHand[8].x + moveHand[12].x) / 2,
               y: (moveHand[8].y + moveHand[12].y) / 2,
@@ -230,21 +242,22 @@ export function useHandTracking(
           )?.landmarks;
           updateLeftHandClick(
             leftHand,
-            Boolean(modeGesture),
+            Boolean(modeGesture) || emergencyStop,
             now,
             leftClickRef,
             onCursorClickRef.current,
           );
           const detectedGestures = hands.map(classifyGesture);
-          const detected = modeGesture
-            ? null
-            : swipeGesture
+          const detected =
+            modeGesture || emergencyStop
               ? null
-              : detectedGestures.includes("toggle-motion")
-                ? "toggle-motion"
-                : hands.length === 1
-                  ? (detectedGestures[0] ?? null)
-                  : null;
+              : swipeGesture
+                ? null
+                : detectedGestures.includes("toggle-motion")
+                  ? "toggle-motion"
+                  : hands.length === 1
+                    ? (detectedGestures[0] ?? null)
+                    : null;
           updateGestureCandidate(
             detected,
             now,
@@ -265,6 +278,7 @@ export function useHandTracking(
             triggered: false,
           };
           leftClickRef.current = { armedAt: 0, fist: false };
+          emergencyStopRef.current = { since: 0, triggered: false };
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
           setGesture(null);
@@ -396,6 +410,24 @@ function updateLeftHandClick(
   stateRef.current.fist = fist;
   if (stateRef.current.armedAt && now - stateRef.current.armedAt > 3000) {
     stateRef.current.armedAt = 0;
+  }
+}
+
+function updateHeldAction(
+  detected: boolean,
+  now: number,
+  holdMs: number,
+  stateRef: { current: { since: number; triggered: boolean } },
+  action?: () => void,
+) {
+  if (!detected) {
+    stateRef.current = { since: 0, triggered: false };
+    return;
+  }
+  if (!stateRef.current.since) stateRef.current.since = now;
+  if (!stateRef.current.triggered && now - stateRef.current.since >= holdMs) {
+    stateRef.current.triggered = true;
+    action?.();
   }
 }
 

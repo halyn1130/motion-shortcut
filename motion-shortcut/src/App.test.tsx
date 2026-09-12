@@ -30,6 +30,8 @@ describe("Flickey 발표 인터페이스", () => {
       executePresentationCommand,
       pickPresentationFile: vi.fn().mockResolvedValue(null),
       openPresentationResource: vi.fn().mockResolvedValue({ ok: true }),
+      restorePresentation: vi.fn().mockResolvedValue({ ok: true }),
+      goToSlide: vi.fn().mockResolvedValue({ ok: true }),
       getPresentationMode: vi.fn().mockResolvedValue("slide"),
       setPresentationMode: vi
         .fn()
@@ -39,6 +41,14 @@ describe("Flickey 발표 인터페이스", () => {
         .mockResolvedValue({ ok: true, mode: "cursor" }),
       onPresentationModeChanged: vi.fn(),
       moveLaser: vi.fn(),
+      getLaserSettings: vi
+        .fn()
+        .mockResolvedValue({ color: "#9fe9ff", size: 24, trail: true }),
+      setLaserSettings: vi
+        .fn()
+        .mockResolvedValue({ color: "#9fe9ff", size: 24, trail: true }),
+      onLaserSettingsChanged: vi.fn(),
+      onLaserMoved: vi.fn(),
       getOverlayMode: vi.fn().mockResolvedValue("camera"),
       setOverlayMode: vi.fn().mockResolvedValue(true),
       onOverlayMode: vi.fn(),
@@ -78,8 +88,17 @@ describe("Flickey 발표 인터페이스", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "다음 슬라이드 테스트" }),
     );
-    expect(executePresentationCommand).toHaveBeenCalledWith("next-slide");
+    expect(executePresentationCommand).toHaveBeenCalledWith(
+      "next-slide",
+      "google-slides",
+    );
     expect(await screen.findByText(/다음 슬라이드 실행/)).toBeInTheDocument();
     delete window.motionAPI;
+  });
+
+  it("발표 자료 슬롯을 추가할 수 있다", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "+ 자료 추가" }));
+    expect(screen.getByText("RESOURCE 03")).toBeVisible();
   });
 });

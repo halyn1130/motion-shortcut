@@ -676,6 +676,66 @@ select:focus {
   gap: 10px;
 }
 
+.laser-options,
+.resource-heading,
+.resource-actions,
+.slide-jump,
+.return-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.laser-options input[type="color"] {
+  width: 42px;
+  height: 30px;
+  padding: 2px;
+}
+
+.laser-options button.active {
+  border-color: #8ddff0;
+  color: #c9f5ff;
+  box-shadow: 0 0 12px #79d8ec24;
+}
+
+.resource-heading {
+  justify-content: space-between;
+}
+
+.resource-actions,
+.return-option {
+  grid-column: 1 / -1;
+}
+
+.resource-actions button {
+  flex: 1;
+}
+
+.return-option {
+  color: #78878d;
+  font-size: 9px;
+}
+
+.return-option input {
+  width: auto;
+}
+
+.slide-jump {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ffffff10;
+}
+
+.slide-jump label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slide-jump input {
+  width: 72px;
+}
+
 .resource-card {
   display: grid;
   grid-template-columns: 1fr 90px;
