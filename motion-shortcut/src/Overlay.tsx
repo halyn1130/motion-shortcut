@@ -3,6 +3,11 @@ import {
   useHandTracking,
   type MotionGestureId,
 } from "./features/camera/useHandTracking";
+import { loadProfile } from "./features/presentation/profile";
+import type {
+  PresentationAction,
+  PresentationMode,
+} from "./features/presentation/types";
 
 type OverlayMode = "camera" | "person-pet" | "hand-pet";
 
@@ -12,6 +17,9 @@ export default function Overlay() {
   const handCanvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<OverlayMode>("camera");
   const [motionOn, setMotionOn] = useState(false);
+  const [presentationMode, setPresentationMode] =
+    useState<PresentationMode>("slide");
+  const [profile, setProfile] = useState(loadProfile);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -25,13 +33,32 @@ export default function Overlay() {
     handColor,
     (gesture: MotionGestureId) => {
       if (gesture === "toggle-motion") void window.motionAPI?.toggleMotion();
-      else if (motionOn) void window.motionAPI?.launchApp(gesture);
+      else if (motionOn && presentationMode === "slide") {
+        const action = Object.entries(profile.mappings).find(
+          ([, pattern]) => pattern === gesture,
+        )?.[0] as PresentationAction | undefined;
+        if (action === "resource-1" || action === "resource-2") {
+          const resource = profile.resources.find((item) => item.id === action);
+          if (resource?.value)
+            void window.motionAPI?.openPresentationResource(resource);
+        } else if (action) {
+          void window.motionAPI?.executePresentationCommand(action);
+        }
+      }
     },
     () => {
-      void window.motionAPI?.toggleCursor();
+      if (motionOn) void window.motionAPI?.cyclePresentationMode();
     },
-    (point) => window.motionAPI?.moveCursor(point),
-    () => window.motionAPI?.clickCursor(),
+    (point) => {
+      if (motionOn && presentationMode === "cursor")
+        window.motionAPI?.moveCursor(point);
+      if (motionOn && presentationMode === "laser")
+        window.motionAPI?.moveLaser(point);
+    },
+    () => {
+      if (motionOn && presentationMode === "cursor")
+        window.motionAPI?.clickCursor();
+    },
     cursorSensitivity,
     () => void window.motionAPI?.toggleKeyboard(),
     (sample) => {
@@ -52,6 +79,8 @@ export default function Overlay() {
     window.motionAPI?.onOverlayEditing?.(setEditing);
     void window.motionAPI?.getMotionEnabled().then(setMotionOn);
     window.motionAPI?.onMotionChanged(setMotionOn);
+    void window.motionAPI?.getPresentationMode().then(setPresentationMode);
+    window.motionAPI?.onPresentationModeChanged(setPresentationMode);
     void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
     window.motionAPI?.onCursorChanged?.(setCursorOn);
     void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
@@ -69,6 +98,12 @@ export default function Overlay() {
         }
       });
     return () => stream?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    const updateProfile = () => setProfile(loadProfile());
+    window.addEventListener("storage", updateProfile);
+    return () => window.removeEventListener("storage", updateProfile);
   }, []);
 
   return (

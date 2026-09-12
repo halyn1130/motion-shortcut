@@ -2,6 +2,20 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("motionAPI", {
   launchApp: (appId) => ipcRenderer.invoke("apps:launch", appId),
+  executePresentationCommand: (command) =>
+    ipcRenderer.invoke("presentation:execute", command),
+  pickPresentationFile: () => ipcRenderer.invoke("presentation:pick-file"),
+  openPresentationResource: (resource) =>
+    ipcRenderer.invoke("presentation:open-resource", resource),
+  getPresentationMode: () => ipcRenderer.invoke("presentation:get-mode"),
+  setPresentationMode: (mode) =>
+    ipcRenderer.invoke("presentation:set-mode", mode),
+  cyclePresentationMode: () => ipcRenderer.invoke("presentation:cycle-mode"),
+  onPresentationModeChanged: (callback) =>
+    ipcRenderer.on("presentation:mode-changed", (_event, mode) =>
+      callback(mode),
+    ),
+  moveLaser: (point) => ipcRenderer.send("laser:move", point),
   getOverlayMode: () => ipcRenderer.invoke("overlay:get-mode"),
   setOverlayMode: (mode) => ipcRenderer.invoke("overlay:set-mode", mode),
   onOverlayMode: (callback) =>

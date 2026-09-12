@@ -1,8 +1,10 @@
 const {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   session,
+  shell,
   screen,
   systemPreferences,
 } = require("electron");
@@ -22,9 +24,11 @@ const allowedApps = Object.freeze({
 let overlayWindow = null;
 let keyboardWindow = null;
 let mainWindow = null;
+let laserWindow = null;
 let restoreMainWindowAfterKeyboard = false;
 let keyboardVisible = false;
 let overlayMode = "camera";
+let presentationMode = "slide";
 let motionEnabled = false;
 let cursorEnabled = false;
 let cursorSensitivity = 1;
@@ -35,6 +39,7 @@ let overlayEditing = false;
 let overlayScale = 1;
 const lastKeyboardTap = { Left: 0, Right: 0 };
 const OVERLAY_BASE_SIZE = { width: 320, height: 420 };
+const LASER_SIZE = 84;
 
 function overlayLayoutPath() {
   return path.join(app.getPath("userData"), "overlay-layout.json");
@@ -360,6 +365,67 @@ const macKeyCodes = Object.freeze({
   Backspace: 51,
   Enter: 36,
   Tab: 48,
+  ArrowLeft: 123,
+  ArrowRight: 124,
+  Escape: 53,
+});
+
+function sendMacKey(key) {
+  if (
+    process.platform === "darwin" &&
+    !systemPreferences.isTrustedAccessibilityClient(true)
+  ) {
+    return {
+      ok: false,
+      error: "시스템 설정에서 Flickey의 손쉬운 사용 권한이 필요합니다.",
+    };
+  }
+  if (!ensureCursorHelper())
+    return { ok: false, error: "macOS 입력 모듈을 시작하지 못했습니다." };
+  const keyCode = macKeyCodes[key];
+  if (keyCode === undefined)
+    return { ok: false, error: "지원하지 않는 발표 명령입니다." };
+  cursorHelper.stdin.write(`key ${keyCode}\n`);
+  return { ok: true };
+}
+
+ipcMain.handle("presentation:execute", (_event, command) => {
+  const keys = {
+    "next-slide": "ArrowRight",
+    "previous-slide": "ArrowLeft",
+    "black-screen": "b",
+    "exit-presentation": "Escape",
+  };
+  const key = keys[command];
+  return key
+    ? sendMacKey(key)
+    : { ok: false, error: "허용되지 않은 발표 명령입니다." };
+});
+
+ipcMain.handle("presentation:pick-file", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "발표 자료 선택",
+    properties: ["openFile"],
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle("presentation:open-resource", async (_event, resource) => {
+  if (!resource || typeof resource.value !== "string" || !resource.value)
+    return { ok: false, error: "등록된 자료가 없습니다." };
+  try {
+    if (resource.kind === "url") {
+      const url = new URL(resource.value);
+      if (!["http:", "https:"].includes(url.protocol)) throw new Error();
+      await shell.openExternal(url.toString());
+    } else {
+      const error = await shell.openPath(resource.value);
+      if (error) return { ok: false, error };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "자료를 열지 못했습니다." };
+  }
 });
 ipcMain.handle("keyboard:type", (_event, key) => {
   if (!keyboardVisible) return { ok: false, error: "키보드가 닫혀 있습니다." };
@@ -431,6 +497,86 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+function createLaserWindow() {
+  laserWindow = new BrowserWindow({
+    width: LASER_SIZE,
+    height: LASER_SIZE,
+    transparent: true,
+    frame: false,
+    resizable: false,
+    hasShadow: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      backgroundThrottling: false,
+    },
+  });
+  laserWindow.setAlwaysOnTop(true, "screen-saver");
+  laserWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  laserWindow.setIgnoreMouseEvents(true);
+  const target = process.env.VITE_DEV_SERVER_URL
+    ? `${process.env.VITE_DEV_SERVER_URL}?laser=1`
+    : `file://${path.join(__dirname, "..", "dist", "index.html")}?laser=1`;
+  laserWindow.loadURL(target);
+  laserWindow.on("closed", () => {
+    laserWindow = null;
+  });
+}
+
+function broadcastPresentationMode() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("presentation:mode-changed", presentationMode);
+  }
+}
+
+function setPresentationMode(nextMode) {
+  if (!["slide", "cursor", "laser"].includes(nextMode))
+    return {
+      ok: false,
+      mode: presentationMode,
+      error: "지원하지 않는 모드입니다.",
+    };
+  if (presentationMode === "cursor" && nextMode !== "cursor")
+    setCursorEnabled(false);
+  if (nextMode === "cursor") {
+    const result = setCursorEnabled(true, true);
+    if (!result.ok) return { ...result, mode: presentationMode };
+  }
+  presentationMode = nextMode;
+  if (!laserWindow) createLaserWindow();
+  laserWindow.hide();
+  broadcastPresentationMode();
+  return { ok: true, mode: presentationMode };
+}
+
+ipcMain.handle("presentation:get-mode", () => presentationMode);
+ipcMain.handle("presentation:set-mode", (_event, mode) =>
+  setPresentationMode(mode),
+);
+ipcMain.handle("presentation:cycle-mode", () => {
+  const order = ["slide", "cursor", "laser"];
+  return setPresentationMode(order[(order.indexOf(presentationMode) + 1) % 3]);
+});
+ipcMain.on("laser:move", (_event, point) => {
+  if (presentationMode !== "laser" || !laserWindow || !point) return;
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const area = display.bounds;
+  const x = area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width;
+  const y = area.y + Math.max(0, Math.min(1, Number(point.y))) * area.height;
+  laserWindow.setPosition(
+    Math.round(x - LASER_SIZE / 2),
+    Math.round(y - LASER_SIZE / 2),
+    false,
+  );
+  laserWindow.showInactive();
+});
 
 function createOverlayWindow() {
   const area = screen.getPrimaryDisplay().workArea;
@@ -561,6 +707,7 @@ app.whenReady().then(() => {
   createWindow();
   createOverlayWindow();
   createKeyboardWindow();
+  createLaserWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

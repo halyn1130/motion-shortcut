@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
-describe("모션 앱 런처", () => {
+describe("Flickey 발표 인터페이스", () => {
   beforeEach(() => {
+    delete window.motionAPI;
+    localStorage.clear();
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
       value: {
@@ -15,20 +17,28 @@ describe("모션 앱 런처", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   });
 
-  it("모션 인식 상태를 켠다", async () => {
+  it("모션을 기본 OFF 상태로 시작한다", () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "모션 OFF" }));
-    expect(
-      await screen.findByRole("button", { name: "모션 ON" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "MOTION OFF" })).toBeVisible();
+    expect(screen.getByText("발표 제어 센터")).toBeVisible();
   });
 
-  it("Electron 브리지로 허용된 앱을 실행한다", async () => {
-    const launchApp = vi
-      .fn()
-      .mockResolvedValue({ ok: true, appName: "계산기" });
+  it("Electron 브리지로 다음 슬라이드 명령을 실행한다", async () => {
+    const executePresentationCommand = vi.fn().mockResolvedValue({ ok: true });
     window.motionAPI = {
-      launchApp,
+      launchApp: vi.fn(),
+      executePresentationCommand,
+      pickPresentationFile: vi.fn().mockResolvedValue(null),
+      openPresentationResource: vi.fn().mockResolvedValue({ ok: true }),
+      getPresentationMode: vi.fn().mockResolvedValue("slide"),
+      setPresentationMode: vi
+        .fn()
+        .mockResolvedValue({ ok: true, mode: "slide" }),
+      cyclePresentationMode: vi
+        .fn()
+        .mockResolvedValue({ ok: true, mode: "cursor" }),
+      onPresentationModeChanged: vi.fn(),
+      moveLaser: vi.fn(),
       getOverlayMode: vi.fn().mockResolvedValue("camera"),
       setOverlayMode: vi.fn().mockResolvedValue(true),
       onOverlayMode: vi.fn(),
@@ -65,9 +75,11 @@ describe("모션 앱 런처", () => {
       onCursorChanged: vi.fn(),
     };
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "계산기 열기" }));
-    expect(launchApp).toHaveBeenCalledWith("calculator");
-    expect(await screen.findByText(/계산기 실행 성공/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "다음 슬라이드 테스트" }),
+    );
+    expect(executePresentationCommand).toHaveBeenCalledWith("next-slide");
+    expect(await screen.findByText(/다음 슬라이드 실행/)).toBeInTheDocument();
     delete window.motionAPI;
   });
 });

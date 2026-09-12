@@ -2,8 +2,8 @@
   "name": "motion-shortcut",
   "private": true,
   "version": "1.0.0",
-  "description": "웹캠 손동작으로 macOS 앱, 커서, 가상 키보드를 제어하는 개인용 모션 인터페이스",
-  "author": "Motion Shortcut",
+  "description": "발표자의 자연스러운 몸짓과 명령 동작을 구분하는 개인 맞춤형 모션 프레젠테이션 인터페이스",
+  "author": "Flickey",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {

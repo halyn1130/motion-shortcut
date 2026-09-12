@@ -1,48 +1,47 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import {
   useHandTracking,
   type MotionGestureId,
 } from "./features/camera/useHandTracking";
+import {
+  ACTION_LABELS,
+  GESTURE_OPTIONS,
+  type GesturePattern,
+  type PresentationAction,
+  type PresentationMode,
+  type PresentationProfile,
+  type TrackingFrameSample,
+} from "./features/presentation/types";
+import {
+  analyzeRehearsal,
+  conflictLevel,
+  loadProfile,
+  saveProfile,
+} from "./features/presentation/profile";
 
-type AppId = "calculator" | "notes" | "chrome" | "spotlight";
 type DisplayMode = "camera" | "person-pet" | "hand-pet";
+type CameraState = "idle" | "requesting" | "active" | "error";
 
-const shortcuts: Array<{
-  id: AppId;
-  name: string;
-  icon: string;
-  gesture: string;
-  detail: string;
-}> = [
-  {
-    id: "calculator",
-    name: "계산기",
-    icon: "＋",
-    gesture: "검지 하나",
-    detail: "빠른 계산 시작",
-  },
-  {
-    id: "notes",
-    name: "메모",
-    icon: "✎",
-    gesture: "V 사인",
-    detail: "새로운 생각 기록",
-  },
-  {
-    id: "chrome",
-    name: "Chrome",
-    icon: "◎",
-    gesture: "손바닥 펼치기",
-    detail: "웹 브라우저 열기",
-  },
-  {
-    id: "spotlight",
-    name: "Spotlight",
-    icon: "⌕",
-    gesture: "주먹 쥐기",
-    detail: "빠른 검색 열기",
-  },
+const MODE_LABELS: Record<PresentationMode, string> = {
+  slide: "SLIDE",
+  cursor: "CURSOR",
+  laser: "LASER",
+};
+
+const APP_LABELS = {
+  "google-slides": "Google Slides",
+  powerpoint: "PowerPoint",
+  keynote: "Keynote",
+};
+
+const EDITABLE_ACTIONS: PresentationAction[] = [
+  "next-slide",
+  "previous-slide",
+  "black-screen",
+  "exit-presentation",
+  "resource-1",
+  "resource-2",
 ];
 
 function App() {
@@ -50,29 +49,24 @@ function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const petCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const rehearsalSamplesRef = useRef<TrackingFrameSample[]>([]);
+  const rehearsalStartedAtRef = useRef(0);
+  const lastSampleAtRef = useRef(0);
+
+  const [profile, setProfile] = useState<PresentationProfile>(loadProfile);
   const [motionOn, setMotionOn] = useState(false);
-  const [cursorOn, setCursorOn] = useState(false);
-  const [cursorSensitivity, setCursorSensitivity] = useState(1);
-  const [typingSensitivity, setTypingSensitivity] = useState(
-    () => Number(localStorage.getItem("typingSensitivity")) || 0.35,
-  );
-  const [petScale, setPetScale] = useState(1);
-  const [petEditing, setPetEditing] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [mode, setMode] = useState<PresentationMode>("slide");
   const [displayMode, setDisplayMode] = useState<DisplayMode>(
     () => (localStorage.getItem("displayMode") as DisplayMode) || "camera",
   );
-  const [handColor, setHandColor] = useState(() => {
-    const saved = localStorage.getItem("handColor");
-    return !saved || saved.toLowerCase() === "#65f6dc" ? "#72dcff" : saved;
-  });
-  const [cameraState, setCameraState] = useState<
-    "idle" | "requesting" | "active" | "error"
-  >("idle");
+  const [cursorSensitivity, setCursorSensitivity] = useState(1);
+  const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState("");
-  const [launching, setLaunching] = useState<AppId | null>(null);
-  const [selected, setSelected] = useState<AppId>("calculator");
-  const [logs, setLogs] = useState<string[]>(["앱 실행기가 준비되었습니다."]);
+  const [rehearsing, setRehearsing] = useState(false);
+  const [rehearsalSeconds, setRehearsalSeconds] = useState(0);
+  const [logs, setLogs] = useState<string[]>([
+    "Flickey Present가 준비되었습니다.",
+  ]);
 
   const addLog = (message: string) => {
     const time = new Date().toLocaleTimeString("ko-KR", {
@@ -80,26 +74,16 @@ function App() {
       minute: "2-digit",
       second: "2-digit",
     });
-    setLogs((items) => [`${time} · ${message}`, ...items].slice(0, 8));
+    setLogs((items) => [`${time} · ${message}`, ...items].slice(0, 10));
   };
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraState("idle");
-    setMotionOn(false);
-    void window.motionAPI?.setMotionEnabled(false);
-    addLog("카메라 중지");
+  const updateProfile = (next: PresentationProfile) => {
+    setProfile(next);
+    saveProfile(next);
   };
 
   const startCamera = async () => {
-    if (streamRef.current) {
-      setMotionOn(true);
-      await window.motionAPI?.setMotionEnabled(true);
-      return;
-    }
-
+    if (streamRef.current) return true;
     setCameraState("requesting");
     setCameraError("");
     try {
@@ -117,20 +101,147 @@ function App() {
         await videoRef.current.play();
       }
       setCameraState("active");
-      setMotionOn(true);
-      await window.motionAPI?.setMotionEnabled(true);
-      addLog("카메라 연결 성공");
+      addLog("카메라 연결 완료");
+      return true;
     } catch (error) {
       const message =
         error instanceof DOMException && error.name === "NotAllowedError"
-          ? "카메라 권한이 거부되었습니다. 시스템 설정에서 권한을 허용하세요."
-          : "카메라를 찾거나 연결하지 못했습니다.";
+          ? "시스템 설정에서 Flickey의 카메라 권한을 허용하세요."
+          : "카메라를 연결하지 못했습니다.";
       setCameraError(message);
       setCameraState("error");
-      setMotionOn(false);
       addLog(`카메라 오류 · ${message}`);
+      return false;
     }
   };
+
+  const toggleMotion = async () => {
+    if (motionOn) {
+      await window.motionAPI?.setMotionEnabled(false);
+      setMotionOn(false);
+      addLog("모션 OFF");
+      return;
+    }
+    const cameraReady = await startCamera();
+    if (!cameraReady) return;
+    await window.motionAPI?.setMotionEnabled(true);
+    setMotionOn(true);
+    addLog("모션 ON");
+  };
+
+  const setPresentationMode = async (next: PresentationMode) => {
+    const result = await window.motionAPI?.setPresentationMode(next);
+    if (!result) {
+      setMode(next);
+      return;
+    }
+    if (result.ok) {
+      setMode(result.mode);
+      addLog(`${MODE_LABELS[result.mode]} MODE 전환`);
+    } else {
+      addLog(`모드 전환 실패 · ${result.error}`);
+    }
+  };
+
+  const cyclePresentationMode = async () => {
+    const result = await window.motionAPI?.cyclePresentationMode();
+    if (result?.ok) {
+      setMode(result.mode);
+      addLog(`양손 검지 X · ${MODE_LABELS[result.mode]} MODE`);
+    } else if (result?.error) {
+      addLog(`모드 전환 실패 · ${result.error}`);
+    }
+  };
+
+  const executeAction = async (action: PresentationAction) => {
+    if (action === "resource-1" || action === "resource-2") {
+      const resource = profile.resources.find((item) => item.id === action);
+      if (!resource?.value) {
+        addLog(`${ACTION_LABELS[action]} 실패 · 등록된 자료가 없습니다.`);
+        return;
+      }
+      const result = await window.motionAPI?.openPresentationResource(resource);
+      addLog(
+        result?.ok
+          ? `${resource.name} 열기 성공`
+          : `${resource.name} 열기 실패 · ${result?.error ?? "Electron에서 실행하세요."}`,
+      );
+      return;
+    }
+    const result = await window.motionAPI?.executePresentationCommand(action);
+    addLog(
+      result?.ok
+        ? `${ACTION_LABELS[action]} 실행`
+        : `${ACTION_LABELS[action]} 실패 · ${result?.error ?? "Electron에서 실행하세요."}`,
+    );
+  };
+
+  const handleGesture = (gesture: MotionGestureId) => {
+    if (gesture === "toggle-motion") {
+      void window.motionAPI?.toggleMotion().then((enabled) => {
+        setMotionOn(enabled);
+        addLog(`전화 모양 · 모션 ${enabled ? "ON" : "OFF"}`);
+      });
+      return;
+    }
+    if (!motionOn || rehearsing || mode !== "slide") return;
+    const action = EDITABLE_ACTIONS.find(
+      (candidate) => profile.mappings[candidate] === gesture,
+    );
+    if (action) void executeAction(action);
+  };
+
+  const finishRehearsal = () => {
+    const duration = performance.now() - rehearsalStartedAtRef.current;
+    const baseline = analyzeRehearsal(rehearsalSamplesRef.current, duration);
+    setRehearsing(false);
+    if (!baseline) {
+      addLog("리허설 분석 실패 · 화면에 손이 충분히 잡히지 않았습니다.");
+      return;
+    }
+    updateProfile({ ...profile, rehearsal: baseline });
+    addLog(
+      `리허설 분석 완료 · ${baseline.frameCount}개 프레임, 주 사용 손 ${baseline.dominantHand}`,
+    );
+  };
+
+  const startRehearsal = async () => {
+    setDisplayMode("camera");
+    const cameraReady = await startCamera();
+    if (!cameraReady) return;
+    rehearsalSamplesRef.current = [];
+    rehearsalStartedAtRef.current = performance.now();
+    lastSampleAtRef.current = 0;
+    setRehearsalSeconds(0);
+    setRehearsing(true);
+    addLog("리허설 학습 시작 · 평소처럼 발표해 주세요.");
+  };
+
+  useEffect(() => {
+    void window.motionAPI?.getMotionEnabled().then(setMotionOn);
+    window.motionAPI?.onMotionChanged(setMotionOn);
+    void window.motionAPI?.getPresentationMode().then(setMode);
+    window.motionAPI?.onPresentationModeChanged(setMode);
+    void window.motionAPI?.getCursorSensitivity().then(setCursorSensitivity);
+    window.motionAPI?.onCursorSensitivityChanged(setCursorSensitivity);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("displayMode", displayMode);
+    void window.motionAPI?.setOverlayMode(displayMode);
+  }, [displayMode]);
+
+  useEffect(() => {
+    if (!rehearsing) return;
+    const timer = window.setInterval(() => {
+      const elapsed = Math.floor(
+        (performance.now() - rehearsalStartedAtRef.current) / 1000,
+      );
+      setRehearsalSeconds(elapsed);
+      if (elapsed >= 60) finishRehearsal();
+    }, 250);
+    return () => window.clearInterval(timer);
+  });
 
   useEffect(
     () => () => {
@@ -139,461 +250,434 @@ function App() {
     [],
   );
 
-  useEffect(() => {
-    void window.motionAPI?.setOverlayMode(displayMode);
-  }, [displayMode]);
-
-  useEffect(() => {
-    void window.motionAPI?.setOverlayColor(handColor);
-  }, [handColor]);
-
-  useEffect(() => {
-    void window.motionAPI?.setTypingSensitivity?.(typingSensitivity);
-  }, [typingSensitivity]);
-
-  useEffect(() => {
-    void window.motionAPI?.getMotionEnabled().then(setMotionOn);
-    window.motionAPI?.onMotionChanged(setMotionOn);
-    void window.motionAPI?.getCursorEnabled?.().then(setCursorOn);
-    window.motionAPI?.onCursorChanged?.(setCursorOn);
-    void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
-    window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
-    void window.motionAPI?.getKeyboardVisible?.().then(setKeyboardVisible);
-    window.motionAPI?.onKeyboardChanged?.(setKeyboardVisible);
-    window.motionAPI?.onTypingSensitivityChanged?.(setTypingSensitivity);
-    void window.motionAPI?.getOverlayLayout?.().then(({ scale, editing }) => {
-      setPetScale(scale);
-      setPetEditing(editing);
-    });
-  }, []);
-
-  const toggleCursor = async () => {
-    if (!window.motionAPI) return;
-    const result = await window.motionAPI.toggleCursor();
-    if (result.ok) {
-      addLog(`양손 검지 X · 커서 제어 ${result.enabled ? "ON" : "OFF"}`);
-    } else {
-      addLog(`커서 제어 실패 · ${result.error}`);
-    }
-  };
-
-  const launch = async (id: AppId) => {
-    const target = shortcuts.find((item) => item.id === id)!;
-    setLaunching(id);
-    setSelected(id);
-
-    if (!window.motionAPI) {
-      addLog(`${target.name} 실행 미리보기 · Electron에서 실행하세요.`);
-      setLaunching(null);
-      return;
-    }
-
-    const result = await window.motionAPI.launchApp(id);
-    addLog(
-      result.ok ? `${result.appName} 실행 성공` : `실행 실패 · ${result.error}`,
-    );
-    setLaunching(null);
-  };
-
   const tracking = useHandTracking(
     videoRef,
     canvasRef,
     petCanvasRef,
     cameraState === "active" && displayMode === "camera",
-    handColor,
-    (gesture: MotionGestureId) => {
-      if (gesture === "toggle-motion") {
-        void window.motionAPI
-          ?.toggleMotion()
-          .then((enabled) =>
-            addLog(`전화 모양 · 모션 인식 ${enabled ? "ON" : "OFF"}`),
-          );
-      } else if (motionOn) {
-        void launch(gesture);
+    "#9fe9ff",
+    handleGesture,
+    () => {
+      if (motionOn) void cyclePresentationMode();
+    },
+    (point) => {
+      if (motionOn && mode === "cursor") window.motionAPI?.moveCursor(point);
+      if (motionOn && mode === "laser") window.motionAPI?.moveLaser(point);
+    },
+    () => {
+      if (motionOn && mode === "cursor") {
+        window.motionAPI?.clickCursor();
+        addLog("왼손 펼치기 → 주먹 · 클릭");
       }
     },
-    () => void toggleCursor(),
-    (point) => window.motionAPI?.moveCursor(point),
-    () => {
-      window.motionAPI?.clickCursor();
-      if (cursorOn) addLog("왼손 펼치기 → 주먹 · 클릭");
-    },
     cursorSensitivity,
-    () => {
-      void window.motionAPI
-        ?.toggleKeyboard()
-        .then((visible) =>
-          addLog(`왼손 세 손가락 · 가상 키보드 ${visible ? "OPEN" : "CLOSE"}`),
-        );
-    },
+    undefined,
+    undefined,
+    undefined,
     (sample) => {
-      if (keyboardVisible) window.motionAPI?.sendKeyboardPointer(sample);
-    },
-    (hands) => {
-      if (keyboardVisible) window.motionAPI?.sendKeyboardHands(hands);
+      if (!rehearsing || sample.timestamp - lastSampleAtRef.current < 80)
+        return;
+      lastSampleAtRef.current = sample.timestamp;
+      rehearsalSamplesRef.current.push(sample);
     },
   );
 
-  const changeDisplayMode = (mode: DisplayMode) => {
-    if (mode === "camera" && petEditing) {
-      setPetEditing(false);
-      void window.motionAPI?.setOverlayEditing(false);
-    }
-    setDisplayMode(mode);
-    localStorage.setItem("displayMode", mode);
-    void window.motionAPI?.setOverlayMode(mode);
-    addLog(
-      `표시 모드 변경 · ${mode === "camera" ? "카메라" : mode === "person-pet" ? "전신 팻" : "손 팻"}`,
-    );
-  };
-
-  const activeShortcut = shortcuts.find((item) => item.id === selected)!;
+  const riskSummary = useMemo(
+    () =>
+      EDITABLE_ACTIONS.map((action) => ({
+        action,
+        level: conflictLevel(profile.rehearsal, profile.mappings[action]),
+      })),
+    [profile],
+  );
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <h1 className="wordmark">
-          <img src="./assets/flickey-logo.png" alt="Flickey" />
-        </h1>
-        <span className="platform">macOS MVP</span>
+    <main className="presenter-app">
+      <header className="presenter-topbar">
+        <img src="./assets/flickey-logo.png" alt="Flickey" />
+        <div className="product-title">
+          <span>PRESENTATION INTERFACE</span>
+          <strong>{profile.name}</strong>
+        </div>
+        <div className="mode-tabs" aria-label="발표 모드">
+          {(Object.keys(MODE_LABELS) as PresentationMode[]).map((item) => (
+            <button
+              key={item}
+              className={mode === item ? "active" : ""}
+              onClick={() => void setPresentationMode(item)}
+            >
+              {MODE_LABELS[item]}
+            </button>
+          ))}
+        </div>
         <button
-          className={`motion-toggle ${motionOn ? "on" : ""}`}
-          aria-pressed={motionOn}
-          onClick={() => {
-            if (!motionOn && cameraState !== "active") {
-              void startCamera();
-              return;
-            }
-            void window.motionAPI?.setMotionEnabled(!motionOn);
-            addLog(motionOn ? "모션 인식 OFF" : "모션 인식 ON");
-          }}
+          className={`power-button ${motionOn ? "on" : ""}`}
+          onClick={() => void toggleMotion()}
         >
-          <i />
-          모션 {motionOn ? "ON" : "OFF"}
-        </button>
-        <button
-          className={`motion-toggle cursor-toggle ${cursorOn ? "on" : ""}`}
-          aria-pressed={cursorOn}
-          onClick={() => void toggleCursor()}
-        >
-          <i />
-          커서 {cursorOn ? "ON" : "OFF"}
+          <i /> MOTION {motionOn ? "ON" : "OFF"}
         </button>
       </header>
 
-      <nav className="mode-switcher" aria-label="카메라 표시 모드">
-        <span>DISPLAY MODE</span>
-        <button
-          className={displayMode === "camera" ? "active" : ""}
-          onClick={() => changeDisplayMode("camera")}
-        >
-          카메라
-        </button>
-        <button
-          className={displayMode === "person-pet" ? "active" : ""}
-          onClick={() => changeDisplayMode("person-pet")}
-        >
-          전신 팻
-        </button>
-        <button
-          className={displayMode === "hand-pet" ? "active" : ""}
-          onClick={() => changeDisplayMode("hand-pet")}
-        >
-          손 팻
-        </button>
-        <label className="color-control">
-          손 색상
-          <input
-            type="color"
-            value={handColor}
-            onChange={(event) => {
-              const color = event.target.value;
-              setHandColor(color);
-              localStorage.setItem("handColor", color);
-              void window.motionAPI?.setOverlayColor(color);
-            }}
-          />
-        </label>
-        <label className="sensitivity-control">
-          커서 감도
-          <input
-            type="range"
-            min="0.6"
-            max="2"
-            step="0.1"
-            value={cursorSensitivity}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              setCursorSensitivity(value);
-              void window.motionAPI?.setCursorSensitivity(value);
-            }}
-          />
-          <strong>{cursorSensitivity.toFixed(1)}×</strong>
-        </label>
-        <label className="sensitivity-control typing-sensitivity-control">
-          타건 민감도
-          <input
-            type="range"
-            min="0.2"
-            max="1"
-            step="0.05"
-            value={typingSensitivity}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              setTypingSensitivity(value);
-              localStorage.setItem("typingSensitivity", String(value));
-            }}
-          />
-          <strong>{Math.round(typingSensitivity * 100)}%</strong>
-        </label>
-        {displayMode !== "camera" && (
-          <>
-            <label className="sensitivity-control pet-size-control">
-              팻 크기
-              <input
-                type="range"
-                min="0.6"
-                max="1.6"
-                step="0.05"
-                value={petScale}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  setPetScale(value);
-                  void window.motionAPI?.setOverlayScale(value);
-                }}
-              />
-              <strong>{Math.round(petScale * 100)}%</strong>
-            </label>
-            <button
-              className={petEditing ? "active" : ""}
-              onClick={() => {
-                const editing = !petEditing;
-                setPetEditing(editing);
-                void window.motionAPI?.setOverlayEditing(editing);
-              }}
+      <section className="presenter-grid">
+        <aside className="presenter-sidebar">
+          <SectionTitle index="01" title="발표 프로필" />
+          <label>
+            프로필 이름
+            <input
+              value={profile.name}
+              onChange={(event) =>
+                updateProfile({ ...profile, name: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            발표 프로그램
+            <select
+              value={profile.app}
+              onChange={(event) =>
+                updateProfile({
+                  ...profile,
+                  app: event.target.value as PresentationProfile["app"],
+                })
+              }
             >
-              {petEditing ? "배치 완료" : "팻 위치 이동"}
-            </button>
-          </>
-        )}
-        <button
-          className={keyboardVisible ? "active" : ""}
-          onClick={() =>
-            void window.motionAPI?.setKeyboardVisible(!keyboardVisible)
-          }
-        >
-          키보드 {keyboardVisible ? "닫기" : "열기"}
-        </button>
-      </nav>
+              {Object.entries(APP_LABELS).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <section className="workspace">
-        <article
-          className={`panel camera ${displayMode !== "camera" ? "compact-camera" : ""}`}
-        >
-          <Heading
-            eyebrow="CAMERA"
-            title="실시간 모션"
-            aside={
-              cameraState === "active"
-                ? "연결됨"
-                : cameraState === "requesting"
-                  ? "권한 확인 중"
-                  : "연결 전"
-            }
-          />
-          <div
-            className={`camera-view ${cameraState === "active" ? "active" : ""}`}
-          >
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              aria-label="실시간 웹캠 영상"
-            />
-            <canvas
-              ref={canvasRef}
-              className="hand-canvas"
-              aria-hidden="true"
-            />
-            {cameraState !== "active" && (
-              <div className="camera-message">
-                <span>✋</span>
-                <strong>
-                  {cameraState === "requesting"
-                    ? "카메라 권한을 확인하세요"
-                    : cameraState === "error"
-                      ? "카메라 연결 실패"
-                      : "웹캠을 연결해 주세요"}
-                </strong>
-                <p>
-                  {cameraError ||
-                    "영상은 기기 안에서만 처리되며 저장하거나 전송하지 않습니다."}
-                </p>
+          <SectionTitle index="02" title="표시 방식" />
+          <div className="display-options">
+            {(["camera", "person-pet", "hand-pet"] as DisplayMode[]).map(
+              (item) => (
                 <button
-                  disabled={cameraState === "requesting"}
-                  onClick={() => void startCamera()}
+                  key={item}
+                  className={displayMode === item ? "active" : ""}
+                  onClick={() => setDisplayMode(item)}
                 >
-                  {cameraState === "requesting" ? "연결 중…" : "카메라 켜기"}
+                  {item === "camera"
+                    ? "카메라"
+                    : item === "person-pet"
+                      ? "전신 팻"
+                      : "손 팻"}
                 </button>
-              </div>
-            )}
-            {cameraState === "active" && (
-              <div className="camera-overlay">
-                <span>{motionOn ? "● 모션 인식 중" : "모션 일시정지"}</span>
-                <button onClick={stopCamera}>카메라 끄기</button>
-              </div>
-            )}
-            {tracking.state === "error" && (
-              <div className="tracking-error">
-                손 추적 오류 · {tracking.errorMessage}
-              </div>
+              ),
             )}
           </div>
-          <div className="recognition">
-            <span>
-              {tracking.state === "tracking"
-                ? tracking.gesture
-                  ? `${tracking.gesture === "toggle-motion" ? "전화 모양" : tracking.gestureLabel} 유지 중`
-                  : "손 추적 중"
-                : tracking.state === "loading"
-                  ? "모델 준비 중"
-                  : tracking.state === "error"
-                    ? "추적 오류"
-                    : motionOn
-                      ? "손을 보여주세요"
-                      : "비활성"}
-            </span>
-            <div>
-              <i style={{ width: `${tracking.confidence}%` }} />
-            </div>
-            <strong>{tracking.confidence}%</strong>
-          </div>
-          <div className="motion-examples" aria-label="모션 예시">
-            <button className="cursor-example" aria-label="가상 키보드 예시">
-              <span>🖖</span>
-              <strong>왼손 세 손가락 1.5초</strong>
-              <small>키보드 열기 / 닫기</small>
-            </button>
-            <button className="cursor-example" aria-label="커서 제어 예시">
-              <span>☝️×☝️</span>
-              <strong>양손 검지 X 2초</strong>
-              <small>커서 ON / OFF</small>
-            </button>
-            <button className="cursor-example" aria-label="커서 이동 예시">
-              <span>✌️</span>
-              <strong>두 손가락 붙이기</strong>
-              <small>{cursorOn ? "커서 이동 중" : "커서 이동"}</small>
-            </button>
-            <button className="cursor-example" aria-label="커서 클릭 예시">
-              <span>🖐️→✊</span>
-              <strong>왼손 펼쳤다 주먹</strong>
-              <small>한 번 클릭</small>
-            </button>
-            <button className="toggle-example" aria-label="모션 ON OFF 예시">
-              <span>🤙</span>
-              <strong>전화 모양 1.5초</strong>
-              <small>모션 ON / OFF</small>
-            </button>
-            {shortcuts.map((item) => (
-              <button
-                key={item.id}
-                className={selected === item.id ? "selected" : ""}
-                aria-label={`${item.name} 모션 예시`}
-                onClick={() => setSelected(item.id)}
-              >
-                <span>{item.icon}</span>
-                <strong>{item.gesture}</strong>
-                <small>{item.name} 열기</small>
-              </button>
-            ))}
-          </div>
-        </article>
 
-        <section className="launcher-area">
-          <div className="section-title">
-            <div>
-              <span className="eyebrow">APP SHORTCUTS</span>
-              <h2>프로그램 실행</h2>
-            </div>
-            <p>카드를 눌러 명령 연결을 먼저 테스트하세요.</p>
-          </div>
-          <div className="shortcut-grid">
-            {shortcuts.map((item) => (
-              <button
-                key={item.id}
-                aria-label={`${item.name} 열기`}
-                className={`shortcut ${selected === item.id ? "selected" : ""}`}
-                onClick={() => void launch(item.id)}
-              >
-                <span className={`app-icon ${item.id}`}>{item.icon}</span>
-                <span className="shortcut-copy">
-                  <strong>{item.name}</strong>
-                  <small>{item.detail}</small>
-                </span>
-                <span className="gesture">{item.gesture}</span>
-                <span className="launch-status">
-                  {launching === item.id ? "여는 중…" : "열기 ↗"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+          <SectionTitle index="03" title="포인터 감도" />
+          <label className="range-control">
+            <input
+              type="range"
+              min="0.6"
+              max="2"
+              step="0.1"
+              value={cursorSensitivity}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                setCursorSensitivity(value);
+                void window.motionAPI?.setCursorSensitivity(value);
+              }}
+            />
+            <strong>{cursorSensitivity.toFixed(1)}×</strong>
+          </label>
 
-        <aside className="panel mapping">
-          <Heading
-            eyebrow="SELECTED COMMAND"
-            title={activeShortcut.name}
-            aside="연결됨"
-          />
-          <div className="mapping-flow">
-            <span>{activeShortcut.gesture}</span>
-            <b>→</b>
-            <span>{activeShortcut.name} 열기</span>
+          <div className="privacy-note">
+            <i>●</i>
+            영상은 기기 안에서만 처리되며 기본적으로 저장되지 않습니다.
           </div>
-          <p>
-            제스처가 확정되면 Electron의 안전한 허용 목록을 통해 실행됩니다.
-          </p>
         </aside>
 
-        <aside className="panel log">
-          <Heading eyebrow="ACTIVITY" title="실행 이력" aside="" />
-          <button className="clear" onClick={() => setLogs([])}>
-            지우기
-          </button>
-          <ul aria-live="polite">
-            {logs.length ? (
-              logs.map((item, index) => (
-                <li key={`${item}-${index}`}>
-                  <i />
-                  {item}
-                </li>
-              ))
-            ) : (
-              <li>아직 기록이 없습니다.</li>
-            )}
+        <section className="presenter-main">
+          <article className="camera-console">
+            <div className="console-heading">
+              <div>
+                <span>LIVE TRACKING</span>
+                <h1>{rehearsing ? "리허설 학습 중" : "발표 제어 센터"}</h1>
+              </div>
+              <div className={`live-state ${cameraState}`}>
+                <i />
+                {cameraState === "active" ? "CAMERA LIVE" : "CAMERA STANDBY"}
+              </div>
+            </div>
+            <div className="camera-stage">
+              <video ref={videoRef} muted playsInline />
+              <canvas ref={canvasRef} aria-hidden="true" />
+              {cameraState !== "active" && (
+                <div className="camera-empty">
+                  <span>◉</span>
+                  <strong>발표자를 인식할 준비가 되었습니다</strong>
+                  <p>{cameraError || "카메라를 켜고 화면 중앙에 서 주세요."}</p>
+                  <button onClick={() => void startCamera()}>
+                    카메라 켜기
+                  </button>
+                </div>
+              )}
+              {cameraState === "active" && (
+                <div className="tracking-hud">
+                  <span>{MODE_LABELS[mode]} MODE</span>
+                  <b>
+                    {tracking.gestureLabel
+                      ? `${tracking.gestureLabel} 감지`
+                      : tracking.state === "tracking"
+                        ? "손 추적 중"
+                        : "손을 보여주세요"}
+                  </b>
+                  <em>{tracking.confidence}%</em>
+                </div>
+              )}
+              {rehearsing && (
+                <div className="rehearsal-overlay">
+                  <span>REHEARSAL CAPTURE</span>
+                  <strong>
+                    {String(rehearsalSeconds).padStart(2, "0")} / 60
+                  </strong>
+                  <p>평소 발표하듯 자연스럽게 손을 움직여 주세요.</p>
+                </div>
+              )}
+            </div>
+            <div className="console-actions">
+              <button
+                className={rehearsing ? "danger" : "primary"}
+                onClick={() =>
+                  rehearsing ? finishRehearsal() : void startRehearsal()
+                }
+              >
+                {rehearsing ? "분석 완료" : "리허설 학습 시작"}
+              </button>
+              <button onClick={() => void cyclePresentationMode()}>
+                모드 전환 테스트
+              </button>
+              <span>양손 검지 X를 2초 유지하면 모드가 전환됩니다.</span>
+            </div>
+          </article>
+
+          <div className="dashboard-columns">
+            <article className="control-panel">
+              <SectionTitle index="04" title="모션 매핑" />
+              <div className="mapping-list">
+                {EDITABLE_ACTIONS.map((action) => {
+                  const risk = riskSummary.find(
+                    (item) => item.action === action,
+                  )?.level;
+                  return (
+                    <div className="mapping-row" key={action}>
+                      <span>{ACTION_LABELS[action]}</span>
+                      <select
+                        value={profile.mappings[action]}
+                        onChange={(event) =>
+                          updateProfile({
+                            ...profile,
+                            mappings: {
+                              ...profile.mappings,
+                              [action]: event.target.value as GesturePattern,
+                            },
+                          })
+                        }
+                      >
+                        {GESTURE_OPTIONS.map((gesture) => (
+                          <option value={gesture.id} key={gesture.id}>
+                            {gesture.label}
+                          </option>
+                        ))}
+                      </select>
+                      <b className={`risk ${risk}`}>{risk}</b>
+                      <button
+                        aria-label={`${ACTION_LABELS[action]} 테스트`}
+                        onClick={() => void executeAction(action)}
+                      >
+                        TEST
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+
+            <article className="control-panel rehearsal-result">
+              <SectionTitle index="05" title="개인 동작 분석" />
+              {profile.rehearsal ? (
+                <>
+                  <div className="metric-grid">
+                    <Metric
+                      label="주 사용 손"
+                      value={profile.rehearsal.dominantHand}
+                    />
+                    <Metric
+                      label="분석 프레임"
+                      value={String(profile.rehearsal.frameCount)}
+                    />
+                    <Metric
+                      label="활동 폭"
+                      value={`${Math.round((profile.rehearsal.activityBounds.maxX - profile.rehearsal.activityBounds.minX) * 100)}%`}
+                    />
+                    <Metric
+                      label="평균 움직임"
+                      value={profile.rehearsal.averageSpeed.toFixed(3)}
+                    />
+                  </div>
+                  <div className="pose-bars">
+                    {Object.entries(profile.rehearsal.poseFrequency).map(
+                      ([pose, frequency]) => (
+                        <div key={pose}>
+                          <span>{pose}</span>
+                          <i>
+                            <b style={{ width: `${frequency * 100}%` }} />
+                          </i>
+                          <em>{Math.round(frequency * 100)}%</em>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="empty-analysis">
+                  <span>◇</span>
+                  <strong>아직 개인 동작 데이터가 없습니다</strong>
+                  <p>
+                    리허설을 진행하면 자주 사용하는 몸짓과 충돌 위험을
+                    분석합니다.
+                  </p>
+                </div>
+              )}
+            </article>
+          </div>
+
+          <article className="control-panel resource-panel">
+            <SectionTitle index="06" title="발표 자료 슬롯" />
+            <div className="resource-grid">
+              {profile.resources.map((resource, index) => (
+                <div className="resource-card" key={resource.id}>
+                  <div>
+                    <span>RESOURCE 0{index + 1}</span>
+                    <input
+                      value={resource.name}
+                      onChange={(event) =>
+                        updateProfile({
+                          ...profile,
+                          resources: profile.resources.map((item) =>
+                            item.id === resource.id
+                              ? { ...item, name: event.target.value }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                  </div>
+                  <select
+                    value={resource.kind}
+                    onChange={(event) =>
+                      updateProfile({
+                        ...profile,
+                        resources: profile.resources.map((item) =>
+                          item.id === resource.id
+                            ? {
+                                ...item,
+                                kind: event.target.value as "url" | "file",
+                                value: "",
+                              }
+                            : item,
+                        ),
+                      })
+                    }
+                  >
+                    <option value="url">웹 링크</option>
+                    <option value="file">로컬 파일</option>
+                  </select>
+                  <input
+                    className="resource-path"
+                    placeholder={
+                      resource.kind === "url"
+                        ? "https://example.com"
+                        : "파일을 선택하세요"
+                    }
+                    readOnly={resource.kind === "file"}
+                    value={resource.value}
+                    onChange={(event) =>
+                      updateProfile({
+                        ...profile,
+                        resources: profile.resources.map((item) =>
+                          item.id === resource.id
+                            ? { ...item, value: event.target.value }
+                            : item,
+                        ),
+                      })
+                    }
+                  />
+                  {resource.kind === "file" && (
+                    <button
+                      onClick={() =>
+                        void window.motionAPI
+                          ?.pickPresentationFile()
+                          .then((value) => {
+                            if (!value) return;
+                            updateProfile({
+                              ...profile,
+                              resources: profile.resources.map((item) =>
+                                item.id === resource.id
+                                  ? { ...item, value }
+                                  : item,
+                              ),
+                            });
+                          })
+                      }
+                    >
+                      파일 선택
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+
+        <aside className="activity-rail">
+          <SectionTitle index="LIVE" title="실행 이력" />
+          <div className="current-mode-card">
+            <span>CURRENT MODE</span>
+            <strong>{MODE_LABELS[mode]}</strong>
+            <p>
+              {mode === "slide"
+                ? "슬라이드와 자료 모션이 활성화됩니다."
+                : mode === "cursor"
+                  ? "오른손으로 이동하고 왼손 주먹으로 클릭합니다."
+                  : "오른손으로 백청색 레이저를 이동합니다."}
+            </p>
+          </div>
+          <ul className="activity-list" aria-live="polite">
+            {logs.map((log, index) => (
+              <li key={`${log}-${index}`}>
+                <i />
+                <span>{log}</span>
+              </li>
+            ))}
           </ul>
+          <button className="clear-log" onClick={() => setLogs([])}>
+            실행 이력 지우기
+          </button>
         </aside>
       </section>
     </main>
   );
 }
 
-function Heading({
-  eyebrow,
-  title,
-  aside,
-}: {
-  eyebrow: string;
-  title: string;
-  aside: string;
-}) {
+function SectionTitle({ index, title }: { index: string; title: string }) {
   return (
-    <div className="heading">
-      <div>
-        <span className="eyebrow">{eyebrow}</span>
-        <h2>{title}</h2>
-      </div>
-      {aside && <span className="badge">{aside}</span>}
+    <div className="section-heading">
+      <span>{index}</span>
+      <h2>{title}</h2>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }

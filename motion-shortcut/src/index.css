@@ -37,6 +37,59 @@ body:not(.overlay-page):not(.keyboard-page) {
   min-height: 100%;
   background: transparent !important;
 }
+.laser-page,
+.laser-page body,
+.laser-page #root {
+  min-height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+}
+.laser-pointer {
+  position: relative;
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+}
+.laser-pointer::before,
+.laser-pointer::after,
+.laser-pointer i,
+.laser-pointer span {
+  position: absolute;
+  border-radius: 50%;
+  content: "";
+}
+.laser-pointer::before {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #a9edff99;
+  box-shadow: 0 0 18px #64dfff5e;
+}
+.laser-pointer::after {
+  width: 14px;
+  height: 14px;
+  background: #e9fbff;
+  box-shadow:
+    0 0 8px #fff,
+    0 0 20px #65ddff,
+    0 0 34px #58ccec99;
+}
+.laser-pointer i {
+  width: 66px;
+  height: 66px;
+  border: 1px solid #85ddf52b;
+  animation: laser-pulse 1.4s ease-out infinite;
+}
+@keyframes laser-pulse {
+  from {
+    transform: scale(0.55);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
 .virtual-keyboard {
   width: 100%;
   height: 100vh;

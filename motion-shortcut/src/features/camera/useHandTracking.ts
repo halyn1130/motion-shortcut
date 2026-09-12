@@ -1,5 +1,9 @@
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import { type RefObject, useEffect, useRef, useState } from "react";
+import type {
+  GesturePattern,
+  TrackingFrameSample,
+} from "../presentation/types";
 
 const CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -26,14 +30,15 @@ const CONNECTIONS: Array<[number, number]> = [
 ];
 
 type TrackerState = "idle" | "loading" | "tracking" | "no-hand" | "error";
-type GestureId = "calculator" | "notes" | "chrome" | "spotlight";
-export type MotionGestureId = GestureId | "toggle-motion";
+export type MotionGestureId = GesturePattern | "toggle-motion";
 
 const GESTURE_LABELS: Record<MotionGestureId, string> = {
-  calculator: "검지 하나",
-  notes: "V 사인",
-  chrome: "손바닥 펼치기",
-  spotlight: "주먹 쥐기",
+  "swipe-right": "오른쪽으로 밀기",
+  "swipe-left": "왼쪽으로 밀기",
+  index: "검지 하나",
+  victory: "V 사인",
+  "open-palm": "손바닥 펼치기",
+  fist: "주먹 쥐기",
   "toggle-motion": "전화 모양",
 };
 
@@ -64,6 +69,7 @@ export function useHandTracking(
       landmarks: Array<{ x: number; y: number }>;
     }>,
   ) => void,
+  onTrackingFrame?: (sample: TrackingFrameSample) => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -82,6 +88,11 @@ export function useHandTracking(
   const onKeyboardToggleRef = useRef(onKeyboardToggle);
   const onKeyboardPointerRef = useRef(onKeyboardPointer);
   const onKeyboardHandsRef = useRef(onKeyboardHands);
+  const onTrackingFrameRef = useRef(onTrackingFrame);
+  const swipeHistoryRef = useRef<
+    Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
+  >({ Left: [], Right: [] });
+  const swipeCooldownRef = useRef(0);
   const cursorToggleRef = useRef({ since: 0, triggered: false });
   const keyboardToggleRef = useRef({ since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
@@ -107,6 +118,7 @@ export function useHandTracking(
     onKeyboardToggleRef.current = onKeyboardToggle;
     onKeyboardPointerRef.current = onKeyboardPointer;
     onKeyboardHandsRef.current = onKeyboardHands;
+    onTrackingFrameRef.current = onTrackingFrame;
   }, [
     onCursorClick,
     onCursorMove,
@@ -115,6 +127,7 @@ export function useHandTracking(
     onKeyboardPointer,
     onKeyboardHands,
     onKeyboardToggle,
+    onTrackingFrame,
   ]);
 
   useEffect(() => {
@@ -215,6 +228,30 @@ export function useHandTracking(
               color,
             );
           const now = performance.now();
+          onTrackingFrameRef.current?.({
+            timestamp: now,
+            hands: trackedHands
+              .filter(
+                (tracked) =>
+                  tracked.handedness === "Left" ||
+                  tracked.handedness === "Right",
+              )
+              .map((tracked) => ({
+                handedness: tracked.handedness as "Left" | "Right",
+                wrist: {
+                  x: 1 - tracked.landmarks[0].x,
+                  y: tracked.landmarks[0].y,
+                },
+                pose: classifyStaticPose(tracked.landmarks),
+              })),
+          });
+          const swipeGesture = detectSwipeGesture(
+            trackedHands,
+            now,
+            swipeHistoryRef.current,
+            swipeCooldownRef,
+          );
+          if (swipeGesture) onGestureRef.current(swipeGesture);
           const cursorToggleCandidate = isCrossedIndexGesture(hands);
           updateCursorToggle(
             cursorToggleCandidate,
@@ -225,7 +262,8 @@ export function useHandTracking(
           const moveHand = trackedHands.find(
             (tracked) =>
               tracked.handedness === "Right" &&
-              isCursorMovePose(tracked.landmarks),
+              (isCursorMovePose(tracked.landmarks) ||
+                isIndexOnlyPose(tracked.landmarks)),
           )?.landmarks;
           if (moveHand && !cursorToggleCandidate) {
             const tip = {
@@ -316,11 +354,13 @@ export function useHandTracking(
           const detected =
             cursorToggleCandidate || keyboardToggleCandidate
               ? null
-              : detectedGestures.includes("toggle-motion")
-                ? "toggle-motion"
-                : hands.length === 1
-                  ? (detectedGestures[0] ?? null)
-                  : null;
+              : swipeGesture
+                ? null
+                : detectedGestures.includes("toggle-motion")
+                  ? "toggle-motion"
+                  : hands.length === 1
+                    ? (detectedGestures[0] ?? null)
+                    : null;
           updateGestureCandidate(
             detected,
             now,
@@ -334,6 +374,7 @@ export function useHandTracking(
           setConfidence(Math.round(score * 100));
         } else {
           smoothedRef.current = null;
+          swipeHistoryRef.current = { Left: [], Right: [] };
           cursorToggleRef.current = { since: 0, triggered: false };
           keyboardToggleRef.current = { since: 0, triggered: false };
           leftClickRef.current = { armedAt: 0, fist: false };
@@ -446,6 +487,15 @@ function isCursorMovePose(landmarks: Array<{ x: number; y: number }>) {
     !fingerExtended(landmarks, 16, 14) &&
     !fingerExtended(landmarks, 20, 18) &&
     tipsTogether
+  );
+}
+
+function isIndexOnlyPose(landmarks: Array<{ x: number; y: number }>) {
+  return (
+    fingerExtended(landmarks, 8, 6) &&
+    !fingerExtended(landmarks, 12, 10) &&
+    !fingerExtended(landmarks, 16, 14) &&
+    !fingerExtended(landmarks, 20, 18)
   );
 }
 
@@ -576,10 +626,56 @@ function classifyGesture(
   const phoneSpread = distance(4, 20) > palmScale * 1.25;
   if (thumb && phoneSpread && !index && !middle && !ring && pinky)
     return "toggle-motion";
-  if (index && middle && ring && pinky) return "chrome";
-  if (index && middle && !ring && !pinky) return "notes";
-  if (index && !middle && !ring && !pinky) return "calculator";
-  if (!index && !middle && !ring && !pinky) return "spotlight";
+  if (index && middle && ring && pinky) return "open-palm";
+  if (index && middle && !ring && !pinky) return "victory";
+  if (index && !middle && !ring && !pinky) return "index";
+  if (!index && !middle && !ring && !pinky) return "fist";
+  return null;
+}
+
+function classifyStaticPose(
+  landmarks: Array<{ x: number; y: number }>,
+): TrackingFrameSample["hands"][number]["pose"] {
+  const gesture = classifyGesture(landmarks);
+  return gesture === "index" ||
+    gesture === "victory" ||
+    gesture === "open-palm" ||
+    gesture === "fist"
+    ? gesture
+    : "other";
+}
+
+function detectSwipeGesture(
+  hands: Array<{
+    landmarks: Array<{ x: number; y: number }>;
+    handedness: string;
+  }>,
+  now: number,
+  histories: Record<
+    "Left" | "Right",
+    Array<{ x: number; y: number; at: number }>
+  >,
+  cooldownRef: { current: number },
+): GesturePattern | null {
+  for (const tracked of hands) {
+    if (tracked.handedness !== "Left" && tracked.handedness !== "Right")
+      continue;
+    const history = histories[tracked.handedness];
+    const wrist = tracked.landmarks[0];
+    history.push({ x: 1 - wrist.x, y: wrist.y, at: now });
+    while (history.length && now - history[0].at > 520) history.shift();
+    if (now < cooldownRef.current || history.length < 4) continue;
+    const first = history[0];
+    const last = history[history.length - 1];
+    const dx = last.x - first.x;
+    const dy = Math.abs(last.y - first.y);
+    if (Math.abs(dx) > 0.2 && dy < 0.12 && now - first.at < 520) {
+      cooldownRef.current = now + 1600;
+      histories.Left = [];
+      histories.Right = [];
+      return dx > 0 ? "swipe-right" : "swipe-left";
+    }
+  }
   return null;
 }
 

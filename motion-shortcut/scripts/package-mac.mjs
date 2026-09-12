@@ -12,14 +12,14 @@ import { join, resolve } from "node:path";
 const root = resolve(".");
 const releaseDirectory = join(root, "release");
 const stagingDirectory = join(root, ".package-staging");
-const appName = "Motion Shortcut.app";
+const appName = "Flickey.app";
 const appPath = join(releaseDirectory, appName);
 const resourcesPath = join(appPath, "Contents", "Resources");
 const plistPath = join(appPath, "Contents", "Info.plist");
 const version = JSON.parse(
   readFileSync(join(root, "package.json"), "utf8"),
 ).version;
-const artifactBase = `Motion-Shortcut-${version}-arm64`;
+const artifactBase = `Flickey-${version}-arm64`;
 const localIdentity = "Motion Shortcut Local Code Signing";
 let signingIdentity = "-";
 try {
@@ -76,13 +76,13 @@ const setPlist = (key, value, type = "string") => {
     execFileSync(plistBuddy, ["-c", `Add :${key} ${type} ${value}`, plistPath]);
   }
 };
-setPlist("CFBundleDisplayName", "모션 단축키");
+setPlist("CFBundleDisplayName", "Flickey");
 setPlist("CFBundleIdentifier", "com.motionshortcut.app");
 setPlist("CFBundleShortVersionString", version);
 setPlist("CFBundleVersion", version);
 setPlist(
   "NSCameraUsageDescription",
-  "손동작을 인식하여 모션 단축키를 실행하기 위해 카메라를 사용합니다.",
+  "발표자의 손동작을 인식하여 Flickey 발표 명령을 실행하기 위해 카메라를 사용합니다.",
 );
 setPlist("LSApplicationCategoryType", "public.app-category.utilities");
 

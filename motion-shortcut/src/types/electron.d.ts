@@ -6,6 +6,29 @@ declare global {
       launchApp(
         appId: string,
       ): Promise<{ ok: boolean; appName?: string; error?: string }>;
+      executePresentationCommand(
+        command: string,
+      ): Promise<{ ok: boolean; error?: string }>;
+      pickPresentationFile(): Promise<string | null>;
+      openPresentationResource(resource: {
+        kind: "url" | "file";
+        value: string;
+      }): Promise<{ ok: boolean; error?: string }>;
+      getPresentationMode(): Promise<"slide" | "cursor" | "laser">;
+      setPresentationMode(mode: string): Promise<{
+        ok: boolean;
+        mode: "slide" | "cursor" | "laser";
+        error?: string;
+      }>;
+      cyclePresentationMode(): Promise<{
+        ok: boolean;
+        mode: "slide" | "cursor" | "laser";
+        error?: string;
+      }>;
+      onPresentationModeChanged(
+        callback: (mode: "slide" | "cursor" | "laser") => void,
+      ): void;
+      moveLaser(point: { x: number; y: number }): void;
       getOverlayMode(): Promise<"camera" | "person-pet" | "hand-pet">;
       setOverlayMode(mode: string): Promise<boolean>;
       onOverlayMode(
