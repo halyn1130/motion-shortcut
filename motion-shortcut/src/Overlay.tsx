@@ -22,7 +22,6 @@ export default function Overlay() {
   const [profile, setProfile] = useState(loadProfile);
   const [cursorOn, setCursorOn] = useState(false);
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [handColor, setHandColor] = useState("#72dcff");
   const [editing, setEditing] = useState(false);
   const tracking = useHandTracking(
@@ -61,13 +60,6 @@ export default function Overlay() {
         window.motionAPI?.clickCursor();
     },
     cursorSensitivity,
-    () => void window.motionAPI?.toggleKeyboard(),
-    (sample) => {
-      if (keyboardVisible) window.motionAPI?.sendKeyboardPointer(sample);
-    },
-    (hands) => {
-      if (keyboardVisible) window.motionAPI?.sendKeyboardHands(hands);
-    },
   );
 
   useEffect(() => {
@@ -86,8 +78,6 @@ export default function Overlay() {
     window.motionAPI?.onCursorChanged?.(setCursorOn);
     void window.motionAPI?.getCursorSensitivity?.().then(setCursorSensitivity);
     window.motionAPI?.onCursorSensitivityChanged?.(setCursorSensitivity);
-    void window.motionAPI?.getKeyboardVisible?.().then(setKeyboardVisible);
-    window.motionAPI?.onKeyboardChanged?.(setKeyboardVisible);
     let stream: MediaStream | null = null;
     void navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user" }, audio: false })

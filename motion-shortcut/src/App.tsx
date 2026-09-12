@@ -217,9 +217,6 @@ function App() {
       }
     },
     cursorSensitivity,
-    undefined,
-    undefined,
-    undefined,
   );
 
   return (

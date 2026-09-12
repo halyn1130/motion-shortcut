@@ -275,6 +275,11 @@ function createKeyboardWindow() {
 }
 
 function setKeyboardVisible(visible) {
+  if (!visible && !keyboardWindow) {
+    keyboardVisible = false;
+    broadcastKeyboardState();
+    return false;
+  }
   if (!keyboardWindow) createKeyboardWindow();
   keyboardVisible = Boolean(visible);
   if (keyboardVisible) {
@@ -311,7 +316,7 @@ function setKeyboardVisible(visible) {
   return keyboardVisible;
 }
 
-ipcMain.handle("keyboard:get", () => keyboardVisible);
+ipcMain.handle("keyboard:get", () => false);
 ipcMain.handle("keyboard:get-sensitivity", () => typingSensitivity);
 ipcMain.handle("keyboard:set-sensitivity", (_event, value) => {
   typingSensitivity = Math.max(0.2, Math.min(1, Number(value) || 0.35));
@@ -320,10 +325,8 @@ ipcMain.handle("keyboard:set-sensitivity", (_event, value) => {
   }
   return typingSensitivity;
 });
-ipcMain.handle("keyboard:set", (_event, visible) =>
-  setKeyboardVisible(visible),
-);
-ipcMain.handle("keyboard:toggle", () => setKeyboardVisible(!keyboardVisible));
+ipcMain.handle("keyboard:set", () => setKeyboardVisible(false));
+ipcMain.handle("keyboard:toggle", () => setKeyboardVisible(false));
 const macKeyCodes = Object.freeze({
   a: 0,
   s: 1,
@@ -706,7 +709,6 @@ app.whenReady().then(() => {
   );
   createWindow();
   createOverlayWindow();
-  createKeyboardWindow();
   createLaserWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

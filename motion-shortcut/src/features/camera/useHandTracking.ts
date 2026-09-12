@@ -54,19 +54,6 @@ export function useHandTracking(
   onCursorMove?: (point: { x: number; y: number }) => void,
   onCursorClick?: () => void,
   cursorSensitivity = 1,
-  onKeyboardToggle?: () => void,
-  onKeyboardPointer?: (sample: {
-    hand: "Left" | "Right";
-    x: number;
-    y: number;
-    tap: boolean;
-  }) => void,
-  onKeyboardHands?: (
-    hands: Array<{
-      handedness: "Left" | "Right";
-      landmarks: Array<{ x: number; y: number }>;
-    }>,
-  ) => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -82,9 +69,6 @@ export function useHandTracking(
   const onModeGestureRef = useRef(onModeGesture);
   const onCursorMoveRef = useRef(onCursorMove);
   const onCursorClickRef = useRef(onCursorClick);
-  const onKeyboardToggleRef = useRef(onKeyboardToggle);
-  const onKeyboardPointerRef = useRef(onKeyboardPointer);
-  const onKeyboardHandsRef = useRef(onKeyboardHands);
   const swipeHistoryRef = useRef<
     Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
   >({ Left: [], Right: [] });
@@ -94,17 +78,7 @@ export function useHandTracking(
     since: number;
     triggered: boolean;
   }>({ mode: null, since: 0, triggered: false });
-  const keyboardToggleRef = useRef({ since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
-  const airTapRef = useRef<
-    Record<
-      "Left" | "Right",
-      { minY: number; lastY: number; armed: boolean; cooldown: number }
-    >
-  >({
-    Left: { minY: 1, lastY: 1, armed: true, cooldown: 0 },
-    Right: { minY: 1, lastY: 1, armed: true, cooldown: 0 },
-  });
   const [state, setState] = useState<TrackerState>("idle");
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -115,18 +89,7 @@ export function useHandTracking(
     onModeGestureRef.current = onModeGesture;
     onCursorMoveRef.current = onCursorMove;
     onCursorClickRef.current = onCursorClick;
-    onKeyboardToggleRef.current = onKeyboardToggle;
-    onKeyboardPointerRef.current = onKeyboardPointer;
-    onKeyboardHandsRef.current = onKeyboardHands;
-  }, [
-    onCursorClick,
-    onCursorMove,
-    onModeGesture,
-    onGesture,
-    onKeyboardPointer,
-    onKeyboardHands,
-    onKeyboardToggle,
-  ]);
+  }, [onCursorClick, onCursorMove, onModeGesture, onGesture]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -265,83 +228,23 @@ export function useHandTracking(
           const leftHand = trackedHands.find(
             (tracked) => tracked.handedness === "Left",
           )?.landmarks;
-          const keyboardToggleCandidate = Boolean(
-            leftHand && isKeyboardTogglePose(leftHand),
-          );
-          updateHeldToggle(
-            keyboardToggleCandidate,
-            now,
-            1500,
-            keyboardToggleRef,
-            onKeyboardToggleRef.current,
-          );
-          onKeyboardHandsRef.current?.(
-            trackedHands
-              .filter(
-                (tracked) =>
-                  tracked.handedness === "Left" ||
-                  tracked.handedness === "Right",
-              )
-              .map((tracked) => ({
-                handedness: tracked.handedness as "Left" | "Right",
-                landmarks: tracked.landmarks.map((landmark) => ({
-                  x: applySensitivity(
-                    clamp((1 - landmark.x - 0.08) / 0.84),
-                    cursorSensitivity,
-                  ),
-                  y: applySensitivity(
-                    clamp((landmark.y - 0.08) / 0.84),
-                    cursorSensitivity,
-                  ),
-                })),
-              })),
-          );
-          for (const tracked of trackedHands) {
-            if (
-              (tracked.handedness === "Left" ||
-                tracked.handedness === "Right") &&
-              fingerExtended(tracked.landmarks, 8, 6)
-            ) {
-              const point = {
-                x: applySensitivity(
-                  clamp((1 - tracked.landmarks[8].x - 0.08) / 0.84),
-                  cursorSensitivity,
-                ),
-                y: applySensitivity(
-                  clamp((tracked.landmarks[8].y - 0.08) / 0.84),
-                  cursorSensitivity,
-                ),
-              };
-              onKeyboardPointerRef.current?.({
-                hand: tracked.handedness,
-                ...point,
-                tap: detectAirTap(
-                  tracked.handedness,
-                  point.y,
-                  now,
-                  airTapRef.current,
-                ),
-              });
-            }
-          }
           updateLeftHandClick(
             leftHand,
-            Boolean(modeGesture) || keyboardToggleCandidate,
+            Boolean(modeGesture),
             now,
             leftClickRef,
             onCursorClickRef.current,
           );
           const detectedGestures = hands.map(classifyGesture);
-          const detected =
-            modeGesture || keyboardToggleCandidate
+          const detected = modeGesture
+            ? null
+            : swipeGesture
               ? null
-              : swipeGesture
-                ? null
-                : detectedGestures.includes("toggle-motion")
-                  ? "toggle-motion"
-                  : hands.length === 1
-                    ? (detectedGestures[0] ?? null)
-                    : null;
+              : detectedGestures.includes("toggle-motion")
+                ? "toggle-motion"
+                : hands.length === 1
+                  ? (detectedGestures[0] ?? null)
+                  : null;
           updateGestureCandidate(
             detected,
             now,
@@ -361,7 +264,6 @@ export function useHandTracking(
             since: 0,
             triggered: false,
           };
-          keyboardToggleRef.current = { since: 0, triggered: false };
           leftClickRef.current = { armedAt: 0, fist: false };
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
@@ -406,36 +308,6 @@ function clamp(value: number) {
 
 function applySensitivity(value: number, sensitivity: number) {
   return clamp(0.5 + (value - 0.5) * sensitivity);
-}
-
-function detectAirTap(
-  hand: "Left" | "Right",
-  y: number,
-  now: number,
-  states: Record<
-    "Left" | "Right",
-    { minY: number; lastY: number; armed: boolean; cooldown: number }
-  >,
-) {
-  const state = states[hand];
-  if (state.lastY === 1) {
-    state.minY = y;
-    state.lastY = y;
-    return false;
-  }
-  if (!state.armed && state.lastY - y > 0.018) {
-    state.armed = true;
-    state.minY = y;
-  }
-  if (state.armed) state.minY = Math.min(state.minY, y);
-  const tapped = state.armed && now >= state.cooldown && y - state.minY > 0.042;
-  if (tapped) {
-    state.armed = false;
-    state.cooldown = now + 320;
-    state.minY = y;
-  }
-  state.lastY = y;
-  return tapped;
 }
 
 function fingerExtended(
@@ -494,33 +366,6 @@ function isFist(landmarks: Array<{ x: number; y: number }>) {
   return [8, 12, 16, 20].every(
     (tip, index) => !fingerExtended(landmarks, tip, [6, 10, 14, 18][index]),
   );
-}
-
-function isKeyboardTogglePose(landmarks: Array<{ x: number; y: number }>) {
-  return (
-    fingerExtended(landmarks, 8, 6) &&
-    fingerExtended(landmarks, 12, 10) &&
-    fingerExtended(landmarks, 16, 14) &&
-    !fingerExtended(landmarks, 20, 18)
-  );
-}
-
-function updateHeldToggle(
-  detected: boolean,
-  now: number,
-  holdMs: number,
-  stateRef: { current: { since: number; triggered: boolean } },
-  onToggle?: () => void,
-) {
-  if (!detected) {
-    stateRef.current = { since: 0, triggered: false };
-    return;
-  }
-  if (!stateRef.current.since) stateRef.current.since = now;
-  if (!stateRef.current.triggered && now - stateRef.current.since >= holdMs) {
-    stateRef.current.triggered = true;
-    onToggle?.();
-  }
 }
 
 function updateLeftHandClick(
