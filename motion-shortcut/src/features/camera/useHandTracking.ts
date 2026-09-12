@@ -1,9 +1,6 @@
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import { type RefObject, useEffect, useRef, useState } from "react";
-import type {
-  GesturePattern,
-  TrackingFrameSample,
-} from "../presentation/types";
+import type { GesturePattern } from "../presentation/types";
 
 const CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -69,7 +66,6 @@ export function useHandTracking(
       landmarks: Array<{ x: number; y: number }>;
     }>,
   ) => void,
-  onTrackingFrame?: (sample: TrackingFrameSample) => void,
 ) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -88,7 +84,6 @@ export function useHandTracking(
   const onKeyboardToggleRef = useRef(onKeyboardToggle);
   const onKeyboardPointerRef = useRef(onKeyboardPointer);
   const onKeyboardHandsRef = useRef(onKeyboardHands);
-  const onTrackingFrameRef = useRef(onTrackingFrame);
   const swipeHistoryRef = useRef<
     Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
   >({ Left: [], Right: [] });
@@ -118,7 +113,6 @@ export function useHandTracking(
     onKeyboardToggleRef.current = onKeyboardToggle;
     onKeyboardPointerRef.current = onKeyboardPointer;
     onKeyboardHandsRef.current = onKeyboardHands;
-    onTrackingFrameRef.current = onTrackingFrame;
   }, [
     onCursorClick,
     onCursorMove,
@@ -127,7 +121,6 @@ export function useHandTracking(
     onKeyboardPointer,
     onKeyboardHands,
     onKeyboardToggle,
-    onTrackingFrame,
   ]);
 
   useEffect(() => {
@@ -228,23 +221,6 @@ export function useHandTracking(
               color,
             );
           const now = performance.now();
-          onTrackingFrameRef.current?.({
-            timestamp: now,
-            hands: trackedHands
-              .filter(
-                (tracked) =>
-                  tracked.handedness === "Left" ||
-                  tracked.handedness === "Right",
-              )
-              .map((tracked) => ({
-                handedness: tracked.handedness as "Left" | "Right",
-                wrist: {
-                  x: 1 - tracked.landmarks[0].x,
-                  y: tracked.landmarks[0].y,
-                },
-                pose: classifyStaticPose(tracked.landmarks),
-              })),
-          });
           const swipeGesture = detectSwipeGesture(
             trackedHands,
             now,
@@ -631,18 +607,6 @@ function classifyGesture(
   if (index && !middle && !ring && !pinky) return "index";
   if (!index && !middle && !ring && !pinky) return "fist";
   return null;
-}
-
-function classifyStaticPose(
-  landmarks: Array<{ x: number; y: number }>,
-): TrackingFrameSample["hands"][number]["pose"] {
-  const gesture = classifyGesture(landmarks);
-  return gesture === "index" ||
-    gesture === "victory" ||
-    gesture === "open-palm" ||
-    gesture === "fist"
-    ? gesture
-    : "other";
 }
 
 function detectSwipeGesture(

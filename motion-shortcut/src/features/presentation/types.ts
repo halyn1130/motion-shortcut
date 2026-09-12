@@ -22,38 +22,15 @@ export interface PresentationResource {
   value: string;
 }
 
-export interface RehearsalBaseline {
-  completedAt: string;
-  durationMs: number;
-  frameCount: number;
-  dominantHand: "Left" | "Right" | "Balanced";
-  activityBounds: { minX: number; maxX: number; minY: number; maxY: number };
-  poseFrequency: Record<"index" | "victory" | "open-palm" | "fist", number>;
-  averageSpeed: number;
-}
-
 export interface PresentationProfile {
   id: string;
   name: string;
   app: PresentationApp;
   mappings: Record<PresentationAction, GesturePattern>;
   resources: PresentationResource[];
-  rehearsal?: RehearsalBaseline;
 }
 
-export interface TrackingFrameSample {
-  timestamp: number;
-  hands: Array<{
-    handedness: "Left" | "Right";
-    wrist: { x: number; y: number };
-    pose: "index" | "victory" | "open-palm" | "fist" | "other";
-  }>;
-}
-
-export const GESTURE_OPTIONS: Array<{
-  id: GesturePattern;
-  label: string;
-}> = [
+export const GESTURE_OPTIONS: Array<{ id: GesturePattern; label: string }> = [
   { id: "swipe-right", label: "오른쪽으로 밀기" },
   { id: "swipe-left", label: "왼쪽으로 밀기" },
   { id: "index", label: "검지 하나" },

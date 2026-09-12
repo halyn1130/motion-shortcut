@@ -507,6 +507,20 @@ select:focus {
   font-weight: 700;
 }
 
+.mapping-row.fixed {
+  grid-template-columns: 1fr 145px 46px;
+}
+
+.mapping-row.fixed > strong {
+  padding: 7px 8px;
+  border: 1px solid #2c363b;
+  border-radius: 8px;
+  background: #080b0d;
+  color: #a9dce8;
+  font-size: 9px;
+  text-align: center;
+}
+
 .mapping-row select {
   padding: 7px 8px;
   font-size: 9px;
@@ -621,6 +635,39 @@ select:focus {
   max-width: 230px;
   font-size: 9px;
   line-height: 1.6;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-list > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px;
+  border: 1px solid #27343a;
+  border-radius: 9px;
+  background: #080c0e;
+}
+
+.guide-list b {
+  color: #bdeef8;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.guide-list span,
+.guide-list p {
+  color: #69777d;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.guide-list p {
+  margin: 5px 2px 0;
 }
 
 .resource-grid {

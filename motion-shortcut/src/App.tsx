@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import {
   useHandTracking,
@@ -7,18 +7,11 @@ import {
 import {
   ACTION_LABELS,
   GESTURE_OPTIONS,
-  type GesturePattern,
   type PresentationAction,
   type PresentationMode,
   type PresentationProfile,
-  type TrackingFrameSample,
 } from "./features/presentation/types";
-import {
-  analyzeRehearsal,
-  conflictLevel,
-  loadProfile,
-  saveProfile,
-} from "./features/presentation/profile";
+import { loadProfile, saveProfile } from "./features/presentation/profile";
 
 type DisplayMode = "camera" | "person-pet" | "hand-pet";
 type CameraState = "idle" | "requesting" | "active" | "error";
@@ -35,7 +28,7 @@ const APP_LABELS = {
   keynote: "Keynote",
 };
 
-const EDITABLE_ACTIONS: PresentationAction[] = [
+const FIXED_ACTIONS: PresentationAction[] = [
   "next-slide",
   "previous-slide",
   "black-screen",
@@ -49,9 +42,6 @@ function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const petCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const rehearsalSamplesRef = useRef<TrackingFrameSample[]>([]);
-  const rehearsalStartedAtRef = useRef(0);
-  const lastSampleAtRef = useRef(0);
 
   const [profile, setProfile] = useState<PresentationProfile>(loadProfile);
   const [motionOn, setMotionOn] = useState(false);
@@ -62,8 +52,6 @@ function App() {
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState("");
-  const [rehearsing, setRehearsing] = useState(false);
-  const [rehearsalSeconds, setRehearsalSeconds] = useState(0);
   const [logs, setLogs] = useState<string[]>([
     "Flickey Present가 준비되었습니다.",
   ]);
@@ -184,37 +172,11 @@ function App() {
       });
       return;
     }
-    if (!motionOn || rehearsing || mode !== "slide") return;
-    const action = EDITABLE_ACTIONS.find(
+    if (!motionOn || mode !== "slide") return;
+    const action = FIXED_ACTIONS.find(
       (candidate) => profile.mappings[candidate] === gesture,
     );
     if (action) void executeAction(action);
-  };
-
-  const finishRehearsal = () => {
-    const duration = performance.now() - rehearsalStartedAtRef.current;
-    const baseline = analyzeRehearsal(rehearsalSamplesRef.current, duration);
-    setRehearsing(false);
-    if (!baseline) {
-      addLog("리허설 분석 실패 · 화면에 손이 충분히 잡히지 않았습니다.");
-      return;
-    }
-    updateProfile({ ...profile, rehearsal: baseline });
-    addLog(
-      `리허설 분석 완료 · ${baseline.frameCount}개 프레임, 주 사용 손 ${baseline.dominantHand}`,
-    );
-  };
-
-  const startRehearsal = async () => {
-    setDisplayMode("camera");
-    const cameraReady = await startCamera();
-    if (!cameraReady) return;
-    rehearsalSamplesRef.current = [];
-    rehearsalStartedAtRef.current = performance.now();
-    lastSampleAtRef.current = 0;
-    setRehearsalSeconds(0);
-    setRehearsing(true);
-    addLog("리허설 학습 시작 · 평소처럼 발표해 주세요.");
   };
 
   useEffect(() => {
@@ -230,18 +192,6 @@ function App() {
     localStorage.setItem("displayMode", displayMode);
     void window.motionAPI?.setOverlayMode(displayMode);
   }, [displayMode]);
-
-  useEffect(() => {
-    if (!rehearsing) return;
-    const timer = window.setInterval(() => {
-      const elapsed = Math.floor(
-        (performance.now() - rehearsalStartedAtRef.current) / 1000,
-      );
-      setRehearsalSeconds(elapsed);
-      if (elapsed >= 60) finishRehearsal();
-    }, 250);
-    return () => window.clearInterval(timer);
-  });
 
   useEffect(
     () => () => {
@@ -274,21 +224,6 @@ function App() {
     undefined,
     undefined,
     undefined,
-    (sample) => {
-      if (!rehearsing || sample.timestamp - lastSampleAtRef.current < 80)
-        return;
-      lastSampleAtRef.current = sample.timestamp;
-      rehearsalSamplesRef.current.push(sample);
-    },
-  );
-
-  const riskSummary = useMemo(
-    () =>
-      EDITABLE_ACTIONS.map((action) => ({
-        action,
-        level: conflictLevel(profile.rehearsal, profile.mappings[action]),
-      })),
-    [profile],
   );
 
   return (
@@ -396,7 +331,7 @@ function App() {
             <div className="console-heading">
               <div>
                 <span>LIVE TRACKING</span>
-                <h1>{rehearsing ? "리허설 학습 중" : "발표 제어 센터"}</h1>
+                <h1>발표 제어 센터</h1>
               </div>
               <div className={`live-state ${cameraState}`}>
                 <i />
@@ -429,62 +364,30 @@ function App() {
                   <em>{tracking.confidence}%</em>
                 </div>
               )}
-              {rehearsing && (
-                <div className="rehearsal-overlay">
-                  <span>REHEARSAL CAPTURE</span>
-                  <strong>
-                    {String(rehearsalSeconds).padStart(2, "0")} / 60
-                  </strong>
-                  <p>평소 발표하듯 자연스럽게 손을 움직여 주세요.</p>
-                </div>
-              )}
             </div>
             <div className="console-actions">
-              <button
-                className={rehearsing ? "danger" : "primary"}
-                onClick={() =>
-                  rehearsing ? finishRehearsal() : void startRehearsal()
-                }
-              >
-                {rehearsing ? "분석 완료" : "리허설 학습 시작"}
-              </button>
               <button onClick={() => void cyclePresentationMode()}>
                 모드 전환 테스트
               </button>
-              <span>양손 검지 X를 2초 유지하면 모드가 전환됩니다.</span>
+              <span>
+                고정 모션을 바로 사용할 수 있습니다. 양손 검지 X를 2초 유지하면
+                모드가 전환됩니다.
+              </span>
             </div>
           </article>
 
           <div className="dashboard-columns">
             <article className="control-panel">
-              <SectionTitle index="04" title="모션 매핑" />
+              <SectionTitle index="04" title="기본 모션" />
               <div className="mapping-list">
-                {EDITABLE_ACTIONS.map((action) => {
-                  const risk = riskSummary.find(
-                    (item) => item.action === action,
-                  )?.level;
+                {FIXED_ACTIONS.map((action) => {
+                  const gesture = GESTURE_OPTIONS.find(
+                    (item) => item.id === profile.mappings[action],
+                  );
                   return (
-                    <div className="mapping-row" key={action}>
+                    <div className="mapping-row fixed" key={action}>
                       <span>{ACTION_LABELS[action]}</span>
-                      <select
-                        value={profile.mappings[action]}
-                        onChange={(event) =>
-                          updateProfile({
-                            ...profile,
-                            mappings: {
-                              ...profile.mappings,
-                              [action]: event.target.value as GesturePattern,
-                            },
-                          })
-                        }
-                      >
-                        {GESTURE_OPTIONS.map((gesture) => (
-                          <option value={gesture.id} key={gesture.id}>
-                            {gesture.label}
-                          </option>
-                        ))}
-                      </select>
-                      <b className={`risk ${risk}`}>{risk}</b>
+                      <strong>{gesture?.label}</strong>
                       <button
                         aria-label={`${ACTION_LABELS[action]} 테스트`}
                         onClick={() => void executeAction(action)}
@@ -497,52 +400,25 @@ function App() {
               </div>
             </article>
 
-            <article className="control-panel rehearsal-result">
-              <SectionTitle index="05" title="개인 동작 분석" />
-              {profile.rehearsal ? (
-                <>
-                  <div className="metric-grid">
-                    <Metric
-                      label="주 사용 손"
-                      value={profile.rehearsal.dominantHand}
-                    />
-                    <Metric
-                      label="분석 프레임"
-                      value={String(profile.rehearsal.frameCount)}
-                    />
-                    <Metric
-                      label="활동 폭"
-                      value={`${Math.round((profile.rehearsal.activityBounds.maxX - profile.rehearsal.activityBounds.minX) * 100)}%`}
-                    />
-                    <Metric
-                      label="평균 움직임"
-                      value={profile.rehearsal.averageSpeed.toFixed(3)}
-                    />
-                  </div>
-                  <div className="pose-bars">
-                    {Object.entries(profile.rehearsal.poseFrequency).map(
-                      ([pose, frequency]) => (
-                        <div key={pose}>
-                          <span>{pose}</span>
-                          <i>
-                            <b style={{ width: `${frequency * 100}%` }} />
-                          </i>
-                          <em>{Math.round(frequency * 100)}%</em>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="empty-analysis">
-                  <span>◇</span>
-                  <strong>아직 개인 동작 데이터가 없습니다</strong>
-                  <p>
-                    리허설을 진행하면 자주 사용하는 몸짓과 충돌 위험을
-                    분석합니다.
-                  </p>
+            <article className="control-panel mode-guide">
+              <SectionTitle index="05" title="모드 사용법" />
+              <div className="guide-list">
+                <div>
+                  <b>SLIDE</b>
+                  <span>고정 손동작으로 슬라이드와 자료를 제어합니다.</span>
                 </div>
-              )}
+                <div>
+                  <b>CURSOR</b>
+                  <span>
+                    오른손으로 이동하고 왼손 펼침→주먹으로 클릭합니다.
+                  </span>
+                </div>
+                <div>
+                  <b>LASER</b>
+                  <span>오른손 검지로 백청색 레이저를 이동합니다.</span>
+                </div>
+                <p>양손 검지 X를 2초 유지해 모드를 순서대로 전환합니다.</p>
+              </div>
             </article>
           </div>
 
@@ -669,15 +545,6 @@ function SectionTitle({ index, title }: { index: string; title: string }) {
     <div className="section-heading">
       <span>{index}</span>
       <h2>{title}</h2>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
     </div>
   );
 }
