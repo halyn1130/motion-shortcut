@@ -187,11 +187,23 @@ function setCursorEnabled(enabled, promptForAccess = false) {
 ipcMain.handle("motion:get", () => motionEnabled);
 ipcMain.handle("motion:set", (_event, enabled) => {
   motionEnabled = Boolean(enabled);
+  if (!motionEnabled) {
+    setCursorEnabled(false);
+    laserWindow?.hide();
+  } else if (presentationMode === "cursor") {
+    setCursorEnabled(true, true);
+  }
   broadcastMotionState();
   return motionEnabled;
 });
 ipcMain.handle("motion:toggle", () => {
   motionEnabled = !motionEnabled;
+  if (!motionEnabled) {
+    setCursorEnabled(false);
+    laserWindow?.hide();
+  } else if (presentationMode === "cursor") {
+    setCursorEnabled(true, true);
+  }
   broadcastMotionState();
   return motionEnabled;
 });
@@ -209,7 +221,14 @@ ipcMain.handle("cursor:set", (_event, enabled) =>
   setCursorEnabled(Boolean(enabled), Boolean(enabled)),
 );
 ipcMain.on("cursor:move", (_event, point) => {
-  if (!cursorEnabled || !point || !ensureCursorHelper()) return;
+  if (
+    !motionEnabled ||
+    presentationMode !== "cursor" ||
+    !cursorEnabled ||
+    !point ||
+    !ensureCursorHelper()
+  )
+    return;
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const area = display.bounds;
   const target = {
@@ -230,7 +249,13 @@ ipcMain.on("cursor:move", (_event, point) => {
   );
 });
 ipcMain.on("cursor:click", () => {
-  if (!cursorEnabled || !ensureCursorHelper()) return;
+  if (
+    !motionEnabled ||
+    presentationMode !== "cursor" ||
+    !cursorEnabled ||
+    !ensureCursorHelper()
+  )
+    return;
   cursorHelper.stdin.write("click\n");
 });
 
@@ -546,9 +571,8 @@ function setPresentationMode(nextMode) {
       mode: presentationMode,
       error: "지원하지 않는 모드입니다.",
     };
-  if (presentationMode === "cursor" && nextMode !== "cursor")
-    setCursorEnabled(false);
-  if (nextMode === "cursor") {
+  if (nextMode !== "cursor") setCursorEnabled(false);
+  if (nextMode === "cursor" && motionEnabled) {
     const result = setCursorEnabled(true, true);
     if (!result.ok) return { ...result, mode: presentationMode };
   }
@@ -568,7 +592,8 @@ ipcMain.handle("presentation:cycle-mode", () => {
   return setPresentationMode(order[(order.indexOf(presentationMode) + 1) % 3]);
 });
 ipcMain.on("laser:move", (_event, point) => {
-  if (presentationMode !== "laser" || !laserWindow || !point) return;
+  if (!motionEnabled || presentationMode !== "laser" || !laserWindow || !point)
+    return;
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const area = display.bounds;
   const x = area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width;
