@@ -46,8 +46,9 @@ export default function Overlay() {
         }
       }
     },
-    () => {
-      if (motionOn) void window.motionAPI?.cyclePresentationMode();
+    (nextMode) => {
+      if (motionOn && presentationMode !== nextMode)
+        void window.motionAPI?.setPresentationMode(nextMode);
     },
     (point) => {
       if (motionOn && presentationMode === "cursor")

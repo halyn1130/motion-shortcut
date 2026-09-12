@@ -1,6 +1,7 @@
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { GesturePattern } from "../presentation/types";
+import type { PresentationMode } from "../presentation/types";
 
 const CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -40,7 +41,7 @@ const GESTURE_LABELS: Record<MotionGestureId, string> = {
 };
 
 const GESTURE_HOLD_MS = 1500;
-const CURSOR_TOGGLE_HOLD_MS = 2000;
+const MODE_GESTURE_HOLD_MS = 1600;
 
 export function useHandTracking(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -49,7 +50,7 @@ export function useHandTracking(
   enabled: boolean,
   color: string,
   onGesture: (gesture: MotionGestureId) => void,
-  onCursorToggle?: () => void,
+  onModeGesture?: (mode: PresentationMode) => void,
   onCursorMove?: (point: { x: number; y: number }) => void,
   onCursorClick?: () => void,
   cursorSensitivity = 1,
@@ -78,7 +79,7 @@ export function useHandTracking(
   const triggeredRef = useRef(false);
   const cooldownUntilRef = useRef(0);
   const onGestureRef = useRef(onGesture);
-  const onCursorToggleRef = useRef(onCursorToggle);
+  const onModeGestureRef = useRef(onModeGesture);
   const onCursorMoveRef = useRef(onCursorMove);
   const onCursorClickRef = useRef(onCursorClick);
   const onKeyboardToggleRef = useRef(onKeyboardToggle);
@@ -88,7 +89,11 @@ export function useHandTracking(
     Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
   >({ Left: [], Right: [] });
   const swipeCooldownRef = useRef(0);
-  const cursorToggleRef = useRef({ since: 0, triggered: false });
+  const modeGestureRef = useRef<{
+    mode: PresentationMode | null;
+    since: number;
+    triggered: boolean;
+  }>({ mode: null, since: 0, triggered: false });
   const keyboardToggleRef = useRef({ since: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
   const airTapRef = useRef<
@@ -107,7 +112,7 @@ export function useHandTracking(
 
   useEffect(() => {
     onGestureRef.current = onGesture;
-    onCursorToggleRef.current = onCursorToggle;
+    onModeGestureRef.current = onModeGesture;
     onCursorMoveRef.current = onCursorMove;
     onCursorClickRef.current = onCursorClick;
     onKeyboardToggleRef.current = onKeyboardToggle;
@@ -116,7 +121,7 @@ export function useHandTracking(
   }, [
     onCursorClick,
     onCursorMove,
-    onCursorToggle,
+    onModeGesture,
     onGesture,
     onKeyboardPointer,
     onKeyboardHands,
@@ -228,12 +233,12 @@ export function useHandTracking(
             swipeCooldownRef,
           );
           if (swipeGesture) onGestureRef.current(swipeGesture);
-          const cursorToggleCandidate = isCrossedIndexGesture(hands);
-          updateCursorToggle(
-            cursorToggleCandidate,
+          const modeGesture = detectModeGesture(hands);
+          updateModeGesture(
+            modeGesture,
             now,
-            cursorToggleRef,
-            onCursorToggleRef.current,
+            modeGestureRef,
+            onModeGestureRef.current,
           );
           const moveHand = trackedHands.find(
             (tracked) =>
@@ -241,7 +246,7 @@ export function useHandTracking(
               (isCursorMovePose(tracked.landmarks) ||
                 isIndexOnlyPose(tracked.landmarks)),
           )?.landmarks;
-          if (moveHand && !cursorToggleCandidate) {
+          if (moveHand && !modeGesture) {
             const tip = {
               x: 1 - (moveHand[8].x + moveHand[12].x) / 2,
               y: (moveHand[8].y + moveHand[12].y) / 2,
@@ -321,14 +326,14 @@ export function useHandTracking(
           }
           updateLeftHandClick(
             leftHand,
-            cursorToggleCandidate || keyboardToggleCandidate,
+            Boolean(modeGesture) || keyboardToggleCandidate,
             now,
             leftClickRef,
             onCursorClickRef.current,
           );
           const detectedGestures = hands.map(classifyGesture);
           const detected =
-            cursorToggleCandidate || keyboardToggleCandidate
+            modeGesture || keyboardToggleCandidate
               ? null
               : swipeGesture
                 ? null
@@ -351,7 +356,11 @@ export function useHandTracking(
         } else {
           smoothedRef.current = null;
           swipeHistoryRef.current = { Left: [], Right: [] };
-          cursorToggleRef.current = { since: 0, triggered: false };
+          modeGestureRef.current = {
+            mode: null,
+            since: 0,
+            triggered: false,
+          };
           keyboardToggleRef.current = { since: 0, triggered: false };
           leftClickRef.current = { armedAt: 0, fist: false };
           candidateRef.current = { id: null, since: 0 };
@@ -574,13 +583,52 @@ function isCrossedIndexGesture(hands: Array<Array<{ x: number; y: number }>>) {
   return tipDistance < palmScale * 0.72 && cross / lengths > 0.42;
 }
 
-function updateCursorToggle(
-  detected: boolean,
+function isVictoryPose(landmarks: Array<{ x: number; y: number }>) {
+  return (
+    fingerExtended(landmarks, 8, 6) &&
+    fingerExtended(landmarks, 12, 10) &&
+    !fingerExtended(landmarks, 16, 14) &&
+    !fingerExtended(landmarks, 20, 18)
+  );
+}
+
+function detectModeGesture(
+  hands: Array<Array<{ x: number; y: number }>>,
+): PresentationMode | null {
+  if (hands.length < 2) return null;
+  if (isCrossedIndexGesture(hands)) return "cursor";
+  if (hands.every(isOpenHand)) return "slide";
+  if (hands.every(isVictoryPose)) return "laser";
+  return null;
+}
+
+function updateModeGesture(
+  mode: PresentationMode | null,
   now: number,
-  stateRef: { current: { since: number; triggered: boolean } },
-  onToggle?: () => void,
+  stateRef: {
+    current: {
+      mode: PresentationMode | null;
+      since: number;
+      triggered: boolean;
+    };
+  },
+  onMode?: (mode: PresentationMode) => void,
 ) {
-  updateHeldToggle(detected, now, CURSOR_TOGGLE_HOLD_MS, stateRef, onToggle);
+  if (!mode) {
+    stateRef.current = { mode: null, since: 0, triggered: false };
+    return;
+  }
+  if (stateRef.current.mode !== mode) {
+    stateRef.current = { mode, since: now, triggered: false };
+    return;
+  }
+  if (
+    !stateRef.current.triggered &&
+    now - stateRef.current.since >= MODE_GESTURE_HOLD_MS
+  ) {
+    stateRef.current.triggered = true;
+    onMode?.(mode);
+  }
 }
 
 function classifyGesture(

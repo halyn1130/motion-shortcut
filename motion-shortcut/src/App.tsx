@@ -131,14 +131,10 @@ function App() {
     }
   };
 
-  const cyclePresentationMode = async () => {
-    const result = await window.motionAPI?.cyclePresentationMode();
-    if (result?.ok) {
-      setMode(result.mode);
-      addLog(`양손 검지 X · ${MODE_LABELS[result.mode]} MODE`);
-    } else if (result?.error) {
-      addLog(`모드 전환 실패 · ${result.error}`);
-    }
+  const cyclePresentationMode = () => {
+    const order: PresentationMode[] = ["slide", "cursor", "laser"];
+    const next = order[(order.indexOf(mode) + 1) % order.length];
+    void setPresentationMode(next);
   };
 
   const executeAction = async (action: PresentationAction) => {
@@ -207,8 +203,8 @@ function App() {
     cameraState === "active" && displayMode === "camera",
     "#9fe9ff",
     handleGesture,
-    () => {
-      if (motionOn) void cyclePresentationMode();
+    (nextMode) => {
+      if (motionOn && mode !== nextMode) void setPresentationMode(nextMode);
     },
     (point) => {
       if (motionOn && mode === "cursor") window.motionAPI?.moveCursor(point);
@@ -370,8 +366,8 @@ function App() {
                 모드 전환 테스트
               </button>
               <span>
-                고정 모션을 바로 사용할 수 있습니다. 양손 검지 X를 2초 유지하면
-                모드가 전환됩니다.
+                고정 모션을 바로 사용할 수 있습니다. 양손 펼치기·검지 X·V
+                사인으로 원하는 모드를 직접 선택합니다.
               </span>
             </div>
           </article>
@@ -405,19 +401,21 @@ function App() {
               <div className="guide-list">
                 <div>
                   <b>SLIDE</b>
-                  <span>고정 손동작으로 슬라이드와 자료를 제어합니다.</span>
+                  <span>양손 펼치기 · 슬라이드와 자료를 제어합니다.</span>
                 </div>
                 <div>
                   <b>CURSOR</b>
                   <span>
-                    오른손으로 이동하고 왼손 펼침→주먹으로 클릭합니다.
+                    양손 검지 X · 오른손 이동, 왼손 펼침→주먹으로 클릭합니다.
                   </span>
                 </div>
                 <div>
                   <b>LASER</b>
-                  <span>오른손 검지로 백청색 레이저를 이동합니다.</span>
+                  <span>
+                    양손 V · 오른손 검지로 백청색 레이저를 이동합니다.
+                  </span>
                 </div>
-                <p>양손 검지 X를 2초 유지해 모드를 순서대로 전환합니다.</p>
+                <p>각 모션을 1.6초 유지하면 해당 모드로 바로 전환합니다.</p>
               </div>
             </article>
           </div>
