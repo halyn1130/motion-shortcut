@@ -338,6 +338,11 @@ ipcMain.handle("system:open-permission", async (_event, permission) => {
   };
   const pane = panes[permission];
   if (!pane) return false;
+  if (permission === "accessibility") {
+    // 사용자가 권한 점검 버튼을 직접 눌렀을 때만 macOS 권한 목록에
+    // 현재 Flickey 번들을 등록한다. 모션 실행 중에는 팝업을 요청하지 않는다.
+    systemPreferences.isTrustedAccessibilityClient(true);
+  }
   await shell.openExternal(
     `x-apple.systempreferences:com.apple.preference.security?${pane}`,
   );
