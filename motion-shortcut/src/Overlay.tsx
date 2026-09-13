@@ -25,6 +25,10 @@ export default function Overlay() {
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [handColor, setHandColor] = useState("#72dcff");
   const [editing, setEditing] = useState(false);
+  const [selectedResourceIndex, setSelectedResourceIndex] = useState(-1);
+  const selectedResource = profile.resources.filter((item) => item.value)[
+    selectedResourceIndex
+  ];
   const tracking = useHandTracking(
     videoRef,
     guideCanvasRef,
@@ -34,6 +38,20 @@ export default function Overlay() {
     (gesture: MotionGestureId) => {
       if (gesture === "toggle-motion") void window.motionAPI?.toggleMotion();
       else if (motionOn && presentationMode === "slide") {
+        const available = profile.resources.filter((item) => item.value);
+        if (gesture === "victory") {
+          if (!available.length) return;
+          setSelectedResourceIndex(
+            (current) => (current + 1) % available.length,
+          );
+          return;
+        }
+        if (gesture === "index") {
+          const selected = available[selectedResourceIndex];
+          if (selected)
+            void window.motionAPI?.openPresentationResource(selected);
+          return;
+        }
         const action = Object.entries(profile.mappings).find(
           ([, pattern]) => pattern === gesture,
         )?.[0] as PresentationAction | undefined;
@@ -127,6 +145,7 @@ export default function Overlay() {
       <span>
         {motionOn ? "MOTION ON" : "MOTION OFF"} · CURSOR{" "}
         {cursorOn ? "ON" : "OFF"}
+        {selectedResource ? ` · 자료: ${selectedResource.name}` : ""}
       </span>
       {editing && <b className="pet-edit-hint">드래그해서 이동</b>}
     </main>

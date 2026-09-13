@@ -39,8 +39,14 @@ let cursorPosition = null;
 let overlayEditing = false;
 let overlayScale = 1;
 let presentationAppName = null;
-let laserSettings = { color: "#9fe9ff", size: 24, trail: true };
+let laserSettings = {
+  color: "#9fe9ff",
+  size: 24,
+  trail: true,
+  shareCompatible: false,
+};
 const resourceOpenedAt = new Map();
+const presentationCommandAt = new Map();
 const lastKeyboardTap = { Left: 0, Right: 0 };
 const OVERLAY_BASE_SIZE = { width: 320, height: 420 };
 const LASER_WINDOW_SIZE = 140;
@@ -76,6 +82,33 @@ async function activateAppByName(name) {
 
 function overlayLayoutPath() {
   return path.join(app.getPath("userData"), "overlay-layout.json");
+}
+
+function laserSettingsPath() {
+  return path.join(app.getPath("userData"), "laser-settings.json");
+}
+
+function readLaserSettings() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(laserSettingsPath(), "utf8"));
+    return {
+      color: /^#[0-9a-f]{6}$/i.test(saved.color) ? saved.color : "#9fe9ff",
+      size: Math.max(12, Math.min(48, Number(saved.size) || 24)),
+      trail: saved.trail !== false,
+      shareCompatible: Boolean(saved.shareCompatible),
+    };
+  } catch {
+    return {
+      color: "#9fe9ff",
+      size: 24,
+      trail: true,
+      shareCompatible: false,
+    };
+  }
+}
+
+function saveLaserSettings() {
+  fs.writeFileSync(laserSettingsPath(), JSON.stringify(laserSettings));
 }
 
 function readOverlayLayout(area) {
@@ -477,6 +510,9 @@ ipcMain.handle("presentation:execute", async (_event, command, appId) => {
     "exit-presentation": "Escape",
   };
   const key = keys[command];
+  const now = Date.now();
+  if (now - (presentationCommandAt.get(command) || 0) < 650)
+    return { ok: false, error: "같은 명령의 연속 실행을 차단했습니다." };
   const appNames = {
     powerpoint: "Microsoft PowerPoint",
     keynote: "Keynote",
@@ -495,9 +531,10 @@ ipcMain.handle("presentation:execute", async (_event, command, appId) => {
     await new Promise((resolve) => setTimeout(resolve, 180));
   }
   if (expectedApp) presentationAppName = expectedApp;
-  return key
-    ? sendMacKey(key)
-    : { ok: false, error: "허용되지 않은 발표 명령입니다." };
+  if (!key) return { ok: false, error: "허용되지 않은 발표 명령입니다." };
+  const result = sendMacKey(key);
+  if (result.ok) presentationCommandAt.set(command, now);
+  return result;
 });
 
 ipcMain.handle("presentation:pick-file", async (_event, applicationOnly) => {
@@ -550,25 +587,45 @@ ipcMain.handle("presentation:restore", () =>
   activateAppByName(presentationAppName),
 );
 
-ipcMain.handle("presentation:go-to-slide", (_event, requestedSlide) => {
-  const slide = Math.max(1, Math.min(9999, Math.floor(Number(requestedSlide))));
-  if (!Number.isFinite(slide))
-    return { ok: false, error: "올바른 슬라이드 번호를 입력하세요." };
-  if (
-    process.platform === "darwin" &&
-    !systemPreferences.isTrustedAccessibilityClient(true)
-  )
-    return {
-      ok: false,
-      error: "슬라이드 이동에 손쉬운 사용 권한이 필요합니다.",
+ipcMain.handle(
+  "presentation:go-to-slide",
+  async (_event, requestedSlide, appId) => {
+    const slide = Math.max(
+      1,
+      Math.min(9999, Math.floor(Number(requestedSlide))),
+    );
+    if (!Number.isFinite(slide))
+      return { ok: false, error: "올바른 슬라이드 번호를 입력하세요." };
+    if (
+      process.platform === "darwin" &&
+      !systemPreferences.isTrustedAccessibilityClient(true)
+    )
+      return {
+        ok: false,
+        error: "슬라이드 이동에 손쉬운 사용 권한이 필요합니다.",
+      };
+    const appNames = {
+      powerpoint: "Microsoft PowerPoint",
+      keynote: "Keynote",
+      "google-slides": "Google Chrome",
     };
-  if (!ensureCursorHelper())
-    return { ok: false, error: "macOS 입력 모듈을 시작하지 못했습니다." };
-  for (const digit of String(slide))
-    cursorHelper.stdin.write(`type ${digit.charCodeAt(0)}\n`);
-  cursorHelper.stdin.write(`key ${macKeyCodes.Enter}\n`);
-  return { ok: true };
-});
+    const expectedApp = appNames[appId];
+    const frontmost = await getFrontmostAppName();
+    if (expectedApp && frontmost && frontmost !== expectedApp)
+      return { ok: false, error: `${expectedApp}이(가) 활성 창이 아닙니다.` };
+    if (expectedApp && !frontmost) {
+      const focused = await activateAppByName(expectedApp);
+      if (!focused.ok) return focused;
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    }
+    if (!ensureCursorHelper())
+      return { ok: false, error: "macOS 입력 모듈을 시작하지 못했습니다." };
+    for (const digit of String(slide))
+      cursorHelper.stdin.write(`type ${digit.charCodeAt(0)}\n`);
+    cursorHelper.stdin.write(`key ${macKeyCodes.Enter}\n`);
+    return { ok: true };
+  },
+);
 ipcMain.handle("keyboard:type", (_event, key) => {
   if (!keyboardVisible) return { ok: false, error: "키보드가 닫혀 있습니다." };
   if (
@@ -686,7 +743,9 @@ ipcMain.handle("laser:set-settings", (_event, next) => {
     color,
     size: Math.max(12, Math.min(48, Number(next?.size) || laserSettings.size)),
     trail: Boolean(next?.trail),
+    shareCompatible: Boolean(next?.shareCompatible),
   };
+  saveLaserSettings();
   broadcastLaserSettings();
   return laserSettings;
 });
@@ -731,6 +790,8 @@ ipcMain.on("laser:move", (_event, point) => {
   const area = display.bounds;
   const x = area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width;
   const y = area.y + Math.max(0, Math.min(1, Number(point.y))) * area.height;
+  if (laserSettings.shareCompatible && ensureCursorHelper())
+    cursorHelper.stdin.write(`move ${x.toFixed(1)} ${y.toFixed(1)}\n`);
   laserWindow.setPosition(
     Math.round(x - LASER_WINDOW_SIZE / 2),
     Math.round(y - LASER_WINDOW_SIZE / 2),
@@ -858,6 +919,7 @@ ipcMain.handle("apps:launch", async (_event, appId) => {
 });
 
 app.whenReady().then(() => {
+  laserSettings = readLaserSettings();
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback) => {
       const trusted =

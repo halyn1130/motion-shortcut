@@ -17,7 +17,10 @@ declare global {
         returnAfterMs?: number;
       }): Promise<{ ok: boolean; error?: string }>;
       restorePresentation(): Promise<{ ok: boolean; error?: string }>;
-      goToSlide(slide: number): Promise<{ ok: boolean; error?: string }>;
+      goToSlide(
+        slide: number,
+        presentationApp?: "powerpoint" | "keynote" | "google-slides",
+      ): Promise<{ ok: boolean; error?: string }>;
       getPresentationMode(): Promise<"slide" | "cursor" | "laser">;
       setPresentationMode(mode: string): Promise<{
         ok: boolean;
@@ -37,17 +40,20 @@ declare global {
         color: string;
         size: number;
         trail: boolean;
+        shareCompatible: boolean;
       }>;
       setLaserSettings(settings: {
         color: string;
         size: number;
         trail: boolean;
+        shareCompatible: boolean;
       }): Promise<{ color: string; size: number; trail: boolean }>;
       onLaserSettingsChanged(
         callback: (settings: {
           color: string;
           size: number;
           trail: boolean;
+          shareCompatible: boolean;
         }) => void,
       ): void;
       onLaserMoved(callback: () => void): void;

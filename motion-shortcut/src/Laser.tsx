@@ -5,6 +5,7 @@ export default function Laser() {
     color: "#9fe9ff",
     size: 24,
     trail: true,
+    shareCompatible: false,
   });
   const [holding, setHolding] = useState(false);
   const timerRef = useRef<number | null>(null);

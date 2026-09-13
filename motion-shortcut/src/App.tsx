@@ -33,8 +33,6 @@ const FIXED_ACTIONS: PresentationAction[] = [
   "previous-slide",
   "black-screen",
   "exit-presentation",
-  "resource-1",
-  "resource-2",
 ];
 
 function App() {
@@ -51,10 +49,12 @@ function App() {
   );
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
   const [slideNumber, setSlideNumber] = useState(1);
+  const [selectedResourceIndex, setSelectedResourceIndex] = useState(-1);
   const [laserSettings, setLaserSettings] = useState({
     color: "#9fe9ff",
     size: 24,
     trail: true,
+    shareCompatible: false,
   });
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState("");
@@ -220,6 +220,27 @@ function App() {
       return;
     }
     if (!motionOn || mode !== "slide") return;
+    if (gesture === "victory") {
+      const available = profile.resources.filter((item) => item.value);
+      if (!available.length) {
+        addLog("자료 선택 실패 · 등록된 자료가 없습니다.");
+        return;
+      }
+      const next = (selectedResourceIndex + 1) % available.length;
+      setSelectedResourceIndex(next);
+      addLog(`자료 선택 · ${available[next].name}`);
+      return;
+    }
+    if (gesture === "index") {
+      const available = profile.resources.filter((item) => item.value);
+      const selected = available[selectedResourceIndex];
+      if (!selected) {
+        addLog("먼저 V 사인으로 실행할 자료를 선택하세요.");
+        return;
+      }
+      void openResource(selected);
+      return;
+    }
     const action = FIXED_ACTIONS.find(
       (candidate) => profile.mappings[candidate] === gesture,
     );
@@ -419,6 +440,17 @@ function App() {
             >
               잔상 {laserSettings.trail ? "ON" : "OFF"}
             </button>
+            <button
+              className={laserSettings.shareCompatible ? "active" : ""}
+              onClick={() =>
+                void window.motionAPI?.setLaserSettings({
+                  ...laserSettings,
+                  shareCompatible: !laserSettings.shareCompatible,
+                })
+              }
+            >
+              창 공유 호환 {laserSettings.shareCompatible ? "ON" : "OFF"}
+            </button>
           </div>
 
           <div className="privacy-note">
@@ -503,6 +535,16 @@ function App() {
                     </div>
                   );
                 })}
+                <div className="mapping-row fixed">
+                  <span>다음 자료 선택</span>
+                  <strong>V 사인</strong>
+                  <i>ALL</i>
+                </div>
+                <div className="mapping-row fixed">
+                  <span>선택 자료 실행</span>
+                  <strong>검지 하나</strong>
+                  <i>OPEN</i>
+                </div>
               </div>
             </article>
 
@@ -540,7 +582,10 @@ function App() {
             </div>
             <div className="resource-grid">
               {profile.resources.map((resource, index) => (
-                <div className="resource-card" key={resource.id}>
+                <div
+                  className={`resource-card ${profile.resources.filter((item) => item.value)[selectedResourceIndex]?.id === resource.id ? "selected" : ""}`}
+                  key={resource.id}
+                >
                   <div>
                     <span>RESOURCE 0{index + 1}</span>
                     <input
@@ -681,7 +726,7 @@ function App() {
               <button
                 onClick={() =>
                   void window.motionAPI
-                    ?.goToSlide(slideNumber)
+                    ?.goToSlide(slideNumber, profile.app)
                     .then((result) =>
                       addLog(
                         result?.ok

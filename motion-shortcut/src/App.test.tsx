@@ -41,12 +41,18 @@ describe("Flickey 발표 인터페이스", () => {
         .mockResolvedValue({ ok: true, mode: "cursor" }),
       onPresentationModeChanged: vi.fn(),
       moveLaser: vi.fn(),
-      getLaserSettings: vi
-        .fn()
-        .mockResolvedValue({ color: "#9fe9ff", size: 24, trail: true }),
-      setLaserSettings: vi
-        .fn()
-        .mockResolvedValue({ color: "#9fe9ff", size: 24, trail: true }),
+      getLaserSettings: vi.fn().mockResolvedValue({
+        color: "#9fe9ff",
+        size: 24,
+        trail: true,
+        shareCompatible: false,
+      }),
+      setLaserSettings: vi.fn().mockResolvedValue({
+        color: "#9fe9ff",
+        size: 24,
+        trail: true,
+        shareCompatible: false,
+      }),
       onLaserSettingsChanged: vi.fn(),
       onLaserMoved: vi.fn(),
       getOverlayMode: vi.fn().mockResolvedValue("camera"),

@@ -746,6 +746,18 @@ select:focus {
   background: #080c0e;
 }
 
+.resource-card.selected {
+  border-color: #8bdff0;
+  box-shadow: 0 0 18px #78dced20;
+}
+
+.mapping-row > i {
+  color: #7bdced;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .resource-card > div input {
   width: 100%;
   margin-top: 5px;
