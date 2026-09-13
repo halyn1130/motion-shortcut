@@ -123,8 +123,13 @@ button {
 
 .session-button {
   min-width: 108px;
+  padding: 10px 13px;
   border-color: #46616b;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #1c252a, #0d1215);
   color: #bcecf5;
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .session-button.active {
@@ -401,7 +406,12 @@ select:focus {
 .console-actions button,
 .mapping-row button,
 .resource-card button,
-.clear-log {
+.clear-log,
+.presentation-link button,
+.laser-options button,
+.permission-list button,
+.resource-heading > button,
+.slide-jump button {
   padding: 9px 12px;
   border: 1px solid #34434a;
   border-radius: 8px;
