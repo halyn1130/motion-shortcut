@@ -517,6 +517,7 @@ ipcMain.handle("presentation:execute", async (_event, command, appId) => {
     powerpoint: "Microsoft PowerPoint",
     keynote: "Keynote",
     "google-slides": "Google Chrome",
+    "web-slides": "Google Chrome",
   };
   const expectedApp = appNames[appId];
   const frontmost = await getFrontmostAppName();
@@ -587,6 +588,26 @@ ipcMain.handle("presentation:restore", () =>
   activateAppByName(presentationAppName),
 );
 
+ipcMain.handle("presentation:open-url", async (_event, rawUrl) => {
+  try {
+    const url = new URL(String(rawUrl));
+    if (url.protocol !== "https:" && url.protocol !== "http:")
+      throw new Error();
+    await execFileAsync("/usr/bin/open", [
+      "-a",
+      "Google Chrome",
+      url.toString(),
+    ]);
+    presentationAppName = "Google Chrome";
+    return { ok: true, url: url.toString() };
+  } catch {
+    return {
+      ok: false,
+      error: "올바른 웹 링크인지, Chrome이 설치되어 있는지 확인하세요.",
+    };
+  }
+});
+
 ipcMain.handle(
   "presentation:go-to-slide",
   async (_event, requestedSlide, appId) => {
@@ -608,6 +629,7 @@ ipcMain.handle(
       powerpoint: "Microsoft PowerPoint",
       keynote: "Keynote",
       "google-slides": "Google Chrome",
+      "web-slides": "Google Chrome",
     };
     const expectedApp = appNames[appId];
     const frontmost = await getFrontmostAppName();

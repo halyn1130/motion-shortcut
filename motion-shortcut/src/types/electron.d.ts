@@ -8,7 +8,8 @@ declare global {
       ): Promise<{ ok: boolean; appName?: string; error?: string }>;
       executePresentationCommand(
         command: string,
-        presentationApp?: "powerpoint" | "keynote" | "google-slides",
+        presentationApp?:
+          "powerpoint" | "keynote" | "google-slides" | "web-slides",
       ): Promise<{ ok: boolean; error?: string }>;
       pickPresentationFile(applicationOnly?: boolean): Promise<string | null>;
       openPresentationResource(resource: {
@@ -17,9 +18,13 @@ declare global {
         returnAfterMs?: number;
       }): Promise<{ ok: boolean; error?: string }>;
       restorePresentation(): Promise<{ ok: boolean; error?: string }>;
+      openPresentationUrl(
+        url: string,
+      ): Promise<{ ok: boolean; url?: string; error?: string }>;
       goToSlide(
         slide: number,
-        presentationApp?: "powerpoint" | "keynote" | "google-slides",
+        presentationApp?:
+          "powerpoint" | "keynote" | "google-slides" | "web-slides",
       ): Promise<{ ok: boolean; error?: string }>;
       getPresentationMode(): Promise<"slide" | "cursor" | "laser">;
       setPresentationMode(mode: string): Promise<{

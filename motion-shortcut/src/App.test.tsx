@@ -31,6 +31,7 @@ describe("Flickey 발표 인터페이스", () => {
       pickPresentationFile: vi.fn().mockResolvedValue(null),
       openPresentationResource: vi.fn().mockResolvedValue({ ok: true }),
       restorePresentation: vi.fn().mockResolvedValue({ ok: true }),
+      openPresentationUrl: vi.fn().mockResolvedValue({ ok: true }),
       goToSlide: vi.fn().mockResolvedValue({ ok: true }),
       getPresentationMode: vi.fn().mockResolvedValue("slide"),
       setPresentationMode: vi

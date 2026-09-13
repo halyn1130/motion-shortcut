@@ -26,7 +26,28 @@ const APP_LABELS = {
   "google-slides": "Google Slides",
   powerpoint: "PowerPoint",
   keynote: "Keynote",
+  "web-slides": "웹 슬라이드 (Chrome)",
 };
+
+function detectWebPresentation(url: string) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:")
+      return null;
+    const host = parsed.hostname.toLowerCase();
+    if (host.includes("docs.google.com"))
+      return { app: "google-slides" as const, label: "Google Slides" };
+    if (host.includes("canva.com"))
+      return { app: "web-slides" as const, label: "Canva" };
+    if (host.includes("pitch.com"))
+      return { app: "web-slides" as const, label: "Pitch" };
+    if (host.includes("gamma.app"))
+      return { app: "web-slides" as const, label: "Gamma" };
+    return { app: "web-slides" as const, label: host };
+  } catch {
+    return null;
+  }
+}
 
 const FIXED_ACTIONS: PresentationAction[] = [
   "next-slide",
@@ -58,6 +79,7 @@ function App() {
   });
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState("");
+  const [presentationLinkStatus, setPresentationLinkStatus] = useState("");
   const [logs, setLogs] = useState<string[]>([
     "Flickey Present가 준비되었습니다.",
   ]);
@@ -211,6 +233,25 @@ function App() {
     });
   };
 
+  const setPresentationLink = async () => {
+    const detected = detectWebPresentation(profile.presentationUrl);
+    if (!detected) {
+      setPresentationLinkStatus(
+        "https://로 시작하는 올바른 링크를 입력하세요.",
+      );
+      return;
+    }
+    updateProfile({ ...profile, app: detected.app });
+    const result = await window.motionAPI?.openPresentationUrl(
+      profile.presentationUrl,
+    );
+    const message = result?.ok
+      ? `${detected.label} 링크를 제어 대상으로 지정했습니다.`
+      : `링크를 열지 못했습니다 · ${result?.error ?? "Electron에서 실행하세요."}`;
+    setPresentationLinkStatus(message);
+    addLog(message);
+  };
+
   const handleGesture = (gesture: MotionGestureId) => {
     if (gesture === "toggle-motion") {
       void window.motionAPI?.toggleMotion().then((enabled) => {
@@ -362,6 +403,24 @@ function App() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="presentation-link">
+            웹 슬라이드 링크
+            <input
+              type="url"
+              placeholder="https://docs.google.com/presentation/..."
+              value={profile.presentationUrl}
+              onChange={(event) =>
+                updateProfile({
+                  ...profile,
+                  presentationUrl: event.target.value,
+                })
+              }
+            />
+            <button onClick={() => void setPresentationLink()}>
+              링크 열기·제어 대상으로 지정
+            </button>
+            {presentationLinkStatus && <small>{presentationLinkStatus}</small>}
           </label>
 
           <SectionTitle index="02" title="표시 방식" />

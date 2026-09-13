@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld("motionAPI", {
   openPresentationResource: (resource) =>
     ipcRenderer.invoke("presentation:open-resource", resource),
   restorePresentation: () => ipcRenderer.invoke("presentation:restore"),
+  openPresentationUrl: (url) =>
+    ipcRenderer.invoke("presentation:open-url", url),
   goToSlide: (slide, presentationApp) =>
     ipcRenderer.invoke("presentation:go-to-slide", slide, presentationApp),
   getPresentationMode: () => ipcRenderer.invoke("presentation:get-mode"),

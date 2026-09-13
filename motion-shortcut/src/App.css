@@ -255,6 +255,21 @@ select:focus {
   line-height: 1.55;
 }
 
+.presentation-link {
+  display: grid;
+  gap: 7px;
+}
+
+.presentation-link button {
+  width: 100%;
+}
+
+.presentation-link small {
+  color: #7f969e;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
 .privacy-note i {
   color: #75d7ed;
   font-size: 7px;

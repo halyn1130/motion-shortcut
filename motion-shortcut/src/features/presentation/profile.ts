@@ -15,6 +15,7 @@ export const DEFAULT_PROFILE: PresentationProfile = {
   id: "default",
   name: "나의 발표",
   app: "google-slides",
+  presentationUrl: "",
   mappings: FIXED_MAPPINGS,
   resources: [
     { id: "resource-1", name: "자료 1", kind: "url", value: "" },

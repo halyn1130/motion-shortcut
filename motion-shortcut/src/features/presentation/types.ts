@@ -1,6 +1,7 @@
 export type PresentationMode = "slide" | "cursor" | "laser";
 
-export type PresentationApp = "powerpoint" | "keynote" | "google-slides";
+export type PresentationApp =
+  "powerpoint" | "keynote" | "google-slides" | "web-slides";
 
 export type GesturePattern =
   "swipe-right" | "swipe-left" | "index" | "victory" | "open-palm" | "fist";
@@ -27,6 +28,7 @@ export interface PresentationProfile {
   id: string;
   name: string;
   app: PresentationApp;
+  presentationUrl: string;
   mappings: Record<PresentationAction, GesturePattern>;
   resources: PresentationResource[];
 }
