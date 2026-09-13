@@ -3,6 +3,7 @@ import {
   cpSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -16,6 +17,7 @@ const appName = "Flickey.app";
 const appPath = join(releaseDirectory, appName);
 const resourcesPath = join(appPath, "Contents", "Resources");
 const plistPath = join(appPath, "Contents", "Info.plist");
+const macOSPath = join(appPath, "Contents", "MacOS");
 const version = JSON.parse(
   readFileSync(join(root, "package.json"), "utf8"),
 ).version;
@@ -76,13 +78,20 @@ const setPlist = (key, value, type = "string") => {
     execFileSync(plistBuddy, ["-c", `Add :${key} ${type} ${value}`, plistPath]);
   }
 };
+renameSync(join(macOSPath, "Electron"), join(macOSPath, "Flickey"));
+setPlist("CFBundleName", "Flickey");
 setPlist("CFBundleDisplayName", "Flickey");
+setPlist("CFBundleExecutable", "Flickey");
 setPlist("CFBundleIdentifier", "com.motionshortcut.app");
 setPlist("CFBundleShortVersionString", version);
 setPlist("CFBundleVersion", version);
 setPlist(
   "NSCameraUsageDescription",
   "발표자의 손동작을 인식하여 Flickey 발표 명령을 실행하기 위해 카메라를 사용합니다.",
+);
+setPlist(
+  "NSAppleEventsUsageDescription",
+  "사용자가 지정한 발표 탭과 슬라이드 앱을 제어하기 위해 자동화 권한을 사용합니다.",
 );
 setPlist("LSApplicationCategoryType", "public.app-category.utilities");
 
