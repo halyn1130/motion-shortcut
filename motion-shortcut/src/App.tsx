@@ -109,10 +109,20 @@ function App() {
     saveProfile(next);
   };
 
-  const startCamera = async () => {
+  const startCamera = async (targetDisplayMode: DisplayMode = displayMode) => {
     if (streamRef.current) return true;
     setCameraState("requesting");
     setCameraError("");
+    if (targetDisplayMode !== "camera") {
+      await window.motionAPI?.setCameraEnabled(true);
+      setCameraState("active");
+      addLog(
+        targetDisplayMode === "hand-pet"
+          ? "손 팻 추적 시작 · 본창 카메라 숨김"
+          : "전신 팻 추적 시작 · 본창 카메라 숨김",
+      );
+      return true;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -140,6 +150,19 @@ function App() {
       setCameraState("error");
       addLog(`카메라 오류 · ${message}`);
       return false;
+    }
+  };
+
+  const changeDisplayMode = async (nextMode: DisplayMode) => {
+    if (nextMode === displayMode) return;
+    if (nextMode !== "camera") {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+    }
+    setDisplayMode(nextMode);
+    if (cameraState === "active" && nextMode === "camera") {
+      await startCamera("camera");
     }
   };
 
@@ -279,7 +302,7 @@ function App() {
     }
     const enabled = await window.motionAPI?.setMotionEnabled(true);
     setMotionOn(Boolean(enabled));
-    setSessionStartedAt(Date.now());
+    setSessionStartedAt((current) => current ?? Date.now());
     setSessionElapsed(0);
     addLog("발표 세션 시작");
   };
@@ -511,7 +534,7 @@ function App() {
                 <button
                   key={item}
                   className={displayMode === item ? "active" : ""}
-                  onClick={() => setDisplayMode(item)}
+                  onClick={() => void changeDisplayMode(item)}
                 >
                   {item === "camera"
                     ? "카메라"
@@ -650,7 +673,11 @@ function App() {
               </div>
               <div className={`live-state ${cameraState}`}>
                 <i />
-                {cameraState === "active" ? "CAMERA LIVE" : "CAMERA STANDBY"}
+                {cameraState === "active"
+                  ? displayMode === "camera"
+                    ? "CAMERA LIVE"
+                    : "HAND TRACKING LIVE"
+                  : "CAMERA STANDBY"}
               </div>
             </div>
             <div className="camera-stage">
