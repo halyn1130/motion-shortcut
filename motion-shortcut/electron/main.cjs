@@ -294,7 +294,7 @@ ipcMain.handle("motion:set", (_event, enabled) => {
     setCursorEnabled(false);
     laserWindow?.hide();
   } else if (presentationMode === "cursor") {
-    setCursorEnabled(true, true);
+    setCursorEnabled(true, false);
   }
   broadcastMotionState();
   return motionEnabled;
@@ -306,7 +306,7 @@ ipcMain.handle("motion:toggle", () => {
     setCursorEnabled(false);
     laserWindow?.hide();
   } else if (presentationMode === "cursor") {
-    setCursorEnabled(true, true);
+    setCursorEnabled(true, false);
   }
   broadcastMotionState();
   return motionEnabled;
@@ -367,9 +367,9 @@ ipcMain.handle("cursor:set-sensitivity", (_event, value) => {
   }
   return cursorSensitivity;
 });
-ipcMain.handle("cursor:toggle", () => setCursorEnabled(!cursorEnabled, true));
+ipcMain.handle("cursor:toggle", () => setCursorEnabled(!cursorEnabled, false));
 ipcMain.handle("cursor:set", (_event, enabled) =>
-  setCursorEnabled(Boolean(enabled), Boolean(enabled)),
+  setCursorEnabled(Boolean(enabled), false),
 );
 ipcMain.on("cursor:move", (_event, point) => {
   if (
@@ -552,7 +552,7 @@ const macKeyCodes = Object.freeze({
 function sendMacKey(key) {
   if (
     process.platform === "darwin" &&
-    !systemPreferences.isTrustedAccessibilityClient(true)
+    !systemPreferences.isTrustedAccessibilityClient(false)
   ) {
     return {
       ok: false,
@@ -697,7 +697,7 @@ ipcMain.handle(
       return { ok: false, error: "올바른 슬라이드 번호를 입력하세요." };
     if (
       process.platform === "darwin" &&
-      !systemPreferences.isTrustedAccessibilityClient(true)
+      !systemPreferences.isTrustedAccessibilityClient(false)
     )
       return {
         ok: false,
@@ -874,7 +874,7 @@ function setPresentationMode(nextMode) {
     };
   if (nextMode !== "cursor") setCursorEnabled(false);
   if (nextMode === "cursor" && motionEnabled) {
-    const result = setCursorEnabled(true, true);
+    const result = setCursorEnabled(true, false);
     if (!result.ok) return { ...result, mode: presentationMode };
   }
   presentationMode = nextMode;
