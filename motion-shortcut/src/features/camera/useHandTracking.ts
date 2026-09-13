@@ -86,6 +86,7 @@ export function useHandTracking(
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [gesture, setGesture] = useState<MotionGestureId | null>(null);
+  const [gestureProgress, setGestureProgress] = useState(0);
 
   useEffect(() => {
     onGestureRef.current = onGesture;
@@ -266,6 +267,35 @@ export function useHandTracking(
             cooldownUntilRef,
             onGestureRef.current,
           );
+          const progress = emergencyStop
+            ? heldProgress(emergencyStopRef.current.since, now, 1200)
+            : modeGesture
+              ? heldProgress(
+                  modeGestureRef.current.since,
+                  now,
+                  MODE_GESTURE_HOLD_MS,
+                )
+              : detected
+                ? heldProgress(candidateRef.current.since, now, GESTURE_HOLD_MS)
+                : 0;
+          setGestureProgress(progress);
+          if (progress > 0) {
+            drawProgressRing(
+              canvas,
+              hands[0],
+              video.videoWidth / video.videoHeight,
+              color,
+              progress,
+            );
+            if (petCanvasRef.current)
+              drawProgressRing(
+                petCanvasRef.current,
+                hands[0],
+                video.videoWidth / video.videoHeight,
+                color,
+                progress,
+              );
+          }
           setGesture(detected);
           setState("tracking");
           setConfidence(Math.round(score * 100));
@@ -281,6 +311,7 @@ export function useHandTracking(
           emergencyStopRef.current = { since: 0, triggered: false };
           candidateRef.current = { id: null, since: 0 };
           triggeredRef.current = false;
+          setGestureProgress(0);
           setGesture(null);
           clearCanvas(canvas);
           clearCanvas(petCanvasRef.current);
@@ -306,6 +337,7 @@ export function useHandTracking(
         errorMessage,
         gesture,
         gestureLabel: gesture ? GESTURE_LABELS[gesture] : "",
+        gestureProgress,
       }
     : {
         state: "idle" as const,
@@ -313,7 +345,12 @@ export function useHandTracking(
         errorMessage: "",
         gesture: null,
         gestureLabel: "",
+        gestureProgress: 0,
       };
+}
+
+function heldProgress(since: number, now: number, holdMs: number) {
+  return since ? Math.max(0, Math.min(1, (now - since) / holdMs)) : 0;
 }
 
 function clamp(value: number) {
@@ -621,6 +658,44 @@ function drawHands(
   hands.forEach((landmarks) =>
     drawSingleHand(context, width, height, landmarks, sourceRatio, color),
   );
+}
+
+function drawProgressRing(
+  canvas: HTMLCanvasElement,
+  landmarks: Array<{ x: number; y: number }>,
+  sourceRatio: number,
+  color: string,
+  progress: number,
+) {
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const canvasRatio = width / height;
+  const drawnWidth = canvasRatio > sourceRatio ? width : height * sourceRatio;
+  const drawnHeight = canvasRatio > sourceRatio ? width / sourceRatio : height;
+  const center = {
+    x: (width - drawnWidth) / 2 + (1 - landmarks[9].x) * drawnWidth,
+    y: (height - drawnHeight) / 2 + landmarks[9].y * drawnHeight,
+  };
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  const scale = window.devicePixelRatio || 1;
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.save();
+  context.beginPath();
+  context.arc(
+    center.x,
+    center.y,
+    34,
+    -Math.PI / 2,
+    -Math.PI / 2 + Math.PI * 2 * progress,
+  );
+  context.lineWidth = 4;
+  context.lineCap = "round";
+  context.strokeStyle = color;
+  context.shadowColor = color;
+  context.shadowBlur = 12;
+  context.stroke();
+  context.restore();
 }
 
 function drawSingleHand(

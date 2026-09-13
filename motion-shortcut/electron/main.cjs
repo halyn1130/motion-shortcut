@@ -31,6 +31,7 @@ let overlayMode = "camera";
 let presentationMode = "slide";
 let motionEnabled = false;
 let cameraEnabled = false;
+let selectedDisplayId = null;
 let cursorEnabled = false;
 let cursorSensitivity = 1;
 let typingSensitivity = 0.35;
@@ -77,6 +78,27 @@ async function activateAppByName(name) {
     return { ok: true };
   } catch {
     return { ok: false, error: `${name} 창으로 복귀하지 못했습니다.` };
+  }
+}
+
+async function activateChromePresentationTab(rawUrl) {
+  if (!rawUrl) return activateAppByName("Google Chrome");
+  try {
+    const target = new URL(rawUrl);
+    const match = `${target.origin}${target.pathname}`;
+    const { stdout } = await execFileAsync("/usr/bin/osascript", [
+      "-e",
+      'on run argv\nset targetURL to item 1 of argv\ntell application "Google Chrome"\nrepeat with w from 1 to count of windows\nrepeat with t from 1 to count of tabs of window w\nif URL of tab t of window w starts with targetURL then\nset active tab index of window w to t\nset index of window w to 1\nactivate\nreturn "found"\nend if\nend repeat\nend repeat\nend tell\nreturn "missing"\nend run',
+      match,
+    ]);
+    return stdout.trim() === "found"
+      ? { ok: true }
+      : { ok: false, error: "지정한 발표 링크의 Chrome 탭을 찾지 못했습니다." };
+  } catch {
+    return {
+      ok: false,
+      error: "발표 링크의 Chrome 탭을 활성화하지 못했습니다.",
+    };
   }
 }
 
@@ -158,6 +180,15 @@ function broadcastMotionState() {
 function broadcastCameraState() {
   for (const window of BrowserWindow.getAllWindows())
     window.webContents.send("camera:changed", cameraEnabled);
+}
+
+function getControlDisplay() {
+  const displays = screen.getAllDisplays();
+  return (
+    displays.find(
+      (display) => String(display.id) === String(selectedDisplayId),
+    ) || screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  );
 }
 
 function broadcastCursorState() {
@@ -292,6 +323,41 @@ ipcMain.handle("camera:set", (_event, enabled) => {
   broadcastCameraState();
   return cameraEnabled;
 });
+ipcMain.handle("system:permissions", () => ({
+  camera: systemPreferences.getMediaAccessStatus("camera"),
+  screen: systemPreferences.getMediaAccessStatus("screen"),
+  accessibility: systemPreferences.isTrustedAccessibilityClient(false)
+    ? "granted"
+    : "denied",
+}));
+ipcMain.handle("system:open-permission", async (_event, permission) => {
+  const panes = {
+    camera: "Privacy_Camera",
+    accessibility: "Privacy_Accessibility",
+    screen: "Privacy_ScreenCapture",
+  };
+  const pane = panes[permission];
+  if (!pane) return false;
+  await shell.openExternal(
+    `x-apple.systempreferences:com.apple.preference.security?${pane}`,
+  );
+  return true;
+});
+ipcMain.handle("display:list", () => ({
+  selectedId: selectedDisplayId,
+  displays: screen.getAllDisplays().map((display, index) => ({
+    id: String(display.id),
+    label: `모니터 ${index + 1} · ${display.size.width}×${display.size.height}`,
+    primary: display.id === screen.getPrimaryDisplay().id,
+  })),
+}));
+ipcMain.handle("display:set", (_event, id) => {
+  const found = screen
+    .getAllDisplays()
+    .find((display) => String(display.id) === String(id));
+  selectedDisplayId = found ? String(found.id) : null;
+  return selectedDisplayId;
+});
 ipcMain.handle("cursor:get", () => cursorEnabled);
 ipcMain.handle("cursor:get-sensitivity", () => cursorSensitivity);
 ipcMain.handle("cursor:set-sensitivity", (_event, value) => {
@@ -314,7 +380,7 @@ ipcMain.on("cursor:move", (_event, point) => {
     !ensureCursorHelper()
   )
     return;
-  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const display = getControlDisplay();
   const area = display.bounds;
   const target = {
     x: area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width,
@@ -502,41 +568,53 @@ function sendMacKey(key) {
   return { ok: true };
 }
 
-ipcMain.handle("presentation:execute", async (_event, command, appId) => {
-  const keys = {
-    "next-slide": "ArrowRight",
-    "previous-slide": "ArrowLeft",
-    "black-screen": "b",
-    "exit-presentation": "Escape",
-  };
-  const key = keys[command];
-  const now = Date.now();
-  if (now - (presentationCommandAt.get(command) || 0) < 650)
-    return { ok: false, error: "같은 명령의 연속 실행을 차단했습니다." };
-  const appNames = {
-    powerpoint: "Microsoft PowerPoint",
-    keynote: "Keynote",
-    "google-slides": "Google Chrome",
-    "web-slides": "Google Chrome",
-  };
-  const expectedApp = appNames[appId];
-  const frontmost = await getFrontmostAppName();
-  if (expectedApp && frontmost && frontmost !== expectedApp)
-    return {
-      ok: false,
-      error: `${expectedApp}이(가) 활성 창이 아닙니다. 발표 화면으로 돌아간 뒤 시도하세요.`,
+ipcMain.handle(
+  "presentation:execute",
+  async (_event, command, appId, presentationUrl) => {
+    const keys = {
+      "next-slide": "ArrowRight",
+      "previous-slide": "ArrowLeft",
+      "black-screen": "b",
+      "exit-presentation": "Escape",
     };
-  if (expectedApp && !frontmost) {
-    const focused = await activateAppByName(expectedApp);
-    if (!focused.ok) return focused;
-    await new Promise((resolve) => setTimeout(resolve, 180));
-  }
-  if (expectedApp) presentationAppName = expectedApp;
-  if (!key) return { ok: false, error: "허용되지 않은 발표 명령입니다." };
-  const result = sendMacKey(key);
-  if (result.ok) presentationCommandAt.set(command, now);
-  return result;
-});
+    const key = keys[command];
+    const now = Date.now();
+    if (now - (presentationCommandAt.get(command) || 0) < 650)
+      return { ok: false, error: "같은 명령의 연속 실행을 차단했습니다." };
+    const appNames = {
+      powerpoint: "Microsoft PowerPoint",
+      keynote: "Keynote",
+      "google-slides": "Google Chrome",
+      "web-slides": "Google Chrome",
+    };
+    const expectedApp = appNames[appId];
+    const isWebPresentation =
+      appId === "google-slides" || appId === "web-slides";
+    const frontmost = await getFrontmostAppName();
+    if (
+      !isWebPresentation &&
+      expectedApp &&
+      frontmost &&
+      frontmost !== expectedApp
+    )
+      return {
+        ok: false,
+        error: `${expectedApp}이(가) 활성 창이 아닙니다. 발표 화면으로 돌아간 뒤 시도하세요.`,
+      };
+    if (isWebPresentation || (expectedApp && !frontmost)) {
+      const focused = isWebPresentation
+        ? await activateChromePresentationTab(presentationUrl)
+        : await activateAppByName(expectedApp);
+      if (!focused.ok) return focused;
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    }
+    if (expectedApp) presentationAppName = expectedApp;
+    if (!key) return { ok: false, error: "허용되지 않은 발표 명령입니다." };
+    const result = sendMacKey(key);
+    if (result.ok) presentationCommandAt.set(command, now);
+    return result;
+  },
+);
 
 ipcMain.handle("presentation:pick-file", async (_event, applicationOnly) => {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -610,7 +688,7 @@ ipcMain.handle("presentation:open-url", async (_event, rawUrl) => {
 
 ipcMain.handle(
   "presentation:go-to-slide",
-  async (_event, requestedSlide, appId) => {
+  async (_event, requestedSlide, appId, presentationUrl) => {
     const slide = Math.max(
       1,
       Math.min(9999, Math.floor(Number(requestedSlide))),
@@ -632,11 +710,20 @@ ipcMain.handle(
       "web-slides": "Google Chrome",
     };
     const expectedApp = appNames[appId];
+    const isWebPresentation =
+      appId === "google-slides" || appId === "web-slides";
     const frontmost = await getFrontmostAppName();
-    if (expectedApp && frontmost && frontmost !== expectedApp)
+    if (
+      !isWebPresentation &&
+      expectedApp &&
+      frontmost &&
+      frontmost !== expectedApp
+    )
       return { ok: false, error: `${expectedApp}이(가) 활성 창이 아닙니다.` };
-    if (expectedApp && !frontmost) {
-      const focused = await activateAppByName(expectedApp);
+    if (isWebPresentation || (expectedApp && !frontmost)) {
+      const focused = isWebPresentation
+        ? await activateChromePresentationTab(presentationUrl)
+        : await activateAppByName(expectedApp);
       if (!focused.ok) return focused;
       await new Promise((resolve) => setTimeout(resolve, 180));
     }
@@ -808,7 +895,7 @@ ipcMain.handle("presentation:cycle-mode", () => {
 ipcMain.on("laser:move", (_event, point) => {
   if (!motionEnabled || presentationMode !== "laser" || !laserWindow || !point)
     return;
-  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const display = getControlDisplay();
   const area = display.bounds;
   const x = area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width;
   const y = area.y + Math.max(0, Math.min(1, Number(point.y))) * area.height;

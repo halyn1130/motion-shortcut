@@ -63,6 +63,7 @@ export default function Overlay() {
           void window.motionAPI?.executePresentationCommand(
             action,
             profile.app,
+            profile.presentationUrl,
           );
         }
       }
@@ -147,6 +148,13 @@ export default function Overlay() {
         {cursorOn ? "ON" : "OFF"}
         {selectedResource ? ` · 자료: ${selectedResource.name}` : ""}
       </span>
+      {selectedResource && (
+        <div className="resource-hud pet-resource-hud">
+          <small>SELECTED</small>
+          <strong>{selectedResource.name}</strong>
+          <span>검지로 실행</span>
+        </div>
+      )}
       {editing && <b className="pet-edit-hint">드래그해서 이동</b>}
     </main>
   );

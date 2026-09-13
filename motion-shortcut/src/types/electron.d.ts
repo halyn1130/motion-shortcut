@@ -10,6 +10,7 @@ declare global {
         command: string,
         presentationApp?:
           "powerpoint" | "keynote" | "google-slides" | "web-slides",
+        presentationUrl?: string,
       ): Promise<{ ok: boolean; error?: string }>;
       pickPresentationFile(applicationOnly?: boolean): Promise<string | null>;
       openPresentationResource(resource: {
@@ -25,6 +26,7 @@ declare global {
         slide: number,
         presentationApp?:
           "powerpoint" | "keynote" | "google-slides" | "web-slides",
+        presentationUrl?: string,
       ): Promise<{ ok: boolean; error?: string }>;
       getPresentationMode(): Promise<"slide" | "cursor" | "laser">;
       setPresentationMode(mode: string): Promise<{
@@ -80,6 +82,23 @@ declare global {
       getCameraEnabled(): Promise<boolean>;
       setCameraEnabled(enabled: boolean): Promise<boolean>;
       onCameraChanged(callback: (enabled: boolean) => void): void;
+      getPermissions(): Promise<{
+        camera: string;
+        screen: string;
+        accessibility: string;
+      }>;
+      openPermissionSettings(
+        permission: "camera" | "accessibility" | "screen",
+      ): Promise<boolean>;
+      getDisplays(): Promise<{
+        selectedId: string | null;
+        displays: Array<{
+          id: string;
+          label: string;
+          primary: boolean;
+        }>;
+      }>;
+      setDisplay(id: string): Promise<string | null>;
       getCursorEnabled(): Promise<boolean>;
       setCursorEnabled(
         enabled: boolean,

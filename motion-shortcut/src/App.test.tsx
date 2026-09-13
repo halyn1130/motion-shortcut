@@ -72,6 +72,17 @@ describe("Flickey 발표 인터페이스", () => {
       getCameraEnabled: vi.fn().mockResolvedValue(false),
       setCameraEnabled: vi.fn().mockResolvedValue(true),
       onCameraChanged: vi.fn(),
+      getPermissions: vi.fn().mockResolvedValue({
+        camera: "granted",
+        accessibility: "granted",
+        screen: "granted",
+      }),
+      openPermissionSettings: vi.fn().mockResolvedValue(true),
+      getDisplays: vi.fn().mockResolvedValue({
+        selectedId: null,
+        displays: [{ id: "1", label: "모니터 1", primary: true }],
+      }),
+      setDisplay: vi.fn().mockResolvedValue("1"),
       getCursorEnabled: vi.fn().mockResolvedValue(false),
       setCursorEnabled: vi.fn().mockResolvedValue({ ok: true, enabled: false }),
       toggleCursor: vi.fn().mockResolvedValue({ ok: true, enabled: true }),
@@ -101,6 +112,7 @@ describe("Flickey 발표 인터페이스", () => {
     expect(executePresentationCommand).toHaveBeenCalledWith(
       "next-slide",
       "google-slides",
+      "",
     );
     expect(await screen.findByText(/다음 슬라이드 실행/)).toBeInTheDocument();
     delete window.motionAPI;

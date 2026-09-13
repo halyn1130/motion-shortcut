@@ -80,6 +80,17 @@ function App() {
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState("");
   const [presentationLinkStatus, setPresentationLinkStatus] = useState("");
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
+  const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [permissions, setPermissions] = useState({
+    camera: "not-determined",
+    accessibility: "denied",
+    screen: "not-determined",
+  });
+  const [displays, setDisplays] = useState<
+    Array<{ id: string; label: string; primary: boolean }>
+  >([]);
+  const [selectedDisplayId, setSelectedDisplayId] = useState("");
   const [logs, setLogs] = useState<string[]>([
     "Flickey Present가 준비되었습니다.",
   ]);
@@ -194,6 +205,7 @@ function App() {
     const result = await window.motionAPI?.executePresentationCommand(
       action,
       profile.app,
+      profile.presentationUrl,
     );
     addLog(
       result?.ok
@@ -252,6 +264,49 @@ function App() {
     addLog(message);
   };
 
+  const startPresentationSession = async () => {
+    const ready = await startCamera();
+    if (!ready) return;
+    await setPresentationMode("slide");
+    if (profile.presentationUrl) {
+      const result = await window.motionAPI?.openPresentationUrl(
+        profile.presentationUrl,
+      );
+      if (!result?.ok) {
+        addLog(`발표 링크 열기 실패 · ${result?.error}`);
+        return;
+      }
+    }
+    const enabled = await window.motionAPI?.setMotionEnabled(true);
+    setMotionOn(Boolean(enabled));
+    setSessionStartedAt(Date.now());
+    setSessionElapsed(0);
+    addLog("발표 세션 시작");
+  };
+
+  const endPresentationSession = async () => {
+    await stopCamera();
+    setSessionStartedAt(null);
+    addLog("발표 세션 종료");
+  };
+
+  const refreshSystemStatus = async () => {
+    const [nextPermissions, displayInfo] = await Promise.all([
+      window.motionAPI?.getPermissions(),
+      window.motionAPI?.getDisplays(),
+    ]);
+    if (nextPermissions) setPermissions(nextPermissions);
+    if (displayInfo) {
+      setDisplays(displayInfo.displays);
+      setSelectedDisplayId(
+        displayInfo.selectedId ||
+          displayInfo.displays.find((item) => item.primary)?.id ||
+          displayInfo.displays[0]?.id ||
+          "",
+      );
+    }
+  };
+
   const handleGesture = (gesture: MotionGestureId) => {
     if (gesture === "toggle-motion") {
       void window.motionAPI?.toggleMotion().then((enabled) => {
@@ -304,12 +359,23 @@ function App() {
     window.motionAPI?.onCursorSensitivityChanged(setCursorSensitivity);
     void window.motionAPI?.getLaserSettings?.().then(setLaserSettings);
     window.motionAPI?.onLaserSettingsChanged?.(setLaserSettings);
+    const statusTimer = window.setTimeout(() => void refreshSystemStatus(), 0);
+    return () => window.clearTimeout(statusTimer);
   }, []);
 
   useEffect(() => {
     localStorage.setItem("displayMode", displayMode);
     void window.motionAPI?.setOverlayMode(displayMode);
   }, [displayMode]);
+
+  useEffect(() => {
+    if (!sessionStartedAt) return;
+    const update = () =>
+      setSessionElapsed(Math.floor((Date.now() - sessionStartedAt) / 1000));
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [sessionStartedAt]);
 
   useEffect(
     () => () => {
@@ -346,6 +412,9 @@ function App() {
       addLog("양손 주먹 · 긴급 정지");
     },
   );
+  const selectedResource = profile.resources.filter((item) => item.value)[
+    selectedResourceIndex
+  ];
 
   return (
     <main className="presenter-app">
@@ -371,6 +440,18 @@ function App() {
           onClick={() => void toggleMotion()}
         >
           <i /> MOTION {motionOn ? "ON" : "OFF"}
+        </button>
+        <button
+          className={`session-button ${sessionStartedAt ? "active" : ""}`}
+          onClick={() =>
+            void (sessionStartedAt
+              ? endPresentationSession()
+              : startPresentationSession())
+          }
+        >
+          {sessionStartedAt
+            ? `발표 종료 ${formatDuration(sessionElapsed)}`
+            : "발표 시작"}
         </button>
       </header>
 
@@ -512,6 +593,48 @@ function App() {
             </button>
           </div>
 
+          <SectionTitle index="03C" title="제어 모니터" />
+          <select
+            value={selectedDisplayId}
+            onChange={(event) => {
+              const id = event.target.value;
+              setSelectedDisplayId(id);
+              void window.motionAPI?.setDisplay(id);
+            }}
+          >
+            {displays.map((display) => (
+              <option key={display.id} value={display.id}>
+                {display.label} {display.primary ? "(주 모니터)" : ""}
+              </option>
+            ))}
+          </select>
+
+          <SectionTitle index="SYS" title="권한 점검" />
+          <div className="permission-list">
+            {(
+              [
+                ["camera", "카메라"],
+                ["accessibility", "손쉬운 사용"],
+                ["screen", "화면 기록"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() =>
+                  void window.motionAPI?.openPermissionSettings(id)
+                }
+              >
+                <span>{label}</span>
+                <b className={permissions[id] === "granted" ? "ok" : "warn"}>
+                  {permissions[id] === "granted" ? "허용됨" : "확인 필요"}
+                </b>
+              </button>
+            ))}
+            <button onClick={() => void refreshSystemStatus()}>
+              권한 상태 새로고침
+            </button>
+          </div>
+
           <div className="privacy-note">
             <i>●</i>
             영상은 기기 안에서만 처리되며 기본적으로 저장되지 않습니다.
@@ -554,6 +677,13 @@ function App() {
                         : "손을 보여주세요"}
                   </b>
                   <em>{tracking.confidence}%</em>
+                </div>
+              )}
+              {selectedResource && (
+                <div className="resource-hud">
+                  <small>SELECTED RESOURCE</small>
+                  <strong>{selectedResource.name}</strong>
+                  <span>검지를 1.5초 유지해 실행</span>
                 </div>
               )}
             </div>
@@ -642,7 +772,7 @@ function App() {
             <div className="resource-grid">
               {profile.resources.map((resource, index) => (
                 <div
-                  className={`resource-card ${profile.resources.filter((item) => item.value)[selectedResourceIndex]?.id === resource.id ? "selected" : ""}`}
+                  className={`resource-card ${selectedResource?.id === resource.id ? "selected" : ""}`}
                   key={resource.id}
                 >
                   <div>
@@ -785,7 +915,11 @@ function App() {
               <button
                 onClick={() =>
                   void window.motionAPI
-                    ?.goToSlide(slideNumber, profile.app)
+                    ?.goToSlide(
+                      slideNumber,
+                      profile.app,
+                      profile.presentationUrl,
+                    )
                     .then((result) =>
                       addLog(
                         result?.ok
@@ -853,6 +987,12 @@ function SectionTitle({ index, title }: { index: string; title: string }) {
       <h2>{title}</h2>
     </div>
   );
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
 }
 
 export default App;

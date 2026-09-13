@@ -2,8 +2,13 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("motionAPI", {
   launchApp: (appId) => ipcRenderer.invoke("apps:launch", appId),
-  executePresentationCommand: (command, presentationApp) =>
-    ipcRenderer.invoke("presentation:execute", command, presentationApp),
+  executePresentationCommand: (command, presentationApp, presentationUrl) =>
+    ipcRenderer.invoke(
+      "presentation:execute",
+      command,
+      presentationApp,
+      presentationUrl,
+    ),
   pickPresentationFile: (applicationOnly = false) =>
     ipcRenderer.invoke("presentation:pick-file", applicationOnly),
   openPresentationResource: (resource) =>
@@ -11,8 +16,13 @@ contextBridge.exposeInMainWorld("motionAPI", {
   restorePresentation: () => ipcRenderer.invoke("presentation:restore"),
   openPresentationUrl: (url) =>
     ipcRenderer.invoke("presentation:open-url", url),
-  goToSlide: (slide, presentationApp) =>
-    ipcRenderer.invoke("presentation:go-to-slide", slide, presentationApp),
+  goToSlide: (slide, presentationApp, presentationUrl) =>
+    ipcRenderer.invoke(
+      "presentation:go-to-slide",
+      slide,
+      presentationApp,
+      presentationUrl,
+    ),
   getPresentationMode: () => ipcRenderer.invoke("presentation:get-mode"),
   setPresentationMode: (mode) =>
     ipcRenderer.invoke("presentation:set-mode", mode),
@@ -52,6 +62,11 @@ contextBridge.exposeInMainWorld("motionAPI", {
   setCameraEnabled: (enabled) => ipcRenderer.invoke("camera:set", enabled),
   onCameraChanged: (callback) =>
     ipcRenderer.on("camera:changed", (_event, enabled) => callback(enabled)),
+  getPermissions: () => ipcRenderer.invoke("system:permissions"),
+  openPermissionSettings: (permission) =>
+    ipcRenderer.invoke("system:open-permission", permission),
+  getDisplays: () => ipcRenderer.invoke("display:list"),
+  setDisplay: (id) => ipcRenderer.invoke("display:set", id),
   getCursorEnabled: () => ipcRenderer.invoke("cursor:get"),
   setCursorEnabled: (enabled) => ipcRenderer.invoke("cursor:set", enabled),
   toggleCursor: () => ipcRenderer.invoke("cursor:toggle"),

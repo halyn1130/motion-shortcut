@@ -121,6 +121,18 @@ button {
   box-shadow: 0 0 18px #941e3024;
 }
 
+.session-button {
+  min-width: 108px;
+  border-color: #46616b;
+  color: #bcecf5;
+}
+
+.session-button.active {
+  border-color: #773a40;
+  background: #291317;
+  color: #e7a2a9;
+}
+
 .power-button.on i {
   background: #d94a5d;
   box-shadow: 0 0 10px #e33b54;
@@ -413,6 +425,39 @@ select:focus {
   border-radius: 9px;
   background: #06090bd9;
   backdrop-filter: blur(14px);
+}
+
+.resource-hud {
+  position: absolute;
+  z-index: 8;
+  bottom: 18px;
+  left: 50%;
+  display: grid;
+  min-width: 210px;
+  padding: 11px 18px;
+  transform: translateX(-50%);
+  border: 1px solid #8bdff066;
+  border-radius: 12px;
+  background: #071014e8;
+  text-align: center;
+  box-shadow: 0 0 24px #68d8ef20;
+}
+
+.resource-hud small,
+.resource-hud span {
+  color: #78949d;
+  font-size: 8px;
+}
+
+.resource-hud strong {
+  margin: 3px 0;
+  color: #caf5ff;
+}
+
+.pet-resource-hud {
+  bottom: 42px;
+  min-width: 150px;
+  pointer-events: none;
 }
 
 .tracking-hud span {
@@ -711,6 +756,30 @@ select:focus {
   border-color: #8ddff0;
   color: #c9f5ff;
   box-shadow: 0 0 12px #79d8ec24;
+}
+
+.permission-list {
+  display: grid;
+  gap: 6px;
+}
+
+.permission-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.permission-list b {
+  font-size: 8px;
+}
+
+.permission-list b.ok {
+  color: #87e0c5;
+}
+
+.permission-list b.warn {
+  color: #d98a92;
 }
 
 .resource-heading {
