@@ -41,7 +41,7 @@ const GESTURE_LABELS: Record<MotionGestureId, string> = {
 };
 
 const GESTURE_HOLD_MS = 1500;
-const MODE_GESTURE_HOLD_MS = 1600;
+const MODE_GESTURE_HOLD_MS = 1100;
 
 export function useHandTracking(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -480,15 +480,46 @@ function isCrossedIndexGesture(hands: Array<Array<{ x: number; y: number }>>) {
     Math.hypot(vectorA.x, vectorA.y) * Math.hypot(vectorB.x, vectorB.y),
     0.001,
   );
-  return tipDistance < palmScale * 0.72 && cross / lengths > 0.42;
+  // 두 검지 끝이 가까우면 모드 전환 의도가 충분히 분명하다. 카메라 원근과
+  // 손가락 가림 때문에 완벽한 X 각도를 요구하면 실제 환경에서 거의 발동하지 않는다.
+  return tipDistance < palmScale * 1.15 && cross / lengths > 0.12;
 }
 
-function isVictoryPose(landmarks: Array<{ x: number; y: number }>) {
+function isModeOpenHand(landmarks: Array<{ x: number; y: number }>) {
+  const palmScale = Math.max(
+    Math.hypot(
+      landmarks[0].x - landmarks[9].x,
+      landmarks[0].y - landmarks[9].y,
+    ),
+    0.001,
+  );
+  const raised = (tip: number, pip: number) =>
+    fingerExtended(landmarks, tip, pip) ||
+    landmarks[tip].y < landmarks[pip].y - palmScale * 0.06;
+  return [
+    [8, 6],
+    [12, 10],
+    [16, 14],
+    [20, 18],
+  ].every(([tip, pip]) => raised(tip, pip));
+}
+
+function isModeVictoryPose(landmarks: Array<{ x: number; y: number }>) {
+  const palmScale = Math.max(
+    Math.hypot(
+      landmarks[0].x - landmarks[9].x,
+      landmarks[0].y - landmarks[9].y,
+    ),
+    0.001,
+  );
+  const raised = (tip: number, pip: number) =>
+    fingerExtended(landmarks, tip, pip) ||
+    landmarks[tip].y < landmarks[pip].y - palmScale * 0.06;
   return (
-    fingerExtended(landmarks, 8, 6) &&
-    fingerExtended(landmarks, 12, 10) &&
-    !fingerExtended(landmarks, 16, 14) &&
-    !fingerExtended(landmarks, 20, 18)
+    raised(8, 6) &&
+    raised(12, 10) &&
+    !raised(16, 14) &&
+    !raised(20, 18)
   );
 }
 
@@ -497,8 +528,8 @@ function detectModeGesture(
 ): PresentationMode | null {
   if (hands.length < 2) return null;
   if (isCrossedIndexGesture(hands)) return "cursor";
-  if (hands.every(isOpenHand)) return "slide";
-  if (hands.every(isVictoryPose)) return "laser";
+  if (hands.every(isModeOpenHand)) return "slide";
+  if (hands.every(isModeVictoryPose)) return "laser";
   return null;
 }
 
