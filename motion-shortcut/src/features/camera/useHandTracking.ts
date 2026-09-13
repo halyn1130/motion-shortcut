@@ -43,6 +43,12 @@ const GESTURE_LABELS: Record<MotionGestureId, string> = {
 const GESTURE_HOLD_MS = 1500;
 const MODE_GESTURE_HOLD_MS = 1100;
 
+const MODE_GESTURE_LABELS: Record<PresentationMode, string> = {
+  slide: "SLIDE 모드",
+  cursor: "CURSOR 모드",
+  laser: "LASER 모드",
+};
+
 export function useHandTracking(
   videoRef: RefObject<HTMLVideoElement | null>,
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -82,6 +88,7 @@ export function useHandTracking(
   const [confidence, setConfidence] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [gesture, setGesture] = useState<MotionGestureId | null>(null);
+  const [modeGesture, setModeGesture] = useState<PresentationMode | null>(null);
   const [gestureProgress, setGestureProgress] = useState(0);
 
   useEffect(() => {
@@ -199,6 +206,7 @@ export function useHandTracking(
             onEmergencyStopRef.current,
           );
           const modeGesture = emergencyStop ? null : detectModeGesture(hands);
+          setModeGesture(modeGesture);
           updateModeGesture(
             modeGesture,
             now,
@@ -299,6 +307,7 @@ export function useHandTracking(
           triggeredRef.current = false;
           setGestureProgress(0);
           setGesture(null);
+          setModeGesture(null);
           clearCanvas(canvas);
           clearCanvas(petCanvasRef.current);
           setState("no-hand");
@@ -323,6 +332,8 @@ export function useHandTracking(
         errorMessage,
         gesture,
         gestureLabel: gesture ? GESTURE_LABELS[gesture] : "",
+        modeGesture,
+        modeGestureLabel: modeGesture ? MODE_GESTURE_LABELS[modeGesture] : "",
         gestureProgress,
       }
     : {
@@ -331,6 +342,8 @@ export function useHandTracking(
         errorMessage: "",
         gesture: null,
         gestureLabel: "",
+        modeGesture: null,
+        modeGestureLabel: "",
         gestureProgress: 0,
       };
 }
@@ -515,17 +528,64 @@ function isModeVictoryPose(landmarks: Array<{ x: number; y: number }>) {
   const raised = (tip: number, pip: number) =>
     fingerExtended(landmarks, tip, pip) ||
     landmarks[tip].y < landmarks[pip].y - palmScale * 0.06;
-  return (
-    raised(8, 6) &&
-    raised(12, 10) &&
-    !raised(16, 14) &&
-    !raised(20, 18)
+  return raised(8, 6) && raised(12, 10) && !raised(16, 14) && !raised(20, 18);
+}
+
+function modeFingerStates(landmarks: Array<{ x: number; y: number }>) {
+  const palmScale = Math.max(
+    Math.hypot(
+      landmarks[0].x - landmarks[9].x,
+      landmarks[0].y - landmarks[9].y,
+    ),
+    0.001,
   );
+  const raised = (tip: number, pip: number) =>
+    fingerExtended(landmarks, tip, pip) ||
+    landmarks[tip].y < landmarks[pip].y - palmScale * 0.06;
+  return {
+    thumb:
+      Math.hypot(
+        landmarks[4].x - landmarks[9].x,
+        landmarks[4].y - landmarks[9].y,
+      ) >
+      Math.hypot(
+        landmarks[3].x - landmarks[9].x,
+        landmarks[3].y - landmarks[9].y,
+      ) +
+        palmScale * 0.08,
+    index: raised(8, 6),
+    middle: raised(12, 10),
+    ring: raised(16, 14),
+    pinky: raised(20, 18),
+  };
+}
+
+function detectSingleHandMode(
+  landmarks: Array<{ x: number; y: number }>,
+): PresentationMode | null {
+  const fingers = modeFingerStates(landmarks);
+  if (fingers.index && fingers.middle && fingers.ring && !fingers.pinky)
+    return "slide";
+  if (
+    fingers.thumb &&
+    fingers.index &&
+    !fingers.middle &&
+    !fingers.ring &&
+    !fingers.pinky
+  )
+    return "cursor";
+  if (fingers.index && !fingers.middle && !fingers.ring && fingers.pinky)
+    return "laser";
+  return null;
 }
 
 function detectModeGesture(
   hands: Array<Array<{ x: number; y: number }>>,
 ): PresentationMode | null {
+  for (const hand of hands) {
+    const singleHandMode = detectSingleHandMode(hand);
+    if (singleHandMode) return singleHandMode;
+  }
   if (hands.length < 2) return null;
   if (isCrossedIndexGesture(hands)) return "cursor";
   if (hands.every(isModeOpenHand)) return "slide";

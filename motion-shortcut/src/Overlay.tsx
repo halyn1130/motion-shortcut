@@ -146,6 +146,9 @@ export default function Overlay() {
       <span>
         {motionOn ? "MOTION ON" : "MOTION OFF"} · CURSOR{" "}
         {cursorOn ? "ON" : "OFF"}
+        {tracking.modeGestureLabel
+          ? ` · ${tracking.modeGestureLabel} 전환 준비`
+          : ""}
         {selectedResource ? ` · 자료: ${selectedResource.name}` : ""}
       </span>
       {selectedResource && (

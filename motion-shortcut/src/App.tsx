@@ -697,11 +697,13 @@ function App() {
                 <div className="tracking-hud">
                   <span>{MODE_LABELS[mode]} MODE</span>
                   <b>
-                    {tracking.gestureLabel
-                      ? `${tracking.gestureLabel} 감지`
-                      : tracking.state === "tracking"
-                        ? "손 추적 중"
-                        : "손을 보여주세요"}
+                    {tracking.modeGestureLabel
+                      ? `${tracking.modeGestureLabel} 전환 준비`
+                      : tracking.gestureLabel
+                        ? `${tracking.gestureLabel} 감지`
+                        : tracking.state === "tracking"
+                          ? "손 추적 중"
+                          : "손을 보여주세요"}
                   </b>
                   <em>{tracking.confidence}%</em>
                 </div>
@@ -769,18 +771,18 @@ function App() {
               <div className="guide-list">
                 <div>
                   <b>SLIDE</b>
-                  <span>양손 펼치기 · 슬라이드와 자료를 제어합니다.</span>
+                  <span>한 손 세 손가락 · 슬라이드와 자료를 제어합니다.</span>
                 </div>
                 <div>
                   <b>CURSOR</b>
                   <span>
-                    양손 검지 X · 오른손 이동, 왼손 펼침→주먹으로 클릭합니다.
+                    한 손 L 모양 · 오른손 이동, 왼손 펼침→주먹으로 클릭합니다.
                   </span>
                 </div>
                 <div>
                   <b>LASER</b>
                   <span>
-                    양손 V · 오른손 검지로 백청색 레이저를 이동합니다.
+                    한 손 뿔 모양 · 오른손 검지로 백청색 레이저를 이동합니다.
                   </span>
                 </div>
                 <p>각 모션을 1.1초 유지하면 해당 모드로 바로 전환합니다.</p>
