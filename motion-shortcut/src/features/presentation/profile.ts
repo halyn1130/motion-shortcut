@@ -3,8 +3,8 @@ import type { PresentationProfile } from "./types";
 const STORAGE_KEY = "flickey.presentation-profile.v1";
 
 export const FIXED_MAPPINGS: PresentationProfile["mappings"] = {
-  "next-slide": "thumb-up",
-  "previous-slide": "thumb-down",
+  "next-slide": "swipe-right",
+  "previous-slide": "swipe-left",
   "black-screen": "open-palm",
   "exit-presentation": "fist",
   "resource-1": "victory",

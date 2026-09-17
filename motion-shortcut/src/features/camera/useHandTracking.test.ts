@@ -1,36 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { classifyGesture } from "./useHandTracking";
+import { detectSwipeGesture } from "./useHandTracking";
 
 type Point = { x: number; y: number };
 
-function thumbPose(direction: "up" | "down") {
+function openHand(wristX: number) {
   const points: Point[] = Array.from({ length: 21 }, () => ({
-    x: 0.5,
-    y: 0.72,
+    x: wristX,
+    y: 0.5,
   }));
-  points[0] = { x: 0.5, y: 0.9 };
-  points[2] = { x: 0.43, y: 0.56 };
-  points[3] = { x: 0.42, y: 0.58 };
-  points[4] = { x: 0.32, y: direction === "up" ? 0.2 : 1.0 };
-  points[9] = { x: 0.5, y: 0.6 };
+  points[0] = { x: wristX, y: 0.8 };
+  points[9] = { x: wristX, y: 0.55 };
   for (const [pip, tip] of [
     [6, 8],
     [10, 12],
     [14, 16],
     [18, 20],
   ]) {
-    points[pip] = { x: 0.5, y: 0.62 };
-    points[tip] = { x: 0.5, y: 0.76 };
+    points[pip] = { x: wristX, y: 0.45 };
+    points[tip] = { x: wristX, y: 0.18 };
   }
   return points;
 }
 
-describe("정적 슬라이드 제스처", () => {
-  it("엄지를 위로 세우면 다음 슬라이드로 분류한다", () => {
-    expect(classifyGesture(thumbPose("up"))).toBe("thumb-up");
-  });
-
-  it("엄지를 아래로 내리면 이전 슬라이드로 분류한다", () => {
-    expect(classifyGesture(thumbPose("down"))).toBe("thumb-down");
+describe("슬라이드 스와이프", () => {
+  it.each([
+    ["오른쪽", [0.72, 0.65, 0.58, 0.5], "swipe-right"],
+    ["왼쪽", [0.28, 0.35, 0.42, 0.5], "swipe-left"],
+  ])("손바닥을 %s으로 이동하면 해당 스와이프로 분류한다", (_, xs, expected) => {
+    const histories = { Left: [], Right: [] } as Record<
+      "Left" | "Right",
+      Array<{ x: number; y: number; at: number }>
+    >;
+    const cooldown = { current: 0 };
+    let result = null;
+    xs.forEach((x, index) => {
+      result = detectSwipeGesture(
+        [{ landmarks: openHand(x), handedness: "Right" }],
+        index * 80,
+        histories,
+        cooldown,
+      );
+    });
+    expect(result).toBe(expected);
   });
 });

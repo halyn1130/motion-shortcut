@@ -31,8 +31,8 @@ type TrackerState = "idle" | "loading" | "tracking" | "no-hand" | "error";
 export type MotionGestureId = GesturePattern | "toggle-motion";
 
 const GESTURE_LABELS: Record<MotionGestureId, string> = {
-  "thumb-up": "엄지 위",
-  "thumb-down": "엄지 아래",
+  "swipe-right": "오른쪽 스와이프",
+  "swipe-left": "왼쪽 스와이프",
   index: "검지 하나",
   victory: "V 사인",
   "open-palm": "손바닥 펼치기",
@@ -45,7 +45,6 @@ const GESTURE_LOSS_GRACE_MS = 240;
 const GESTURE_COOLDOWN_MS = 850;
 
 function gestureHoldMs(gesture: MotionGestureId) {
-  if (gesture === "thumb-up" || gesture === "thumb-down") return 560;
   if (gesture === "index" || gesture === "victory") return 650;
   if (gesture === "open-palm") return 760;
   if (gesture === "fist") return 950;
@@ -82,6 +81,10 @@ export function useHandTracking(
   }>({ id: null, since: 0, lastSeen: 0 });
   const triggeredRef = useRef(false);
   const cooldownUntilRef = useRef(0);
+  const swipeHistoryRef = useRef<
+    Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
+  >({ Left: [], Right: [] });
+  const swipeCooldownRef = useRef(0);
   const onGestureRef = useRef(onGesture);
   const onModeGestureRef = useRef(onModeGesture);
   const onCursorMoveRef = useRef(onCursorMove);
@@ -208,6 +211,13 @@ export function useHandTracking(
               color,
             );
           const now = performance.now();
+          const swipeGesture = detectSwipeGesture(
+            trackedHands,
+            now,
+            swipeHistoryRef.current,
+            swipeCooldownRef,
+          );
+          if (swipeGesture) onGestureRef.current(swipeGesture);
           const emergencyStop = hands.length >= 2 && hands.every(isFist);
           updateHeldAction(
             emergencyStop,
@@ -258,7 +268,7 @@ export function useHandTracking(
           );
           const detectedGestures = hands.map(classifyGesture);
           const detected =
-            modeGesture || emergencyStop
+            modeGesture || emergencyStop || swipeGesture
               ? null
               : detectedGestures.includes("toggle-motion")
                 ? "toggle-motion"
@@ -311,6 +321,7 @@ export function useHandTracking(
           setConfidence(Math.round(score * 100));
         } else {
           smoothedRef.current = null;
+          swipeHistoryRef.current = { Left: [], Right: [] };
           modeGestureRef.current = {
             mode: null,
             since: 0,
@@ -664,17 +675,51 @@ export function classifyGesture(
   const pinky = extended(20, 18);
   const thumb = distance(4, 9) > distance(3, 9) + palmScale * 0.06;
   const phoneSpread = distance(4, 20) > palmScale * 1.25;
-  const thumbOnly = thumb && !index && !middle && !ring && !pinky;
-  if (thumbOnly && landmarks[4].y < landmarks[2].y - palmScale * 0.12)
-    return "thumb-up";
-  if (thumbOnly && landmarks[4].y > landmarks[2].y + palmScale * 0.12)
-    return "thumb-down";
   if (thumb && phoneSpread && !index && !middle && !ring && pinky)
     return "toggle-motion";
   if (index && middle && ring && pinky) return "open-palm";
   if (index && middle && !ring && !pinky) return "victory";
   if (index && !middle && !ring && !pinky) return "index";
   if (!index && !middle && !ring && !pinky) return "fist";
+  return null;
+}
+
+export function detectSwipeGesture(
+  hands: Array<{
+    landmarks: Array<{ x: number; y: number }>;
+    handedness: string;
+  }>,
+  now: number,
+  histories: Record<
+    "Left" | "Right",
+    Array<{ x: number; y: number; at: number }>
+  >,
+  cooldownRef: { current: number },
+): GesturePattern | null {
+  for (const tracked of hands) {
+    if (tracked.handedness !== "Left" && tracked.handedness !== "Right")
+      continue;
+    const history = histories[tracked.handedness];
+    if (!isModeOpenHand(tracked.landmarks)) {
+      history.length = 0;
+      continue;
+    }
+    const wrist = tracked.landmarks[0];
+    history.push({ x: 1 - wrist.x, y: wrist.y, at: now });
+    while (history.length && now - history[0].at > 480) history.shift();
+    if (now < cooldownRef.current || history.length < 4) continue;
+    const first = history[0];
+    const last = history[history.length - 1];
+    const dx = last.x - first.x;
+    const dy = Math.abs(last.y - first.y);
+    const duration = last.at - first.at;
+    if (Math.abs(dx) >= 0.16 && dy <= 0.12 && duration >= 100) {
+      cooldownRef.current = now + 900;
+      histories.Left = [];
+      histories.Right = [];
+      return dx > 0 ? "swipe-right" : "swipe-left";
+    }
+  }
   return null;
 }
 

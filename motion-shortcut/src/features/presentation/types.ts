@@ -4,7 +4,7 @@ export type PresentationApp =
   "powerpoint" | "keynote" | "google-slides" | "web-slides";
 
 export type GesturePattern =
-  "thumb-up" | "thumb-down" | "index" | "victory" | "open-palm" | "fist";
+  "swipe-right" | "swipe-left" | "index" | "victory" | "open-palm" | "fist";
 
 export type PresentationAction =
   | "next-slide"
@@ -34,8 +34,8 @@ export interface PresentationProfile {
 }
 
 export const GESTURE_OPTIONS: Array<{ id: GesturePattern; label: string }> = [
-  { id: "thumb-up", label: "엄지 위" },
-  { id: "thumb-down", label: "엄지 아래" },
+  { id: "swipe-right", label: "오른쪽 스와이프" },
+  { id: "swipe-left", label: "왼쪽 스와이프" },
   { id: "index", label: "검지 하나" },
   { id: "victory", label: "V 사인" },
   { id: "open-palm", label: "손바닥 펼치기" },
