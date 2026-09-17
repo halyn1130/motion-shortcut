@@ -82,6 +82,20 @@ declare global {
       setOverlayScale(scale: number): Promise<number>;
       setOverlayEditing(editing: boolean): Promise<boolean>;
       onOverlayEditing(callback: (editing: boolean) => void): void;
+      sendOverlayTracking(tracking: {
+        state: string;
+        confidence: number;
+        gestureLabel: string;
+        modeGestureLabel: string;
+      }): void;
+      onOverlayTracking(
+        callback: (tracking: {
+          state: string;
+          confidence: number;
+          gestureLabel: string;
+          modeGestureLabel: string;
+        }) => void,
+      ): void;
       getMotionEnabled(): Promise<boolean>;
       setMotionEnabled(enabled: boolean): Promise<boolean>;
       toggleMotion(): Promise<boolean>;

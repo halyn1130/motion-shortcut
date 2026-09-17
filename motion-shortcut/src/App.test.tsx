@@ -66,6 +66,8 @@ describe("Flickey 발표 인터페이스", () => {
       setOverlayScale: vi.fn().mockResolvedValue(1),
       setOverlayEditing: vi.fn().mockResolvedValue(false),
       onOverlayEditing: vi.fn(),
+      sendOverlayTracking: vi.fn(),
+      onOverlayTracking: vi.fn(),
       getMotionEnabled: vi.fn().mockResolvedValue(true),
       setMotionEnabled: vi.fn().mockResolvedValue(true),
       toggleMotion: vi.fn().mockResolvedValue(false),

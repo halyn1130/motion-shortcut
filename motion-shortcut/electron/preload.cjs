@@ -57,6 +57,12 @@ contextBridge.exposeInMainWorld("motionAPI", {
     ipcRenderer.invoke("overlay:set-editing", editing),
   onOverlayEditing: (callback) =>
     ipcRenderer.on("overlay:editing", (_event, editing) => callback(editing)),
+  sendOverlayTracking: (tracking) =>
+    ipcRenderer.send("overlay:tracking", tracking),
+  onOverlayTracking: (callback) =>
+    ipcRenderer.on("overlay:tracking", (_event, tracking) =>
+      callback(tracking),
+    ),
   getMotionEnabled: () => ipcRenderer.invoke("motion:get"),
   setMotionEnabled: (enabled) => ipcRenderer.invoke("motion:set", enabled),
   toggleMotion: () => ipcRenderer.invoke("motion:toggle"),

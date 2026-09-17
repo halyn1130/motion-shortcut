@@ -1041,6 +1041,9 @@ ipcMain.handle("overlay:set-editing", (_event, editing) => {
   if (overlayEditing && overlayMode !== "camera") overlayWindow.showInactive();
   return overlayEditing;
 });
+ipcMain.on("overlay:tracking", (_event, tracking) => {
+  mainWindow?.webContents.send("overlay:tracking", tracking);
+});
 
 ipcMain.handle("apps:launch", async (_event, appId) => {
   const target = allowedApps[appId];

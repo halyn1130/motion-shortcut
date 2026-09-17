@@ -94,6 +94,12 @@ function App() {
   const [logs, setLogs] = useState<string[]>([
     "Flickey Present가 준비되었습니다.",
   ]);
+  const [overlayTracking, setOverlayTracking] = useState({
+    state: "idle",
+    confidence: 0,
+    gestureLabel: "",
+    modeGestureLabel: "",
+  });
 
   const addLog = (message: string) => {
     const time = new Date().toLocaleTimeString("ko-KR", {
@@ -387,6 +393,7 @@ function App() {
           : `${label} 전달 실패 · ${activity.error ?? "알 수 없는 오류"}`,
       );
     });
+    window.motionAPI?.onOverlayTracking?.(setOverlayTracking);
     void window.motionAPI?.getCursorSensitivity().then(setCursorSensitivity);
     window.motionAPI?.onCursorSensitivityChanged(setCursorSensitivity);
     void window.motionAPI?.getLaserSettings?.().then(setLaserSettings);
@@ -444,6 +451,7 @@ function App() {
       addLog("양손 주먹 · 긴급 정지");
     },
   );
+  const activeTracking = displayMode === "camera" ? tracking : overlayTracking;
   const selectedResource = profile.resources.filter((item) => item.value)[
     selectedResourceIndex
   ];
@@ -706,15 +714,15 @@ function App() {
                 <div className="tracking-hud">
                   <span>{MODE_LABELS[mode]} MODE</span>
                   <b>
-                    {tracking.modeGestureLabel
-                      ? `${tracking.modeGestureLabel} 전환 준비`
-                      : tracking.gestureLabel
-                        ? `${tracking.gestureLabel} 감지`
-                        : tracking.state === "tracking"
+                    {activeTracking.modeGestureLabel
+                      ? `${activeTracking.modeGestureLabel} 전환 준비`
+                      : activeTracking.gestureLabel
+                        ? `${activeTracking.gestureLabel} 감지`
+                        : activeTracking.state === "tracking"
                           ? "손 추적 중"
                           : "손을 보여주세요"}
                   </b>
-                  <em>{tracking.confidence}%</em>
+                  <em>{activeTracking.confidence}%</em>
                 </div>
               )}
               {selectedResource && (

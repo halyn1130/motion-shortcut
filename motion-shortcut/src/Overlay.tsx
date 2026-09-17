@@ -89,6 +89,20 @@ export default function Overlay() {
   );
 
   useEffect(() => {
+    window.motionAPI?.sendOverlayTracking?.({
+      state: tracking.state,
+      confidence: tracking.confidence,
+      gestureLabel: tracking.gestureLabel,
+      modeGestureLabel: tracking.modeGestureLabel,
+    });
+  }, [
+    tracking.confidence,
+    tracking.gestureLabel,
+    tracking.modeGestureLabel,
+    tracking.state,
+  ]);
+
+  useEffect(() => {
     void window.motionAPI?.getOverlayMode().then(setMode);
     window.motionAPI?.onOverlayMode(setMode);
     window.motionAPI?.onOverlayColor(setHandColor);

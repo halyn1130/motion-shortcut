@@ -706,18 +706,6 @@ export function detectSwipeGesture(
     if (tracked.handedness !== "Left" && tracked.handedness !== "Right")
       continue;
     const history = histories[tracked.handedness];
-    const extendedFingerCount = [
-      [8, 6],
-      [12, 10],
-      [16, 14],
-      [20, 18],
-    ].filter(([tip, pip]) =>
-      fingerExtended(tracked.landmarks, tip, pip),
-    ).length;
-    if (extendedFingerCount < 2) {
-      history.length = 0;
-      continue;
-    }
     const palmPoints = [0, 5, 9, 13, 17].map(
       (index) => tracked.landmarks[index],
     );
@@ -728,14 +716,14 @@ export function detectSwipeGesture(
         palmPoints.reduce((sum, point) => sum + point.y, 0) / palmPoints.length,
     };
     history.push({ x: 1 - palm.x, y: palm.y, at: now });
-    while (history.length && now - history[0].at > 700) history.shift();
+    while (history.length && now - history[0].at > 750) history.shift();
     if (now < cooldownRef.current || history.length < 4) continue;
     const first = history[0];
     const last = history[history.length - 1];
     const dx = last.x - first.x;
     const dy = Math.abs(last.y - first.y);
     const duration = last.at - first.at;
-    if (Math.abs(dx) >= 0.1 && dy <= 0.2 && duration >= 80) {
+    if (Math.abs(dx) >= 0.08 && dy <= 0.25 && duration >= 70) {
       cooldownRef.current = now + 900;
       histories.Left = [];
       histories.Right = [];
