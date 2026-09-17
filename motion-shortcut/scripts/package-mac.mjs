@@ -146,22 +146,29 @@ writeFileSync(
   join(dmgSource, "처음 실행 안내.txt"),
   "Apple Silicon Mac 전용입니다.\n\n1. 앱을 Applications로 드래그합니다.\n2. 앱을 우클릭하고 ‘열기’를 선택합니다.\n3. 카메라 및 손쉬운 사용 권한을 허용합니다.\n4. 권한 변경 후 앱을 다시 실행합니다.\n",
 );
-execFileSync(
-  "/usr/bin/hdiutil",
-  [
-    "create",
-    "-volname",
-    `모션 단축키 ${version}`,
-    "-srcfolder",
-    dmgSource,
-    "-ov",
-    "-format",
-    "UDZO",
-    join(releaseDirectory, `${artifactBase}.dmg`),
-  ],
-  { stdio: "inherit" },
-);
+let dmgCreated = false;
+try {
+  execFileSync(
+    "/usr/bin/hdiutil",
+    [
+      "create",
+      "-volname",
+      `모션 단축키 ${version}`,
+      "-srcfolder",
+      dmgSource,
+      "-ov",
+      "-format",
+      "UDZO",
+      join(releaseDirectory, `${artifactBase}.dmg`),
+    ],
+    { stdio: "inherit" },
+  );
+  dmgCreated = true;
+} catch {
+  console.warn("DMG 생성은 건너뛰었습니다. Flickey.app과 ZIP은 정상 생성되었습니다.");
+}
 
 rmSync(stagingDirectory, { recursive: true, force: true });
-console.log(`Created ${join(releaseDirectory, `${artifactBase}.dmg`)}`);
+if (dmgCreated)
+  console.log(`Created ${join(releaseDirectory, `${artifactBase}.dmg`)}`);
 console.log(`Created ${join(releaseDirectory, `${artifactBase}.zip`)}`);

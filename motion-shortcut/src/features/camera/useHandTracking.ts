@@ -40,8 +40,17 @@ const GESTURE_LABELS: Record<MotionGestureId, string> = {
   "toggle-motion": "전화 모양",
 };
 
-const GESTURE_HOLD_MS = 1500;
-const MODE_GESTURE_HOLD_MS = 1100;
+const MODE_GESTURE_HOLD_MS = 700;
+const GESTURE_LOSS_GRACE_MS = 240;
+const GESTURE_COOLDOWN_MS = 850;
+
+function gestureHoldMs(gesture: MotionGestureId) {
+  if (gesture === "thumb-up" || gesture === "thumb-down") return 560;
+  if (gesture === "index" || gesture === "victory") return 650;
+  if (gesture === "open-palm") return 760;
+  if (gesture === "fist") return 950;
+  return 1200;
+}
 
 const MODE_GESTURE_LABELS: Record<PresentationMode, string> = {
   slide: "SLIDE 모드",
@@ -66,10 +75,11 @@ export function useHandTracking(
   const frameRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef(-1);
   const smoothedRef = useRef<Array<{ x: number; y: number }> | null>(null);
-  const candidateRef = useRef<{ id: MotionGestureId | null; since: number }>({
-    id: null,
-    since: 0,
-  });
+  const candidateRef = useRef<{
+    id: MotionGestureId | null;
+    since: number;
+    lastSeen: number;
+  }>({ id: null, since: 0, lastSeen: 0 });
   const triggeredRef = useRef(false);
   const cooldownUntilRef = useRef(0);
   const onGestureRef = useRef(onGesture);
@@ -80,8 +90,9 @@ export function useHandTracking(
   const modeGestureRef = useRef<{
     mode: PresentationMode | null;
     since: number;
+    lastSeen: number;
     triggered: boolean;
-  }>({ mode: null, since: 0, triggered: false });
+  }>({ mode: null, since: 0, lastSeen: 0, triggered: false });
   const leftClickRef = useRef({ armedAt: 0, fist: false });
   const emergencyStopRef = useRef({ since: 0, triggered: false });
   const [state, setState] = useState<TrackerState>("idle");
@@ -201,7 +212,7 @@ export function useHandTracking(
           updateHeldAction(
             emergencyStop,
             now,
-            1200,
+            900,
             emergencyStopRef,
             onEmergencyStopRef.current,
           );
@@ -263,7 +274,7 @@ export function useHandTracking(
             onGestureRef.current,
           );
           const progress = emergencyStop
-            ? heldProgress(emergencyStopRef.current.since, now, 1200)
+            ? heldProgress(emergencyStopRef.current.since, now, 900)
             : modeGesture
               ? heldProgress(
                   modeGestureRef.current.since,
@@ -271,7 +282,11 @@ export function useHandTracking(
                   MODE_GESTURE_HOLD_MS,
                 )
               : detected
-                ? heldProgress(candidateRef.current.since, now, GESTURE_HOLD_MS)
+                ? heldProgress(
+                    candidateRef.current.since,
+                    now,
+                    gestureHoldMs(detected),
+                  )
                 : 0;
           setGestureProgress(progress);
           if (progress > 0) {
@@ -299,11 +314,12 @@ export function useHandTracking(
           modeGestureRef.current = {
             mode: null,
             since: 0,
+            lastSeen: 0,
             triggered: false,
           };
           leftClickRef.current = { armedAt: 0, fist: false };
           emergencyStopRef.current = { since: 0, triggered: false };
-          candidateRef.current = { id: null, since: 0 };
+          candidateRef.current = { id: null, since: 0, lastSeen: 0 };
           triggeredRef.current = false;
           setGestureProgress(0);
           setGesture(null);
@@ -600,19 +616,28 @@ function updateModeGesture(
     current: {
       mode: PresentationMode | null;
       since: number;
+      lastSeen: number;
       triggered: boolean;
     };
   },
   onMode?: (mode: PresentationMode) => void,
 ) {
   if (!mode) {
-    stateRef.current = { mode: null, since: 0, triggered: false };
+    if (now - stateRef.current.lastSeen > GESTURE_LOSS_GRACE_MS) {
+      stateRef.current = {
+        mode: null,
+        since: 0,
+        lastSeen: 0,
+        triggered: false,
+      };
+    }
     return;
   }
   if (stateRef.current.mode !== mode) {
-    stateRef.current = { mode, since: now, triggered: false };
+    stateRef.current = { mode, since: now, lastSeen: now, triggered: false };
     return;
   }
+  stateRef.current.lastSeen = now;
   if (
     !stateRef.current.triggered &&
     now - stateRef.current.since >= MODE_GESTURE_HOLD_MS
@@ -637,12 +662,12 @@ export function classifyGesture(
   const middle = extended(12, 10);
   const ring = extended(16, 14);
   const pinky = extended(20, 18);
-  const thumb = distance(4, 9) > distance(3, 9) + palmScale * 0.12;
+  const thumb = distance(4, 9) > distance(3, 9) + palmScale * 0.06;
   const phoneSpread = distance(4, 20) > palmScale * 1.25;
   const thumbOnly = thumb && !index && !middle && !ring && !pinky;
-  if (thumbOnly && landmarks[4].y < landmarks[2].y - palmScale * 0.22)
+  if (thumbOnly && landmarks[4].y < landmarks[2].y - palmScale * 0.12)
     return "thumb-up";
-  if (thumbOnly && landmarks[4].y > landmarks[2].y + palmScale * 0.22)
+  if (thumbOnly && landmarks[4].y > landmarks[2].y + palmScale * 0.12)
     return "thumb-down";
   if (thumb && phoneSpread && !index && !middle && !ring && pinky)
     return "toggle-motion";
@@ -656,28 +681,37 @@ export function classifyGesture(
 function updateGestureCandidate(
   gesture: MotionGestureId | null,
   now: number,
-  candidateRef: { current: { id: MotionGestureId | null; since: number } },
+  candidateRef: {
+    current: {
+      id: MotionGestureId | null;
+      since: number;
+      lastSeen: number;
+    };
+  },
   triggeredRef: { current: boolean },
   cooldownUntilRef: { current: number },
   onGesture: (gesture: MotionGestureId) => void,
 ) {
   if (!gesture) {
-    candidateRef.current = { id: null, since: 0 };
-    triggeredRef.current = false;
+    if (now - candidateRef.current.lastSeen > GESTURE_LOSS_GRACE_MS) {
+      candidateRef.current = { id: null, since: 0, lastSeen: 0 };
+      triggeredRef.current = false;
+    }
     return;
   }
   if (candidateRef.current.id !== gesture) {
-    candidateRef.current = { id: gesture, since: now };
+    candidateRef.current = { id: gesture, since: now, lastSeen: now };
     triggeredRef.current = false;
     return;
   }
+  candidateRef.current.lastSeen = now;
   if (
     !triggeredRef.current &&
     now >= cooldownUntilRef.current &&
-    now - candidateRef.current.since >= GESTURE_HOLD_MS
+    now - candidateRef.current.since >= gestureHoldMs(gesture)
   ) {
     triggeredRef.current = true;
-    cooldownUntilRef.current = now + 2500;
+    cooldownUntilRef.current = now + GESTURE_COOLDOWN_MS;
     onGesture(gesture);
   }
 }

@@ -712,7 +712,7 @@ function App() {
                 <div className="resource-hud">
                   <small>SELECTED RESOURCE</small>
                   <strong>{selectedResource.name}</strong>
-                  <span>검지를 1.5초 유지해 실행</span>
+                  <span>검지를 잠깐 유지해 실행</span>
                 </div>
               )}
             </div>
@@ -785,9 +785,9 @@ function App() {
                     한 손 뿔 모양 · 오른손 검지로 백청색 레이저를 이동합니다.
                   </span>
                 </div>
-                <p>각 모션을 1.1초 유지하면 해당 모드로 바로 전환합니다.</p>
+                <p>각 모션을 약 0.7초 유지하면 해당 모드로 전환합니다.</p>
                 <p className="emergency-guide">
-                  양손 주먹을 1.2초 유지하면 모션을 즉시 긴급 정지합니다.
+                  양손 주먹을 약 0.9초 유지하면 모션을 즉시 긴급 정지합니다.
                 </p>
               </div>
             </article>
