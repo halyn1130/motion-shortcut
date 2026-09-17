@@ -41,6 +41,7 @@ describe("Flickey 발표 인터페이스", () => {
         .fn()
         .mockResolvedValue({ ok: true, mode: "cursor" }),
       onPresentationModeChanged: vi.fn(),
+      onPresentationActivity: vi.fn(),
       moveLaser: vi.fn(),
       getLaserSettings: vi.fn().mockResolvedValue({
         color: "#9fe9ff",

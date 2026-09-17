@@ -600,6 +600,13 @@ function sendMacKey(key) {
   return { ok: true };
 }
 
+function reportPresentationActivity(command, result) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("presentation:activity", { command, ...result });
+  }
+  return result;
+}
+
 ipcMain.handle(
   "presentation:execute",
   async (_event, command, appId, presentationUrl) => {
@@ -612,7 +619,10 @@ ipcMain.handle(
     const key = keys[command];
     const now = Date.now();
     if (now - (presentationCommandAt.get(command) || 0) < 650)
-      return { ok: false, error: "같은 명령의 연속 실행을 차단했습니다." };
+      return reportPresentationActivity(command, {
+        ok: false,
+        error: "같은 명령의 연속 실행을 차단했습니다.",
+      });
     const appNames = {
       powerpoint: "Microsoft PowerPoint",
       keynote: "Keynote",
@@ -629,22 +639,26 @@ ipcMain.handle(
       frontmost &&
       frontmost !== expectedApp
     )
-      return {
+      return reportPresentationActivity(command, {
         ok: false,
         error: `${expectedApp}이(가) 활성 창이 아닙니다. 발표 화면으로 돌아간 뒤 시도하세요.`,
-      };
+      });
     if (isWebPresentation || (expectedApp && !frontmost)) {
       const focused = isWebPresentation
         ? await activateChromePresentationTab(presentationUrl)
         : await activateAppByName(expectedApp);
-      if (!focused.ok) return focused;
+      if (!focused.ok) return reportPresentationActivity(command, focused);
       await new Promise((resolve) => setTimeout(resolve, 180));
     }
     if (expectedApp) presentationAppName = expectedApp;
-    if (!key) return { ok: false, error: "허용되지 않은 발표 명령입니다." };
+    if (!key)
+      return reportPresentationActivity(command, {
+        ok: false,
+        error: "허용되지 않은 발표 명령입니다.",
+      });
     const result = sendMacKey(key);
     if (result.ok) presentationCommandAt.set(command, now);
-    return result;
+    return reportPresentationActivity(command, result);
   },
 );
 

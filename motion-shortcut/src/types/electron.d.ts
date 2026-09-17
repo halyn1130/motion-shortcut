@@ -42,6 +42,13 @@ declare global {
       onPresentationModeChanged(
         callback: (mode: "slide" | "cursor" | "laser") => void,
       ): void;
+      onPresentationActivity(
+        callback: (activity: {
+          command: string;
+          ok: boolean;
+          error?: string;
+        }) => void,
+      ): void;
       moveLaser(point: { x: number; y: number }): void;
       getLaserSettings(): Promise<{
         color: string;

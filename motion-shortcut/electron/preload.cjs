@@ -31,6 +31,10 @@ contextBridge.exposeInMainWorld("motionAPI", {
     ipcRenderer.on("presentation:mode-changed", (_event, mode) =>
       callback(mode),
     ),
+  onPresentationActivity: (callback) =>
+    ipcRenderer.on("presentation:activity", (_event, activity) =>
+      callback(activity),
+    ),
   moveLaser: (point) => ipcRenderer.send("laser:move", point),
   getLaserSettings: () => ipcRenderer.invoke("laser:get-settings"),
   setLaserSettings: (settings) =>

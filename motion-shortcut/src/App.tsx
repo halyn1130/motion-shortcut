@@ -378,6 +378,15 @@ function App() {
     });
     void window.motionAPI?.getPresentationMode().then(setMode);
     window.motionAPI?.onPresentationModeChanged(setMode);
+    window.motionAPI?.onPresentationActivity?.((activity) => {
+      const action = activity.command as PresentationAction;
+      const label = ACTION_LABELS[action] ?? activity.command;
+      addLog(
+        activity.ok
+          ? `${label} 전달 완료`
+          : `${label} 전달 실패 · ${activity.error ?? "알 수 없는 오류"}`,
+      );
+    });
     void window.motionAPI?.getCursorSensitivity().then(setCursorSensitivity);
     window.motionAPI?.onCursorSensitivityChanged(setCursorSensitivity);
     void window.motionAPI?.getLaserSettings?.().then(setLaserSettings);

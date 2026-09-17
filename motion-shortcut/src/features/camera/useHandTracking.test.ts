@@ -24,8 +24,8 @@ function openHand(wristX: number) {
 
 describe("슬라이드 스와이프", () => {
   it.each([
-    ["오른쪽", [0.72, 0.65, 0.58, 0.5], "swipe-right"],
-    ["왼쪽", [0.28, 0.35, 0.42, 0.5], "swipe-left"],
+    ["오른쪽", [0.63, 0.59, 0.55, 0.51], "swipe-right"],
+    ["왼쪽", [0.37, 0.41, 0.45, 0.49], "swipe-left"],
   ])("손바닥을 %s으로 이동하면 해당 스와이프로 분류한다", (_, xs, expected) => {
     const histories = { Left: [], Right: [] } as Record<
       "Left" | "Right",
