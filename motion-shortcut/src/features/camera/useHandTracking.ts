@@ -234,12 +234,15 @@ export function useHandTracking(
             modeGestureRef,
             onModeGestureRef.current,
           );
-          const moveHand = trackedHands.find(
+          const moveCandidates = trackedHands.filter(
             (tracked) =>
-              tracked.handedness === "Right" &&
-              (isCursorMovePose(tracked.landmarks) ||
-                isIndexOnlyPose(tracked.landmarks)),
-          )?.landmarks;
+              isCursorMovePose(tracked.landmarks) ||
+              isIndexOnlyPose(tracked.landmarks),
+          );
+          const moveTracked =
+            moveCandidates.find((tracked) => tracked.handedness === "Right") ??
+            moveCandidates[0];
+          const moveHand = moveTracked?.landmarks;
           if (moveHand && !modeGesture && !emergencyStop) {
             const tip = {
               x: 1 - (moveHand[8].x + moveHand[12].x) / 2,
@@ -256,9 +259,12 @@ export function useHandTracking(
               ),
             });
           }
-          const leftHand = trackedHands.find(
-            (tracked) => tracked.handedness === "Left",
-          )?.landmarks;
+          const clickTracked =
+            trackedHands.find(
+              (tracked) =>
+                tracked !== moveTracked && tracked.handedness === "Left",
+            ) ?? trackedHands.find((tracked) => tracked !== moveTracked);
+          const leftHand = clickTracked?.landmarks;
           updateLeftHandClick(
             leftHand,
             Boolean(modeGesture) || emergencyStop,

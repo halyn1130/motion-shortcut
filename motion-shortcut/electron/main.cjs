@@ -85,20 +85,47 @@ async function activateChromePresentationTab(rawUrl) {
   if (!rawUrl) return activateAppByName("Google Chrome");
   try {
     const target = new URL(rawUrl);
-    const match = `${target.origin}${target.pathname}`;
+    const googleSlidesMatch = target.pathname.match(
+      /\/presentation\/d\/(?:e\/)?[^/]+/,
+    );
+    const isGoogleSlides =
+      target.hostname === "docs.google.com" && Boolean(googleSlidesMatch);
+    const match = isGoogleSlides
+      ? `${target.origin}${googleSlidesMatch[0]}/`
+      : `${target.origin}${target.pathname}`;
     const { stdout } = await execFileAsync("/usr/bin/osascript", [
       "-e",
-      'on run argv\nset targetURL to item 1 of argv\ntell application "Google Chrome"\nrepeat with w from 1 to count of windows\nrepeat with t from 1 to count of tabs of window w\nif URL of tab t of window w starts with targetURL then\nset active tab index of window w to t\nset index of window w to 1\nactivate\nreturn "found"\nend if\nend repeat\nend repeat\nend tell\nreturn "missing"\nend run',
+      'on run argv\nset targetURL to item 1 of argv\nset googleSlides to item 2 of argv is "true"\ntell application "Google Chrome"\nif googleSlides then\nrepeat with w from 1 to count of windows\nrepeat with t from 1 to count of tabs of window w\nset tabURL to URL of tab t of window w\nif tabURL starts with targetURL and (tabURL contains "/present" or tabURL contains "/preview") then\nset active tab index of window w to t\nset index of window w to 1\nactivate\nreturn "present"\nend if\nend repeat\nend repeat\nelse\nrepeat with w from 1 to count of windows\nrepeat with t from 1 to count of tabs of window w\nif URL of tab t of window w starts with targetURL then\nset active tab index of window w to t\nset index of window w to 1\nactivate\nreturn "found"\nend if\nend repeat\nend repeat\nend if\nend tell\nreturn "missing"\nend run',
       match,
+      String(isGoogleSlides),
     ]);
-    return stdout.trim() === "found"
-      ? { ok: true }
-      : { ok: false, error: "지정한 발표 링크의 Chrome 탭을 찾지 못했습니다." };
+    const status = stdout.trim();
+    if (status === "found" || status === "present") return { ok: true };
+    return {
+      ok: false,
+      error: isGoogleSlides
+        ? "Google Slides 발표 모드 창을 찾지 못했습니다. 먼저 슬라이드 쇼를 시작하세요."
+        : "지정한 발표 링크의 Chrome 탭을 찾지 못했습니다.",
+    };
   } catch {
     return {
       ok: false,
       error: "발표 링크의 Chrome 탭을 활성화하지 못했습니다.",
     };
+  }
+}
+
+function presentationUrlFor(rawUrl) {
+  try {
+    const url = new URL(String(rawUrl));
+    if (url.hostname !== "docs.google.com") return url.toString();
+    const match = url.pathname.match(/^(\/presentation\/d\/(?:e\/)?[^/]+)/);
+    if (!match) return url.toString();
+    url.pathname = `${match[1]}/present`;
+    if (!url.searchParams.has("slide")) url.searchParams.set("slide", "id.p");
+    return url.toString();
+  } catch {
+    return rawUrl;
   }
 }
 
@@ -673,7 +700,7 @@ ipcMain.handle("presentation:restore", () =>
 
 ipcMain.handle("presentation:open-url", async (_event, rawUrl) => {
   try {
-    const url = new URL(String(rawUrl));
+    const url = new URL(presentationUrlFor(rawUrl));
     if (url.protocol !== "https:" && url.protocol !== "http:")
       throw new Error();
     await execFileAsync("/usr/bin/open", [
