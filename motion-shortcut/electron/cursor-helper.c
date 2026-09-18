@@ -38,6 +38,7 @@ int main(void) {
   char line[128];
   char command[16];
   int value;
+  int modifiers;
   double x;
   double y;
   CGEventRef initialEvent = CGEventCreate(NULL);
@@ -77,6 +78,23 @@ int main(void) {
       if (down != NULL && up != NULL) {
         CGEventKeyboardSetUnicodeString(down, 1, &character);
         CGEventKeyboardSetUnicodeString(up, 1, &character);
+        CGEventPost(kCGHIDEventTap, down);
+        CGEventPost(kCGHIDEventTap, up);
+      }
+      if (down != NULL) CFRelease(down);
+      if (up != NULL) CFRelease(up);
+    } else if (sscanf(line, "%15s %d %d", command, &value, &modifiers) == 3 &&
+               strcmp(command, "shortcut") == 0 && value >= 0 && value <= 127 && modifiers >= 0 && modifiers <= 15) {
+      CGEventFlags flags = 0;
+      if (modifiers & 1) flags |= kCGEventFlagMaskCommand;
+      if (modifiers & 2) flags |= kCGEventFlagMaskControl;
+      if (modifiers & 4) flags |= kCGEventFlagMaskAlternate;
+      if (modifiers & 8) flags |= kCGEventFlagMaskShift;
+      CGEventRef down = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)value, true);
+      CGEventRef up = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)value, false);
+      if (down != NULL && up != NULL) {
+        CGEventSetFlags(down, flags);
+        CGEventSetFlags(up, flags);
         CGEventPost(kCGHIDEventTap, down);
         CGEventPost(kCGHIDEventTap, up);
       }

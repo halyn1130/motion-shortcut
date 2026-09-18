@@ -1,13 +1,31 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+function subscribe(channel, callback) {
+  const listener = (_event, value) => callback(value);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 contextBridge.exposeInMainWorld("motionAPI", {
+  sendHandOverlayFrame: (frame) => ipcRenderer.send("overlay:frame", frame),
+  onHandOverlayFrame: (callback) => {
+    const listener = (_event, frame) => callback(frame);
+    ipcRenderer.on("overlay:frame", listener);
+    return () => ipcRenderer.removeListener("overlay:frame", listener);
+  },
   launchApp: (appId) => ipcRenderer.invoke("apps:launch", appId),
-  executePresentationCommand: (command, presentationApp, presentationUrl) =>
+  executePresentationCommand: (
+    command,
+    presentationApp,
+    presentationUrl,
+    shortcut,
+  ) =>
     ipcRenderer.invoke(
       "presentation:execute",
       command,
       presentationApp,
       presentationUrl,
+      shortcut,
     ),
   pickPresentationFile: (applicationOnly = false) =>
     ipcRenderer.invoke("presentation:pick-file", applicationOnly),
@@ -28,50 +46,36 @@ contextBridge.exposeInMainWorld("motionAPI", {
     ipcRenderer.invoke("presentation:set-mode", mode),
   cyclePresentationMode: () => ipcRenderer.invoke("presentation:cycle-mode"),
   onPresentationModeChanged: (callback) =>
-    ipcRenderer.on("presentation:mode-changed", (_event, mode) =>
-      callback(mode),
-    ),
+    subscribe("presentation:mode-changed", callback),
   onPresentationActivity: (callback) =>
-    ipcRenderer.on("presentation:activity", (_event, activity) =>
-      callback(activity),
-    ),
+    subscribe("presentation:activity", callback),
   moveLaser: (point) => ipcRenderer.send("laser:move", point),
   getLaserSettings: () => ipcRenderer.invoke("laser:get-settings"),
   setLaserSettings: (settings) =>
     ipcRenderer.invoke("laser:set-settings", settings),
   onLaserSettingsChanged: (callback) =>
-    ipcRenderer.on("laser:settings-changed", (_event, settings) =>
-      callback(settings),
-    ),
-  onLaserMoved: (callback) => ipcRenderer.on("laser:moved", () => callback()),
+    subscribe("laser:settings-changed", callback),
+  onLaserMoved: (callback) => subscribe("laser:moved", callback),
   getOverlayMode: () => ipcRenderer.invoke("overlay:get-mode"),
   setOverlayMode: (mode) => ipcRenderer.invoke("overlay:set-mode", mode),
-  onOverlayMode: (callback) =>
-    ipcRenderer.on("overlay:mode", (_event, mode) => callback(mode)),
+  onOverlayMode: (callback) => subscribe("overlay:mode", callback),
   setOverlayColor: (color) => ipcRenderer.invoke("overlay:set-color", color),
-  onOverlayColor: (callback) =>
-    ipcRenderer.on("overlay:color", (_event, color) => callback(color)),
+  onOverlayColor: (callback) => subscribe("overlay:color", callback),
   getOverlayLayout: () => ipcRenderer.invoke("overlay:get-layout"),
   setOverlayScale: (scale) => ipcRenderer.invoke("overlay:set-scale", scale),
   setOverlayEditing: (editing) =>
     ipcRenderer.invoke("overlay:set-editing", editing),
-  onOverlayEditing: (callback) =>
-    ipcRenderer.on("overlay:editing", (_event, editing) => callback(editing)),
+  onOverlayEditing: (callback) => subscribe("overlay:editing", callback),
   sendOverlayTracking: (tracking) =>
     ipcRenderer.send("overlay:tracking", tracking),
-  onOverlayTracking: (callback) =>
-    ipcRenderer.on("overlay:tracking", (_event, tracking) =>
-      callback(tracking),
-    ),
+  onOverlayTracking: (callback) => subscribe("overlay:tracking", callback),
   getMotionEnabled: () => ipcRenderer.invoke("motion:get"),
   setMotionEnabled: (enabled) => ipcRenderer.invoke("motion:set", enabled),
   toggleMotion: () => ipcRenderer.invoke("motion:toggle"),
-  onMotionChanged: (callback) =>
-    ipcRenderer.on("motion:changed", (_event, enabled) => callback(enabled)),
+  onMotionChanged: (callback) => subscribe("motion:changed", callback),
   getCameraEnabled: () => ipcRenderer.invoke("camera:get"),
   setCameraEnabled: (enabled) => ipcRenderer.invoke("camera:set", enabled),
-  onCameraChanged: (callback) =>
-    ipcRenderer.on("camera:changed", (_event, enabled) => callback(enabled)),
+  onCameraChanged: (callback) => subscribe("camera:changed", callback),
   getPermissions: () => ipcRenderer.invoke("system:permissions"),
   openPermissionSettings: (permission) =>
     ipcRenderer.invoke("system:open-permission", permission),
@@ -86,11 +90,8 @@ contextBridge.exposeInMainWorld("motionAPI", {
   setCursorSensitivity: (value) =>
     ipcRenderer.invoke("cursor:set-sensitivity", value),
   onCursorSensitivityChanged: (callback) =>
-    ipcRenderer.on("cursor:sensitivity-changed", (_event, value) =>
-      callback(value),
-    ),
-  onCursorChanged: (callback) =>
-    ipcRenderer.on("cursor:changed", (_event, enabled) => callback(enabled)),
+    subscribe("cursor:sensitivity-changed", callback),
+  onCursorChanged: (callback) => subscribe("cursor:changed", callback),
   getKeyboardVisible: () => ipcRenderer.invoke("keyboard:get"),
   setKeyboardVisible: (visible) => ipcRenderer.invoke("keyboard:set", visible),
   toggleKeyboard: () => ipcRenderer.invoke("keyboard:toggle"),
@@ -98,16 +99,11 @@ contextBridge.exposeInMainWorld("motionAPI", {
   setTypingSensitivity: (value) =>
     ipcRenderer.invoke("keyboard:set-sensitivity", value),
   onTypingSensitivityChanged: (callback) =>
-    ipcRenderer.on("keyboard:sensitivity-changed", (_event, value) =>
-      callback(value),
-    ),
+    subscribe("keyboard:sensitivity-changed", callback),
   typeKey: (key) => ipcRenderer.invoke("keyboard:type", key),
   sendKeyboardPointer: (sample) => ipcRenderer.send("keyboard:pointer", sample),
-  onKeyboardPointer: (callback) =>
-    ipcRenderer.on("keyboard:pointer", (_event, sample) => callback(sample)),
+  onKeyboardPointer: (callback) => subscribe("keyboard:pointer", callback),
   sendKeyboardHands: (hands) => ipcRenderer.send("keyboard:hands", hands),
-  onKeyboardHands: (callback) =>
-    ipcRenderer.on("keyboard:hands", (_event, hands) => callback(hands)),
-  onKeyboardChanged: (callback) =>
-    ipcRenderer.on("keyboard:changed", (_event, visible) => callback(visible)),
+  onKeyboardHands: (callback) => subscribe("keyboard:hands", callback),
+  onKeyboardChanged: (callback) => subscribe("keyboard:changed", callback),
 });

@@ -1,4 +1,4 @@
-import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
+import type { HandLandmarker } from "@mediapipe/tasks-vision";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { GesturePattern } from "../presentation/types";
 import type { PresentationMode } from "../presentation/types";
@@ -53,8 +53,8 @@ function gestureHoldMs(gesture: MotionGestureId) {
 
 const MODE_GESTURE_LABELS: Record<PresentationMode, string> = {
   slide: "SLIDE 모드",
-  cursor: "CURSOR 모드",
-  laser: "LASER 모드",
+  cursor: "포인터 모드",
+  laser: "포인터 모드",
 };
 
 export function useHandTracking(
@@ -69,7 +69,15 @@ export function useHandTracking(
   onCursorClick?: () => void,
   cursorSensitivity = 1,
   onEmergencyStop?: () => void,
+  onOverlayFrame?: (frame: {
+    hands: Array<Array<{ x: number; y: number }>>;
+    ratio: number;
+  }) => void,
 ) {
+  const overlayFrameRef = useRef(onOverlayFrame);
+  useEffect(() => {
+    overlayFrameRef.current = onOverlayFrame;
+  }, [onOverlayFrame]);
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const frameRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef(-1);
@@ -126,6 +134,8 @@ export function useHandTracking(
       try {
         setState("loading");
         if (!landmarkerRef.current) {
+          const { FilesetResolver, HandLandmarker } =
+            await import("@mediapipe/tasks-vision");
           const vision = await FilesetResolver.forVisionTasks(
             new URL("./mediapipe/wasm", document.baseURI).href,
           );
@@ -198,6 +208,10 @@ export function useHandTracking(
           });
           smoothedRef.current = smoothed;
           const hands = [smoothed, ...result.landmarks.slice(1)];
+          overlayFrameRef.current?.({
+            hands,
+            ratio: video.videoWidth / video.videoHeight,
+          });
           const trackedHands = hands.map((landmarks, index) => ({
             landmarks,
             handedness: result.handedness[index]?.[0]?.categoryName ?? "",
@@ -326,6 +340,7 @@ export function useHandTracking(
           setState("tracking");
           setConfidence(Math.round(score * 100));
         } else {
+          overlayFrameRef.current?.({ hands: [], ratio: 16 / 9 });
           smoothedRef.current = null;
           swipeHistoryRef.current = { Left: [], Right: [] };
           modeGestureRef.current = {
@@ -355,6 +370,7 @@ export function useHandTracking(
       cancelled = true;
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       clearCanvas(canvas);
+      overlayFrameRef.current?.({ hands: [], ratio: 16 / 9 });
     };
   }, [canvasRef, color, cursorSensitivity, enabled, petCanvasRef, videoRef]);
 
@@ -775,7 +791,7 @@ function clearCanvas(canvas: HTMLCanvasElement | null) {
   canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawHands(
+export function drawHands(
   canvas: HTMLCanvasElement,
   hands: Array<Array<{ x: number; y: number }>>,
   sourceRatio: number,
@@ -783,6 +799,7 @@ function drawHands(
 ) {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
+  if (!width || !height) return;
   const scale = window.devicePixelRatio || 1;
   if (canvas.width !== width * scale || canvas.height !== height * scale) {
     canvas.width = width * scale;

@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:electron": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",

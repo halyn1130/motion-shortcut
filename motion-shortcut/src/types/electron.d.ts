@@ -3,14 +3,31 @@ export {};
 declare global {
   interface Window {
     motionAPI?: {
+      sendHandOverlayFrame?(frame: {
+        hands: Array<Array<{ x: number; y: number }>>;
+        ratio: number;
+      }): void;
+      onHandOverlayFrame?(
+        callback: (frame: {
+          hands: Array<Array<{ x: number; y: number }>>;
+          ratio: number;
+        }) => void,
+      ): () => void;
       launchApp(
         appId: string,
       ): Promise<{ ok: boolean; appName?: string; error?: string }>;
       executePresentationCommand(
         command: string,
         presentationApp?:
-          "powerpoint" | "keynote" | "google-slides" | "web-slides",
+          | "powerpoint"
+          | "keynote"
+          | "google-slides"
+          | "web-slides",
         presentationUrl?: string,
+        shortcut?: {
+          key: string;
+          modifiers: Array<"Meta" | "Control" | "Alt" | "Shift">;
+        },
       ): Promise<{ ok: boolean; error?: string }>;
       pickPresentationFile(applicationOnly?: boolean): Promise<string | null>;
       openPresentationResource(resource: {
@@ -25,7 +42,10 @@ declare global {
       goToSlide(
         slide: number,
         presentationApp?:
-          "powerpoint" | "keynote" | "google-slides" | "web-slides",
+          | "powerpoint"
+          | "keynote"
+          | "google-slides"
+          | "web-slides",
         presentationUrl?: string,
       ): Promise<{ ok: boolean; error?: string }>;
       getPresentationMode(): Promise<"slide" | "cursor" | "laser">;
@@ -41,14 +61,14 @@ declare global {
       }>;
       onPresentationModeChanged(
         callback: (mode: "slide" | "cursor" | "laser") => void,
-      ): void;
+      ): void | (() => void);
       onPresentationActivity(
         callback: (activity: {
           command: string;
           ok: boolean;
           error?: string;
         }) => void,
-      ): void;
+      ): void | (() => void);
       moveLaser(point: { x: number; y: number }): void;
       getLaserSettings(): Promise<{
         color: string;
@@ -69,25 +89,27 @@ declare global {
           trail: boolean;
           shareCompatible: boolean;
         }) => void,
-      ): void;
-      onLaserMoved(callback: () => void): void;
+      ): void | (() => void);
+      onLaserMoved(callback: () => void): void | (() => void);
       getOverlayMode(): Promise<"camera" | "person-pet" | "hand-pet">;
       setOverlayMode(mode: string): Promise<boolean>;
       onOverlayMode(
         callback: (mode: "camera" | "person-pet" | "hand-pet") => void,
-      ): void;
+      ): void | (() => void);
       setOverlayColor(color: string): Promise<boolean>;
-      onOverlayColor(callback: (color: string) => void): void;
+      onOverlayColor(callback: (color: string) => void): void | (() => void);
       getOverlayLayout(): Promise<{ scale: number; editing: boolean }>;
       setOverlayScale(scale: number): Promise<number>;
       setOverlayEditing(editing: boolean): Promise<boolean>;
-      onOverlayEditing(callback: (editing: boolean) => void): void;
+      onOverlayEditing(
+        callback: (editing: boolean) => void,
+      ): void | (() => void);
       sendOverlayTracking(tracking: {
         state: string;
         confidence: number;
         gestureLabel: string;
         modeGestureLabel: string;
-      }): void;
+      }): void | (() => void);
       onOverlayTracking(
         callback: (tracking: {
           state: string;
@@ -95,14 +117,18 @@ declare global {
           gestureLabel: string;
           modeGestureLabel: string;
         }) => void,
-      ): void;
+      ): void | (() => void);
       getMotionEnabled(): Promise<boolean>;
       setMotionEnabled(enabled: boolean): Promise<boolean>;
       toggleMotion(): Promise<boolean>;
-      onMotionChanged(callback: (enabled: boolean) => void): void;
+      onMotionChanged(
+        callback: (enabled: boolean) => void,
+      ): void | (() => void);
       getCameraEnabled(): Promise<boolean>;
       setCameraEnabled(enabled: boolean): Promise<boolean>;
-      onCameraChanged(callback: (enabled: boolean) => void): void;
+      onCameraChanged(
+        callback: (enabled: boolean) => void,
+      ): void | (() => void);
       getPermissions(): Promise<{
         camera: string;
         screen: string;
@@ -133,14 +159,20 @@ declare global {
       clickCursor(): void;
       getCursorSensitivity(): Promise<number>;
       setCursorSensitivity(value: number): Promise<number>;
-      onCursorSensitivityChanged(callback: (value: number) => void): void;
-      onCursorChanged(callback: (enabled: boolean) => void): void;
+      onCursorSensitivityChanged(
+        callback: (value: number) => void,
+      ): void | (() => void);
+      onCursorChanged(
+        callback: (enabled: boolean) => void,
+      ): void | (() => void);
       getKeyboardVisible(): Promise<boolean>;
       setKeyboardVisible(visible: boolean): Promise<boolean>;
       toggleKeyboard(): Promise<boolean>;
       getTypingSensitivity(): Promise<number>;
       setTypingSensitivity(value: number): Promise<number>;
-      onTypingSensitivityChanged(callback: (value: number) => void): void;
+      onTypingSensitivityChanged(
+        callback: (value: number) => void,
+      ): void | (() => void);
       typeKey(key: string): Promise<{ ok: boolean; error?: string }>;
       sendKeyboardPointer(sample: {
         hand: "Left" | "Right";
@@ -155,7 +187,7 @@ declare global {
           y: number;
           tap: boolean;
         }) => void,
-      ): void;
+      ): void | (() => void);
       sendKeyboardHands(
         hands: Array<{
           handedness: "Left" | "Right";
@@ -169,8 +201,10 @@ declare global {
             landmarks: Array<{ x: number; y: number }>;
           }>,
         ) => void,
-      ): void;
-      onKeyboardChanged(callback: (visible: boolean) => void): void;
+      ): void | (() => void);
+      onKeyboardChanged(
+        callback: (visible: boolean) => void,
+      ): void | (() => void);
     };
   }
 }

@@ -345,6 +345,10 @@ ipcMain.handle("camera:set", (_event, enabled) => {
     motionEnabled = false;
     setCursorEnabled(false);
     laserWindow?.hide();
+    overlayWindow?.webContents.send("overlay:frame", {
+      hands: [],
+      ratio: 16 / 9,
+    });
     broadcastMotionState();
   }
   broadcastCameraState();
@@ -388,6 +392,8 @@ ipcMain.handle("display:set", (_event, id) => {
     .getAllDisplays()
     .find((display) => String(display.id) === String(id));
   selectedDisplayId = found ? String(found.id) : null;
+  cursorPosition = null;
+  laserWindow?.hide();
   return selectedDisplayId;
 });
 ipcMain.handle("cursor:get", () => cursorEnabled);
@@ -409,6 +415,8 @@ ipcMain.on("cursor:move", (_event, point) => {
     presentationMode !== "cursor" ||
     !cursorEnabled ||
     !point ||
+    !Number.isFinite(point.x) ||
+    !Number.isFinite(point.y) ||
     !ensureCursorHelper()
   )
     return;
@@ -430,6 +438,15 @@ ipcMain.on("cursor:move", (_event, point) => {
   cursorHelper.stdin.write(
     `move ${cursorPosition.x.toFixed(1)} ${cursorPosition.y.toFixed(1)}\n`,
   );
+  // The visual and native click use exactly the same smoothed coordinates.
+  if (!laserWindow) createLaserWindow();
+  laserWindow.setPosition(
+    Math.round(cursorPosition.x - LASER_WINDOW_SIZE / 2),
+    Math.round(cursorPosition.y - LASER_WINDOW_SIZE / 2),
+    false,
+  );
+  laserWindow.webContents.send("laser:moved");
+  laserWindow.showInactive();
 });
 ipcMain.on("cursor:click", () => {
   if (
@@ -578,10 +595,12 @@ const macKeyCodes = Object.freeze({
   Tab: 48,
   ArrowLeft: 123,
   ArrowRight: 124,
+  ArrowDown: 125,
+  ArrowUp: 126,
   Escape: 53,
 });
 
-function sendMacKey(key) {
+function sendMacKey(key, modifiers = []) {
   if (
     process.platform === "darwin" &&
     !systemPreferences.isTrustedAccessibilityClient(false)
@@ -596,7 +615,12 @@ function sendMacKey(key) {
   const keyCode = macKeyCodes[key];
   if (keyCode === undefined)
     return { ok: false, error: "지원하지 않는 발표 명령입니다." };
-  cursorHelper.stdin.write(`key ${keyCode}\n`);
+  const bits = { Meta: 1, Control: 2, Alt: 4, Shift: 8 };
+  const mask = modifiers.reduce(
+    (value, modifier) => value | (bits[modifier] || 0),
+    0,
+  );
+  cursorHelper.stdin.write(`shortcut ${keyCode} ${mask}\n`);
   return { ok: true };
 }
 
@@ -609,14 +633,33 @@ function reportPresentationActivity(command, result) {
 
 ipcMain.handle(
   "presentation:execute",
-  async (_event, command, appId, presentationUrl) => {
+  async (_event, command, appId, presentationUrl, shortcut) => {
     const keys = {
       "next-slide": "ArrowRight",
       "previous-slide": "ArrowLeft",
       "black-screen": "b",
       "exit-presentation": "Escape",
     };
-    const key = keys[command];
+    if (!Object.hasOwn(keys, command))
+      return reportPresentationActivity(command, {
+        ok: false,
+        error: "허용되지 않은 발표 명령입니다.",
+      });
+    if (
+      shortcut &&
+      (!Object.hasOwn(macKeyCodes, shortcut.key) ||
+        !Array.isArray(shortcut.modifiers) ||
+        shortcut.modifiers.length > 4 ||
+        shortcut.modifiers.some(
+          (value) => !["Meta", "Control", "Alt", "Shift"].includes(value),
+        ))
+    ) {
+      return reportPresentationActivity(command, {
+        ok: false,
+        error: "지원하지 않는 키 조합입니다.",
+      });
+    }
+    const key = shortcut?.key ?? keys[command];
     const now = Date.now();
     if (now - (presentationCommandAt.get(command) || 0) < 650)
       return reportPresentationActivity(command, {
@@ -656,7 +699,7 @@ ipcMain.handle(
         ok: false,
         error: "허용되지 않은 발표 명령입니다.",
       });
-    const result = sendMacKey(key);
+    const result = sendMacKey(key, shortcut?.modifiers);
     if (result.ok) presentationCommandAt.set(command, now);
     return reportPresentationActivity(command, result);
   },
@@ -912,6 +955,7 @@ function broadcastPresentationMode() {
 }
 
 function setPresentationMode(nextMode) {
+  if (nextMode === "laser") nextMode = "cursor";
   if (!["slide", "cursor", "laser"].includes(nextMode))
     return {
       ok: false,
@@ -935,25 +979,11 @@ ipcMain.handle("presentation:set-mode", (_event, mode) =>
   setPresentationMode(mode),
 );
 ipcMain.handle("presentation:cycle-mode", () => {
-  const order = ["slide", "cursor", "laser"];
-  return setPresentationMode(order[(order.indexOf(presentationMode) + 1) % 3]);
+  const order = ["slide", "cursor"];
+  return setPresentationMode(order[(order.indexOf(presentationMode) + 1) % 2]);
 });
-ipcMain.on("laser:move", (_event, point) => {
-  if (!motionEnabled || presentationMode !== "laser" || !laserWindow || !point)
-    return;
-  const display = getControlDisplay();
-  const area = display.bounds;
-  const x = area.x + Math.max(0, Math.min(1, Number(point.x))) * area.width;
-  const y = area.y + Math.max(0, Math.min(1, Number(point.y))) * area.height;
-  if (laserSettings.shareCompatible && ensureCursorHelper())
-    cursorHelper.stdin.write(`move ${x.toFixed(1)} ${y.toFixed(1)}\n`);
-  laserWindow.setPosition(
-    Math.round(x - LASER_WINDOW_SIZE / 2),
-    Math.round(y - LASER_WINDOW_SIZE / 2),
-    false,
-  );
-  laserWindow.webContents.send("laser:moved");
-  laserWindow.showInactive();
+ipcMain.on("laser:move", (event, point) => {
+  ipcMain.emit("cursor:move", event, point);
 });
 
 function createOverlayWindow() {
@@ -993,6 +1023,24 @@ function createOverlayWindow() {
     overlayWindow = null;
   });
 }
+
+ipcMain.on("overlay:frame", (event, frame) => {
+  if (
+    event.sender !== mainWindow?.webContents ||
+    !cameraEnabled ||
+    overlayMode === "camera"
+  )
+    return;
+  if (
+    !frame ||
+    !Array.isArray(frame.hands) ||
+    frame.hands.length > 2 ||
+    !Number.isFinite(frame.ratio) ||
+    frame.ratio <= 0
+  )
+    return;
+  overlayWindow?.webContents.send("overlay:frame", frame);
+});
 
 ipcMain.handle("overlay:get-mode", () => overlayMode);
 ipcMain.handle("overlay:set-mode", (_event, mode) => {

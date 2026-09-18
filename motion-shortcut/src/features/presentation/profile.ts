@@ -17,6 +17,7 @@ export const DEFAULT_PROFILE: PresentationProfile = {
   app: "google-slides",
   presentationUrl: "",
   mappings: FIXED_MAPPINGS,
+  shortcuts: {},
   resources: [
     { id: "resource-1", name: "자료 1", kind: "url", value: "" },
     { id: "resource-2", name: "자료 2", kind: "file", value: "" },
@@ -27,9 +28,11 @@ export function loadProfile(): PresentationProfile {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return DEFAULT_PROFILE;
+    const parsed = JSON.parse(saved);
     return {
       ...DEFAULT_PROFILE,
-      ...JSON.parse(saved),
+      ...parsed,
+      shortcuts: parsed.shortcuts ?? {},
       mappings: FIXED_MAPPINGS,
     } as PresentationProfile;
   } catch {

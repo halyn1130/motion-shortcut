@@ -1,10 +1,18 @@
 export type PresentationMode = "slide" | "cursor" | "laser";
 
 export type PresentationApp =
-  "powerpoint" | "keynote" | "google-slides" | "web-slides";
+  | "powerpoint"
+  | "keynote"
+  | "google-slides"
+  | "web-slides";
 
 export type GesturePattern =
-  "swipe-right" | "swipe-left" | "index" | "victory" | "open-palm" | "fist";
+  | "swipe-right"
+  | "swipe-left"
+  | "index"
+  | "victory"
+  | "open-palm"
+  | "fist";
 
 export type PresentationAction =
   | "next-slide"
@@ -24,12 +32,18 @@ export interface PresentationResource {
   returnAfterMs?: number;
 }
 
+export interface KeyShortcut {
+  key: string;
+  modifiers: Array<"Meta" | "Control" | "Alt" | "Shift">;
+}
+
 export interface PresentationProfile {
   id: string;
   name: string;
   app: PresentationApp;
   presentationUrl: string;
   mappings: Record<PresentationAction, GesturePattern>;
+  shortcuts: Partial<Record<PresentationAction, KeyShortcut>>;
   resources: PresentationResource[];
 }
 

@@ -12,13 +12,16 @@ export default function Laser() {
 
   useEffect(() => {
     void window.motionAPI?.getLaserSettings().then(setSettings);
-    window.motionAPI?.onLaserSettingsChanged(setSettings);
-    window.motionAPI?.onLaserMoved(() => {
+    const unsubscribeSettings =
+      window.motionAPI?.onLaserSettingsChanged(setSettings);
+    const unsubscribeMoved = window.motionAPI?.onLaserMoved(() => {
       setHolding(false);
       if (timerRef.current) window.clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => setHolding(true), 420);
     });
     return () => {
+      unsubscribeSettings?.();
+      unsubscribeMoved?.();
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, []);
