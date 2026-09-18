@@ -1,6 +1,5 @@
 :root {
   font-family:
-    Inter,
     Pretendard,
     -apple-system,
     BlinkMacSystemFont,
@@ -50,7 +49,7 @@ body:not(.overlay-page):not(.keyboard-page) {
   width: 140px;
   height: 140px;
   place-items: center;
-  --laser-color: #9fe9ff;
+  --laser-color: #b794ff;
   --laser-size: 24px;
 }
 .laser-pointer::before,
@@ -707,7 +706,7 @@ button:focus-visible {
 }
 .hand-overlay.editing {
   -webkit-app-region: drag;
-  border: 1px dashed #9fe9ff;
+  border: 1px dashed #b794ff;
 }
 .hand-overlay span {
   position: absolute;
@@ -725,4 +724,84 @@ button:focus-visible {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Adam branding for the active overlay surfaces. */
+:root,
+body {
+  background: #0e1020;
+  color: #f2eefa;
+}
+body:not(.overlay-page):not(.keyboard-page):not(.laser-page) {
+  background: #0e1020;
+}
+.hand-overlay span {
+  background: #171827;
+  color: #e3d4ff;
+}
+button:focus-visible {
+  outline-color: #b794ff;
+}
+::selection {
+  background: #b794ff;
+  color: #171025;
+}
+
+/* Auxiliary keyboard uses the same Adam palette. */
+.virtual-keyboard {
+  border-color: #363a51;
+  background: #131522f0;
+  box-shadow: 0 16px 48px #0006;
+}
+.virtual-keyboard header {
+  border-color: #363a51;
+}
+.keyboard-row button,
+.virtual-keyboard header button {
+  border-color: #626887;
+  background: #1d2033;
+  color: #f2eefa;
+}
+.typing-preview,
+.virtual-keyboard header em.ok {
+  color: #d2bbff;
+  text-shadow: none;
+}
+.keyboard-row button:is(:active, .active, .air-hover, .air-pressed),
+.virtual-keyboard.calibrated .keyboard-row button:is(.air-hover, .active) {
+  border-color: #b794ff;
+  background: #29213f;
+  box-shadow: 0 0 12px #b794ff22;
+}
+.keyboard-row button.air-pressed,
+.calibration-panel button,
+.calibration-progress::after,
+.training-progress b {
+  background: #b794ff;
+  color: #171025;
+}
+.calibration-panel,
+.training-panel {
+  border-color: #626887;
+  background: #131522f5;
+  box-shadow: 0 16px 48px #0006;
+}
+.training-key {
+  border-color: #b794ff;
+  background: #29213f;
+  color: #e3d4ff;
+  box-shadow: 0 0 16px #b794ff22;
+}
+.training-toast {
+  border-color: #b794ff;
+  background: #131522;
+  color: #d2bbff;
+}
+.finger-pointer,
+.finger-pointer.right {
+  background: #e3d4ff;
+  box-shadow: 0 0 16px #b794ff;
+}
+.keyboard-hands {
+  filter: drop-shadow(0 0 6px #b794ff);
 }

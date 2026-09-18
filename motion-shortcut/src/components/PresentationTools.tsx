@@ -35,6 +35,11 @@ export function PresentationTools({
   return (
     <details className="presentation-tools">
       <summary>발표 보조 제어</summary>
+      {!c.isDesktop && (
+        <p>
+          외부 발표 화면 이동·복귀는 데스크톱 앱 전용입니다.
+        </p>
+      )}
       <div className="presentation-tools-body">
         <div>
           <p id="slide-jump-help">
@@ -56,6 +61,7 @@ export function PresentationTools({
             </label>
             <button
               disabled={
+                !c.isDesktop ||
                 !Number.isInteger(slideNumber) ||
                 slideNumber < 1 ||
                 slideNumber > 9999
@@ -73,6 +79,7 @@ export function PresentationTools({
           </p>
           <button
             aria-describedby="presentation-return-help"
+            disabled={!c.isDesktop}
             onClick={() => void restore()}
           >
             발표 화면 복귀

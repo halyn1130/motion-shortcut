@@ -922,7 +922,7 @@ function drawSingleHand(
     context.beginPath();
     context.arc(p.x, p.y, index === 0 ? 4 : 2.5, 0, Math.PI * 2);
     context.globalAlpha = 1;
-    context.fillStyle = index === 0 ? "#ffffff" : color;
+    context.fillStyle = index === 0 ? "#f2eafa" : color;
     context.fill();
   });
   context.restore();

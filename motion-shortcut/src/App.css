@@ -1,15 +1,15 @@
 /* Shared application tokens. Laser and overlay styles live in index.css. */
 .presenter-app {
-  --surface: #11191e;
-  --surface-raised: #18242b;
-  --line: #34444d;
-  --text: #edf3f5;
-  --muted: #a8bac3;
-  --accent: #9fe9ff;
+  --surface: #131522;
+  --surface-raised: #1d2033;
+  --line: #363a51;
+  --text: #f2eefa;
+  --muted: #b4b6cb;
+  --accent: #b794ff;
   min-height: 100vh;
   padding: 0 40px;
   color: var(--text);
-  background: #0b1115;
+  background: #0e1020;
   font-family:
     -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
     sans-serif;
@@ -40,8 +40,8 @@
   cursor: pointer;
 }
 .presenter-app button:hover:not(:disabled) {
-  background: #24353f;
-  border-color: #78949f;
+  background: #2c2945;
+  border-color: #9483ba;
 }
 .presenter-app button:disabled {
   opacity: 0.5;
@@ -54,12 +54,12 @@
   min-height: 42px;
   padding: 9px 11px;
   color: var(--text);
-  background: #0b1217;
-  border: 1px solid #4d626c;
+  background: #101221;
+  border: 1px solid #626887;
   border-radius: 5px;
 }
 .presenter-app input::placeholder {
-  color: #a4b5bd;
+  color: #a6abc4;
 }
 .presenter-app :is(button, a, input, select):focus-visible {
   outline: 2px solid var(--accent);
@@ -165,12 +165,12 @@
   padding: 12px 24px;
   background: var(--accent);
   border-color: var(--accent);
-  color: #0b1d25;
+  color: #171025;
   font-weight: 700;
 }
 .presenter-app .session-button:hover {
-  background: #cbf3ff;
-  color: #0b1d25;
+  background: #d2bbff;
+  color: #171025;
 }
 .home-grid {
   display: grid;
@@ -240,7 +240,7 @@
   min-height: 280px;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #060a0d;
+  background: #090c18;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -299,7 +299,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  background: #0b1115ed;
+  background: #0e1020ed;
   padding: 9px 12px;
   border-radius: 5px;
   font-size: 12px;
@@ -314,7 +314,7 @@
   bottom: 16px;
   left: 16px;
   display: grid;
-  background: #0b1115f0;
+  background: #0e1020f0;
   border-left: 2px solid var(--accent);
   padding: 10px 14px;
 }
@@ -549,7 +549,7 @@
   z-index: 100;
   padding: 12px;
   background: var(--accent);
-  color: #081419;
+  color: #171025;
 }
 .skip-link:focus {
   top: 12px;
@@ -675,7 +675,7 @@
 .presenter-app .camera-view-options button[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent);
-  color: #0b1d25;
+  color: #171025;
 }
 .camera-view-options span {
   flex-basis: 100%;
@@ -738,7 +738,7 @@
   flex-shrink: 0;
 }
 .camera-preview-mat {
-  background: #060a0d;
+  background: #090c18;
   border-block: 1px solid var(--line);
 }
 .home-console .camera-stage {
@@ -906,8 +906,8 @@
   min-height: 54px;
 }
 .presenter-app .resource-picker-item[aria-pressed="true"] {
-  border-color: #658999;
-  background: #1b303a;
+  border-color: #9473cb;
+  background: #29213f;
 }
 .resource-number {
   color: var(--muted);
@@ -1066,7 +1066,7 @@
 
 /* Navigation stays together; camera/session controls belong to the console. */
 .presenter-app .presenter-topbar {
-  padding-right: max(0px, calc((100% - 1040px) / 2));
+  padding-right: 0;
   min-height: 76px;
   gap: 24px;
 }
@@ -1102,8 +1102,8 @@
   box-shadow: 0 0 0 3px #82939c12;
 }
 .camera-indicator.active {
-  background: #8ce2ba;
-  box-shadow: 0 0 9px #8ce2ba66;
+  background: #b794ff;
+  box-shadow: 0 0 9px #b794ff66;
 }
 .camera-indicator.requesting {
   background: #efc775;
@@ -1201,11 +1201,965 @@
 }
 .presenter-app .motion-toggle[aria-pressed="true"] {
   border-color: var(--accent);
-  background: #1b303a;
+  background: #29213f;
   color: var(--accent);
 }
 @media (max-width: 720px) {
   .home-console-toolbar .session-controls {
     flex-basis: auto;
   }
+}
+
+/* Adam: quiet navy surfaces, violet reserved for interaction. */
+.presenter-app {
+  background:
+    radial-gradient(ellipse 70% 260px at 45% 0, #7160ae12, transparent), #0e1020;
+}
+.brand img {
+  width: 120px;
+}
+.product-title {
+  font-size: 12px;
+  letter-spacing: 0.025em;
+}
+.camera-console,
+.preparation-panel {
+  border-color: #3b3b56;
+}
+.home-console .console-heading {
+  background: #171827;
+}
+.camera-preview-mat {
+  background: #090c18;
+}
+.page-nav a[aria-current="page"] {
+  color: #d2bbff;
+}
+.presenter-app input[type="checkbox"],
+.presenter-app input[type="range"] {
+  accent-color: #b794ff;
+}
+.presenter-app ::selection {
+  background: #b794ff;
+  color: #171025;
+}
+@media (max-width: 720px) {
+  .presenter-app .presenter-topbar .brand img {
+    width: 80px;
+  }
+}
+
+/* Adam glass: stationary violet light behind translucent working surfaces. */
+.presenter-app {
+  background:
+    radial-gradient(ellipse 620px 450px at 88% 12%, #763ee34a, transparent 72%),
+    radial-gradient(ellipse 560px 440px at 8% 76%, #9254e638, transparent 74%),
+    radial-gradient(
+      ellipse 720px 360px at 42% 110%,
+      #5030a82b,
+      transparent 72%
+    ),
+    #0e1020;
+}
+.presenter-topbar {
+  border-bottom-color: #d4c4ff24;
+}
+.camera-console,
+.preparation-panel,
+.control-panel,
+.presenter-sidebar {
+  background: linear-gradient(125deg, #c5adff0d, transparent 48%), #151628b8;
+  border-color: #d4c4ff30;
+  box-shadow:
+    inset 0 1px 0 #eee6ff12,
+    0 16px 40px #05061226;
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+  backdrop-filter: blur(22px) saturate(120%);
+}
+.home-console .console-heading {
+  background: linear-gradient(100deg, #c2a3ff0c, #a078ee12);
+  border-radius: 9px 9px 0 0;
+}
+.home-console-toolbar {
+  background: linear-gradient(105deg, #c2a3ff07, #a078ee10);
+  border-radius: 0 0 9px 9px;
+}
+.preparation-heading {
+  border-bottom-color: #d4c4ff24;
+}
+.presenter-app input,
+.presenter-app select {
+  background-color: #0d1021d9;
+}
+.presenter-app button {
+  background-color: #bca3ff0e;
+}
+.presenter-app button:hover:not(:disabled) {
+  background-color: #bca3ff22;
+  border-color: #bca3ff99;
+}
+.presenter-app .primary-button,
+.home-console .session-button {
+  background: linear-gradient(120deg, #c7aaff, #ad85f3);
+  color: #171025;
+  border-color: #d8c2ff;
+  box-shadow: 0 0 20px #9d66ee26;
+}
+.resource-picker-item[aria-pressed="true"],
+.motion-toggle[aria-pressed="true"] {
+  background: #b794ff20;
+  border-color: #b794ff99;
+}
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .camera-console,
+  .preparation-panel,
+  .control-panel,
+  .presenter-sidebar {
+    background: #191a30;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .camera-console,
+  .preparation-panel,
+  .control-panel,
+  .presenter-sidebar {
+    background: #191a30;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Keep the settings heading and controls on one centered reading column. */
+.is-settings .page-heading,
+.is-settings .settings-stack {
+  max-width: 1040px;
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+
+/* Named, keyboard-accessible outline navigation. */
+.presenter-app .presenter-topbar .page-nav a {
+  position: relative;
+  min-width: 44px;
+  color: #b794ff;
+}
+.page-nav svg {
+  width: 23px;
+  height: 23px;
+  pointer-events: none;
+}
+.presenter-app
+  .presenter-topbar
+  .page-nav
+  a:is(:hover, :focus-visible, [aria-current="page"]) {
+  color: #e1cfff;
+}
+.nav-tooltip {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 9px;
+  border: 1px solid #626887;
+  border-radius: 5px;
+  background: #191a30;
+  color: #f2eefa;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+.page-nav a:is(:hover, :focus-visible) .nav-tooltip {
+  opacity: 1;
+}
+@media (max-width: 720px) {
+  .presenter-app .presenter-topbar .page-nav {
+    gap: 2px;
+  }
+  .page-nav svg {
+    width: 22px;
+    height: 22px;
+  }
+  .page-nav a:last-child .nav-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+}
+
+/* Guide: a short start sequence, one lesson at a time, optional reference. */
+.is-guide .page-heading,
+.guide-revised {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+.guide-page.guide-revised {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.guide-start-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+}
+.guide-start-steps li {
+  display: flex;
+  gap: 12px;
+}
+.guide-start-steps li > span {
+  color: var(--accent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding-top: 3px;
+}
+.guide-start-steps h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.guide-start-steps p {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.guide-start-steps a {
+  color: #d2bbff;
+  font-size: 13px;
+  text-underline-offset: 4px;
+}
+.guide-learn-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.guide-learn-heading p {
+  font-size: 13px;
+}
+.guide-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 24px;
+}
+.guide-choices button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: #b794ff26;
+  color: #e1cfff;
+}
+.guide-lesson {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  gap: 32px;
+  min-height: 208px;
+}
+.guide-mode {
+  padding-right: 28px;
+  border-right: 1px solid #d4c4ff24;
+}
+.guide-mode > span {
+  color: var(--accent);
+  font-size: 12px;
+}
+.guide-mode h3 {
+  margin: 6px 0 12px;
+  font-size: 21px;
+}
+.guide-mode p {
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.guide-mode small {
+  color: var(--muted);
+}
+.guide-actions dl {
+  margin: 0;
+}
+.guide-actions dl > div {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 0;
+}
+.guide-action-symbol {
+  width: 38px;
+  flex-shrink: 0;
+  color: var(--accent);
+  text-align: center;
+  font-size: 28px;
+}
+.guide-actions dt {
+  font-weight: 700;
+}
+.guide-actions dd {
+  margin: 3px 0 0;
+  color: var(--muted);
+}
+.guide-note {
+  font-size: 12px;
+  margin: 16px 0 0;
+}
+.guide-stop {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  padding: 16px 24px;
+  border-left: 2px solid var(--accent);
+  background: #b794ff0c;
+}
+.guide-stop strong {
+  flex-shrink: 0;
+  color: #e1cfff;
+}
+.guide-stop p {
+  margin: 0;
+  font-size: 13px;
+}
+.guide-details {
+  padding: 8px 0;
+}
+.guide-details details {
+  border-bottom: 1px solid #d4c4ff24;
+}
+.guide-details summary {
+  padding: 17px 4px;
+  min-height: 48px;
+  cursor: pointer;
+}
+.guide-details summary::marker {
+  color: var(--accent);
+}
+.guide-details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.guide-detail-body {
+  max-width: 780px;
+  padding: 0 24px 12px;
+}
+.guide-detail-body p {
+  font-size: 13px;
+}
+.guide-reference {
+  margin: 0 0 16px;
+}
+.guide-reference > div {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  padding: 8px 0;
+}
+.guide-reference dd {
+  margin: 0;
+  color: var(--muted);
+}
+@media (max-width: 720px) {
+  .guide-start-steps {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .guide-learn-heading {
+    display: block;
+  }
+  .guide-choices button {
+    flex: 1 1 100%;
+  }
+  .guide-lesson {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    min-height: 0;
+  }
+  .guide-mode {
+    border-right: 0;
+    border-bottom: 1px solid #d4c4ff24;
+    padding: 0 0 18px;
+  }
+  .guide-stop {
+    display: block;
+    padding: 16px;
+  }
+  .guide-stop p {
+    margin-top: 8px;
+  }
+  .guide-reference > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .guide-detail-body {
+    padding-inline: 8px;
+  }
+}
+
+/* Developer follows the same centered working column as the other pages. */
+.is-developer .page-heading,
+.developer-grid {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+.developer-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.developer-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 32px;
+}
+.developer-overlay,
+.developer-monitor {
+  min-width: 0;
+}
+.developer-overlay > p {
+  max-width: 48ch;
+  font-size: 13px;
+}
+.developer-overlay-adjustments {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #d4c4ff24;
+}
+.developer-overlay-adjustments .field {
+  flex: 1 1 160px;
+  margin: 0;
+  gap: 8px;
+  font-size: 13px;
+}
+.developer-monitor {
+  padding-left: 32px;
+  border-left: 1px solid #d4c4ff24;
+}
+.developer-monitor select {
+  width: 100%;
+}
+.developer-monitor p {
+  font-size: 13px;
+}
+.developer-logs .resource-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.developer-logs .section-heading h2 {
+  margin-bottom: 0;
+}
+.developer-logs .activity-list {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.developer-logs .activity-list li {
+  padding: 12px 0;
+}
+@media (max-width: 720px) {
+  .developer-controls {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .developer-monitor {
+    padding: 24px 0 0;
+    border-left: 0;
+    border-top: 1px solid #d4c4ff24;
+  }
+  .developer-logs .resource-heading {
+    flex-wrap: wrap;
+  }
+}
+
+/* Frosted glass: local light, translucent depth, restrained edge reflections. */
+.presenter-app {
+  background:
+    radial-gradient(ellipse 310px 330px at 84% 24%, #9063ed52, transparent 72%),
+    radial-gradient(ellipse 260px 310px at 12% 67%, #7650da40, transparent 72%),
+    radial-gradient(ellipse 600px 180px at 46% 0, #a996e312, transparent 75%),
+    #0c0f1d;
+}
+.camera-console,
+.preparation-panel,
+.control-panel,
+.presenter-sidebar {
+  background:
+    linear-gradient(
+      118deg,
+      #ffffff0c 0%,
+      #ffffff03 30%,
+      transparent 52%,
+      #b89aef08 100%
+    ),
+    #171a2b85;
+  border-color: #ddd8f533 #9d99bb24 #080b1980 #d3cbed29;
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    inset 0 -1px 0 #06081666,
+    0 12px 32px #03061130;
+  -webkit-backdrop-filter: blur(34px) saturate(115%);
+  backdrop-filter: blur(34px) saturate(115%);
+}
+.home-console .console-heading {
+  background: linear-gradient(105deg, #ffffff08, transparent 50%, #d5bcff06);
+}
+.home-console-toolbar {
+  background: linear-gradient(100deg, #ffffff03, #c7bbef07);
+}
+.preparation-heading {
+  border-bottom-color: #e5def51a;
+}
+.presenter-app button {
+  background: linear-gradient(150deg, #ffffff0b, #ffffff03);
+  border-color: #d9d2ee30;
+  box-shadow: inset 0 1px 0 #ffffff08;
+}
+.presenter-app button:hover:not(:disabled) {
+  background: linear-gradient(150deg, #ded0ff1c, #b498f00a);
+  border-color: #c8b2ed77;
+}
+.presenter-app input,
+.presenter-app select {
+  background-color: #090e1cbb;
+  border-color: #626887;
+  box-shadow: inset 0 2px 5px #02040a26;
+}
+.presenter-app .session-button,
+.presenter-app .primary-button {
+  background: linear-gradient(140deg, #d2baff, #b394e9);
+  border-color: #e2ceff;
+  color: #171025;
+  box-shadow:
+    inset 0 1px 0 #ffffff55,
+    0 3px 12px #09061833;
+}
+.presenter-app .session-button:hover:not(:disabled),
+.presenter-app .primary-button:hover:not(:disabled) {
+  background: linear-gradient(140deg, #e1ceff, #c5a9f5);
+  border-color: #eee2ff;
+}
+.presenter-app button:disabled {
+  box-shadow: none;
+}
+.presenter-app .camera-view-options button[aria-pressed="true"],
+.presenter-app .guide-choices button[aria-pressed="true"],
+.presenter-app .motion-toggle[aria-pressed="true"] {
+  background: #b794ff26;
+  border-color: #b794ff99;
+  color: #e1cfff;
+}
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .camera-console,
+  .preparation-panel,
+  .control-panel,
+  .presenter-sidebar {
+    background: #191c30;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .camera-console,
+  .preparation-panel,
+  .control-panel,
+  .presenter-sidebar {
+    background: #191c30;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Focus hierarchy: one glass console, quiet supporting surfaces. */
+.presenter-app {
+  background:
+    radial-gradient(ellipse 390px 280px at 79% 18%, #8a60d522, transparent 75%),
+    #0e111e;
+}
+.preparation-panel,
+.control-panel,
+.presenter-sidebar {
+  background: #151927;
+  border: 1px solid #303646;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.preparation-heading {
+  border-bottom-color: #303646;
+}
+.presenter-app .presenter-topbar .page-nav a {
+  color: #ac9fc5;
+}
+.presenter-app
+  .presenter-topbar
+  .page-nav
+  a:is(:hover, :focus-visible, [aria-current="page"]) {
+  color: #d5bdff;
+}
+.presenter-app button {
+  background: #ffffff05;
+  border-color: #535a6c;
+  box-shadow: none;
+}
+.presenter-app button:hover:not(:disabled) {
+  background: #ffffff0d;
+  border-color: #85899b;
+}
+.presenter-app .session-button,
+.presenter-app .primary-button {
+  background: #bfa2f5;
+  border-color: #cbb2f7;
+  color: #171025;
+  box-shadow: inset 0 1px 0 #ffffff20;
+}
+.presenter-app .session-button:hover:not(:disabled),
+.presenter-app .primary-button:hover:not(:disabled) {
+  background: #d0b8fb;
+  border-color: #d0b8fb;
+}
+.presenter-app .resource-picker-item {
+  border-color: transparent;
+  background: transparent;
+}
+.presenter-app .resource-picker-item[aria-pressed="true"] {
+  background: #ffffff07;
+  border-color: #626a80;
+}
+.presenter-app .guide-choices button[aria-pressed="true"] {
+  background: #b794ff13;
+  border-color: #ab91d2;
+}
+.guide-stop {
+  background: transparent;
+  border-left-color: #8b829e;
+}
+.guide-action-symbol,
+.guide-start-steps li > span {
+  color: #c0b8d1;
+}
+.home-console .camera-empty {
+  gap: 10px;
+}
+
+.home-console .camera-empty strong {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.home-console .camera-empty p {
+  font-size: 13px;
+  color: #a9b0c1;
+}
+@media (max-width: 720px) {
+  .home-console .camera-empty strong {
+    font-size: 16px;
+  }
+}
+
+.home-mode-controls,
+.runtime-notice,
+.web-rehearsal {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+.home-mode-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.home-mode-controls small {
+  color: var(--muted);
+}
+.home-mode-controls button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: #e1cfff;
+}
+.runtime-notice {
+  font-size: 13px;
+}
+.permission-list button {
+  flex-wrap: wrap;
+  text-align: left;
+}
+.permission-list b {
+  font-size: 12px;
+}
+.rehearsal-stage {
+  position: relative;
+  min-height: 230px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: #0b1020;
+  border: 1px solid #444b61;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 20px;
+}
+.rehearsal-stage h3 {
+  font-size: 24px;
+  margin: 12px 0;
+}
+.rehearsal-stage.is-black {
+  background: #000;
+}
+.rehearsal-target {
+  position: absolute;
+  left: 35%;
+  top: 30%;
+  width: 30%;
+  height: 40%;
+  display: grid;
+  place-content: center;
+  border: 1px dashed #b794ff;
+  border-radius: 8px;
+  color: #e1cfff;
+}
+.rehearsal-pointer {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #e3d4ff;
+  box-shadow: 0 0 15px #b794ff;
+  pointer-events: none;
+}
+.rehearsal-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.web-rehearsal > p {
+  font-size: 13px;
+}
+
+/* Adam / dark instrument study. Brand light belongs to the A, not the panels. */
+.presenter-app {
+  --surface: #101016;
+  --surface-raised: #17151e;
+  --line: #37323f;
+  --text: #f0edf5;
+  --muted: #b5afc1;
+  --accent: #bc8cff;
+  position: relative;
+  isolation: isolate;
+  background: #0a0a10;
+}
+.presenter-app::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  width: min(1100px, 115vw);
+  height: min(1100px, 115vw);
+  top: -180px;
+  right: -180px;
+  background: url('/assets/adam-symbol.svg') center / contain no-repeat;
+  opacity: .25;
+  filter: blur(15px) drop-shadow(0 0 22px #752ed5);
+  transform: rotate(-12deg);
+}
+.presenter-app .presenter-topbar {
+  background: transparent;
+  border-bottom-color: #63547755;
+}
+.camera-console,
+.preparation-panel,
+.control-panel,
+.presenter-sidebar {
+  background: #101016ed;
+  border: 1px solid #51445e;
+  border-radius: 2px;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.home-console .console-heading,
+.home-console-toolbar {
+  background: #121017e8;
+}
+.home-console .console-heading {
+  border-bottom: 1px solid #51445e;
+  padding-block: 15px;
+}
+.console-title h2 { font-weight: 600; letter-spacing: -.025em; }
+.camera-preview-mat,
+.home-console .camera-stage {
+  background: #08090d;
+  border-color: #37323f;
+}
+.home-console .camera-empty {
+  background-image:
+    linear-gradient(#9981c008 1px, transparent 1px),
+    linear-gradient(90deg, #9981c008 1px, transparent 1px);
+  background-size: 48px 48px;
+  gap: 8px;
+}
+.standby-hand {
+  width: auto;
+  height: clamp(100px, 21dvh, 205px);
+  max-width: 75%;
+  object-fit: contain;
+  pointer-events: none;
+  margin-bottom: 2px;
+}
+.home-console .camera-empty strong { font-size: 16px; color: #e6dfed; }
+.home-console .camera-empty p { color: #b5afc1; font-size: 12px; }
+.presenter-app button,
+.presenter-app input,
+.presenter-app select,
+.presenter-app .resource-picker-item,
+.rehearsal-stage,
+.rehearsal-target {
+  border-radius: 3px;
+  box-shadow: none;
+}
+.presenter-app button { background: #17141e; border-color: #61566d; }
+.presenter-app button:hover:not(:disabled) {
+  background: #282031;
+  border-color: #bb95eb;
+}
+.presenter-app input,
+.presenter-app select { background: #0c0c12; border-color: #61566d; }
+.presenter-app .session-button,
+.presenter-app .primary-button {
+  background: #b681f6;
+  border-color: #c49bf8;
+  color: #120b1b;
+  box-shadow: none;
+  font-weight: 650;
+}
+.presenter-app .session-button:hover:not(:disabled),
+.presenter-app .primary-button:hover:not(:disabled) { background: #c99eff; }
+.preparation-heading { border-bottom-color: #39313f; }
+.presenter-app .resource-picker-item[aria-pressed="true"] {
+  background: #201929;
+  border-color: #a47bc8;
+}
+.presenter-app .presenter-topbar .page-nav a { color: #b7a0d0; border-radius: 2px; }
+.presenter-app .presenter-topbar .page-nav a[aria-current="page"] { color: #dabaff; }
+.tracking-hud,
+.activity-list time,
+.resource-number { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rehearsal-stage { background: #0b0b12; border-color: #51445e; }
+.rehearsal-stage.is-black { background: #000; }
+.presenter-app :is(button, a, input, select, summary):focus-visible {
+  outline: 2px solid #d4b0ff;
+  outline-offset: 4px;
+}
+@media (max-width: 720px) {
+  .presenter-app::before { top: -25px; right: -32vw; width: 140vw; height: 140vw; opacity: .2; }
+  .standby-hand { height: 100px; }
+  .home-console .camera-empty { gap: 5px; padding: 10px; }
+  .home-console .camera-empty strong { font-size: 14px; }
+  .home-console .camera-empty p { font-size: 11px; max-width: 290px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .presenter-app::before { display: none; }
+  .camera-console, .preparation-panel, .control-panel, .presenter-sidebar { background: #101016; }
+}
+
+/* Selected identity 02: sculpted glass hand/A, without the wordmark. */
+.presenter-app::before {
+  width: min(1250px, 120vw);
+  height: min(1250px, 120vw);
+  top: -150px;
+  right: -260px;
+  background-image: url('/assets/adam-glass-symbol.png');
+  opacity: .7;
+  filter: none;
+  transform: none;
+  mask-image: radial-gradient(ellipse at center, #000 38%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 38%, transparent 72%);
+}
+@media (max-width: 720px) {
+  .presenter-app::before {
+    width: 170vw;
+    height: 170vw;
+    top: 0;
+    right: -72vw;
+    opacity: .48;
+  }
+}
+
+/* Use the selected concept artwork itself in the header. */
+.presenter-app .presenter-topbar .brand img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+@media (max-width: 720px) {
+  .presenter-app .presenter-topbar .brand img { width: 60px; height: 60px; }
+}
+.presenter-app .presenter-topbar .brand img { mix-blend-mode: screen; }
+
+/* A fine matte film over the glass artwork, behind all application content. */
+.presenter-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/assets/adam-grain.svg') repeat, #a89db20a;
+  opacity: .2;
+  -webkit-backdrop-filter: blur(1.2px) saturate(.9);
+  backdrop-filter: blur(1.2px) saturate(.9);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .presenter-app::after { display: none; }
+}
+
+/* Readable camera status, with a brighter core and state-specific halo. */
+.camera-indicator {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #eef4ff;
+  background: #bac4d5;
+  box-shadow: 0 0 0 3px #bac4d51a, 0 0 9px #bac4d55c;
+}
+.camera-indicator.active {
+  background: #eedcff;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px #bb78ff30, 0 0 10px 3px #b66aff, 0 0 22px #a84dffb3;
+}
+.camera-indicator.requesting {
+  background: #fff2bd;
+  border-color: #fff8df;
+  box-shadow: 0 0 0 3px #ffd15b26, 0 0 10px 3px #ffc447b3, 0 0 20px #ffc44766;
+}
+.camera-indicator.error {
+  background: #ffd8df;
+  border-color: #fff0f3;
+  box-shadow: 0 0 0 3px #ff5a7926, 0 0 10px 3px #ff5a79b3, 0 0 20px #ff5a7966;
+}
+
+/* Frosted background begins below the navigation, never behind its controls. */
+.presenter-app .presenter-topbar {
+  height: 72px;
+  min-height: 72px;
+  padding-block: 0;
+}
+.presenter-app::before {
+  filter: blur(7px) saturate(.85) brightness(.9);
+  opacity: .58;
+  clip-path: inset(222px 0 0 0);
+}
+.presenter-app::after {
+  top: 0;
+  background-color: #aca4b61a;
+  opacity: .24;
+  -webkit-backdrop-filter: blur(2px) saturate(.9);
+  backdrop-filter: blur(2px) saturate(.9);
+}
+@media (max-width: 720px) {
+  .presenter-app .presenter-topbar { height: 64px; min-height: 64px; }
+  .presenter-app::before { clip-path: inset(64px 0 0 0); opacity: .5; filter: blur(5px) saturate(.85) brightness(.9); }
+  .presenter-app::after { top: 0; }
 }

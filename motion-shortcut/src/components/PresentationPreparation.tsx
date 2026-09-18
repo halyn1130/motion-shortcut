@@ -112,10 +112,14 @@ export function PresentationPreparation({
               />
             </label>
             <button
-              aria-label="링크 열기·제어 대상으로 지정"
+              aria-label={
+                c.isDesktop
+                  ? "링크 열기·제어 대상으로 지정"
+                  : "발표 링크 새 탭에서 열기"
+              }
               onClick={() => void setPresentationLink()}
             >
-              연결
+              {c.isDesktop ? "연결" : "링크 열기"}
             </button>
           </div>
           {presentationLinkStatus && (
@@ -225,6 +229,7 @@ export function PresentationPreparation({
                   <label className="return-option">
                     <input
                       type="checkbox"
+                      disabled={!c.isDesktop}
                       checked={Boolean(resource.returnAfterMs)}
                       onChange={(e) =>
                         updateResource({
@@ -232,7 +237,7 @@ export function PresentationPreparation({
                         })
                       }
                     />
-                    5초 후 발표 복귀
+                    5초 후 발표 복귀{!c.isDesktop && " · 앱 전용"}
                   </label>
                   <button onClick={() => void openResource(resource)}>
                     자료 열기

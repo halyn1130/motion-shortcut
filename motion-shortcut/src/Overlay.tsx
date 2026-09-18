@@ -12,7 +12,7 @@ export default function Overlay() {
           canvas.current,
           frame.hands,
           canvas.current.clientWidth / canvas.current.clientHeight,
-          "#9fe9ff",
+          "#b794ff",
         );
     });
     const unsubscribeEditing = window.motionAPI?.onOverlayEditing?.(setEditing);

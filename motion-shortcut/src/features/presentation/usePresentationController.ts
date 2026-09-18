@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useHandTracking,
   type MotionGestureId,
@@ -55,6 +55,16 @@ export const FIXED_ACTIONS: PresentationAction[] = [
 ];
 
 export function usePresentationController() {
+  const isDesktop = Boolean(window.motionAPI);
+  const [rehearsalSlide, setRehearsalSlide] = useState(1);
+  const [rehearsalBlack, setRehearsalBlack] = useState(false);
+  const [rehearsalClicks, setRehearsalClicks] = useState(0);
+  const [rehearsalMessage, setRehearsalMessage] = useState(
+    "자료 없이 버튼이나 손동작으로 시험할 수 있습니다.",
+  );
+  const [rehearsalPointer, setRehearsalPointer] = useState({ x: 0.5, y: 0.5 });
+  const rehearsalPointerRef = useRef(rehearsalPointer);
+  const [systemStatusError, setSystemStatusError] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const petCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -95,9 +105,7 @@ export function usePresentationController() {
     Array<{ id: string; label: string; primary: boolean }>
   >([]);
   const [selectedDisplayId, setSelectedDisplayId] = useState("");
-  const [logs, setLogs] = useState<string[]>([
-    "Flickey Present가 준비되었습니다.",
-  ]);
+  const [logs, setLogs] = useState<string[]>(["Adam이 준비되었습니다."]);
   const addLog = (message: string) => {
     const time = new Date().toLocaleTimeString("ko-KR", {
       hour: "2-digit",
@@ -120,6 +128,10 @@ export function usePresentationController() {
     setCameraState("requesting");
     setCameraError("");
     try {
+      if (!navigator.mediaDevices?.getUserMedia)
+        throw new Error(
+          "카메라는 HTTPS 또는 localhost 환경에서 지원되는 브라우저로 실행하세요.",
+        );
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
@@ -138,6 +150,7 @@ export function usePresentationController() {
         await videoRef.current.play();
       }
       setCameraState("active");
+      setPermissions((p) => ({ ...p, camera: "granted" }));
       await window.motionAPI?.setCameraEnabled(true);
       addLog("카메라 연결 완료");
       return true;
@@ -146,8 +159,12 @@ export function usePresentationController() {
       streamRef.current = null;
       const message =
         error instanceof DOMException && error.name === "NotAllowedError"
-          ? "시스템 설정에서 Flickey의 카메라 권한을 허용하세요."
-          : "카메라를 연결하지 못했습니다.";
+          ? isDesktop
+            ? "시스템 설정에서 실행 중인 앱의 카메라 권한을 허용하세요."
+            : "브라우저의 사이트 설정에서 카메라 권한을 허용하세요."
+          : error instanceof Error
+            ? error.message
+            : "카메라를 연결하지 못했습니다.";
       setCameraError(message);
       setCameraState("error");
       addLog(`카메라 오류 · ${message}`);
@@ -183,7 +200,9 @@ export function usePresentationController() {
     }
     const cameraReady = await startCamera();
     if (!cameraReady) return;
-    const enabled = await window.motionAPI?.setMotionEnabled(true);
+    const enabled = window.motionAPI
+      ? await window.motionAPI.setMotionEnabled(true)
+      : true;
     setMotionOn(Boolean(enabled));
     addLog(enabled ? "모션 ON" : "모션을 켜지 못했습니다.");
   };
@@ -204,6 +223,20 @@ export function usePresentationController() {
   };
 
   const executeAction = async (action: PresentationAction) => {
+    if (!window.motionAPI) {
+      if (action === "next-slide") setRehearsalSlide((n) => Math.min(3, n + 1));
+      if (action === "previous-slide")
+        setRehearsalSlide((n) => Math.max(1, n - 1));
+      if (action === "black-screen") setRehearsalBlack((b) => !b);
+      if (action === "exit-presentation") {
+        setMotionOn(false);
+        setSessionStartedAt(null);
+      }
+      const message = `웹 리허설 · ${ACTION_LABELS[action]}`;
+      setRehearsalMessage(message);
+      addLog(message);
+      return;
+    }
     if (action === "resource-1" || action === "resource-2") {
       const resource = profile.resources.find((item) => item.id === action);
       if (!resource?.value) {
@@ -238,7 +271,20 @@ export function usePresentationController() {
       addLog(`${resource.name} 실패 · 등록된 자료가 없습니다.`);
       return;
     }
-    const result = await window.motionAPI?.openPresentationResource(resource);
+    if (!window.motionAPI) {
+      if (resource.kind !== "url" || !detectWebPresentation(resource.value)) {
+        addLog(
+          "웹에서는 http/https 링크 자료만 열 수 있습니다. 파일·앱 실행은 데스크톱 앱에서 지원합니다.",
+        );
+        return;
+      }
+      window.open(resource.value, "_blank", "noopener,noreferrer");
+      addLog(
+        `${resource.name} 새 탭 열기 요청 · 팝업 차단 시 브라우저 설정을 확인하세요.`,
+      );
+      return;
+    }
+    const result = await window.motionAPI.openPresentationResource(resource);
     addLog(
       result?.ok
         ? `${resource.name} 열기 성공`
@@ -272,7 +318,15 @@ export function usePresentationController() {
       return;
     }
     updateProfile({ ...profile, app: detected.app });
-    const result = await window.motionAPI?.openPresentationUrl(
+    if (!window.motionAPI) {
+      window.open(profile.presentationUrl, "_blank", "noopener,noreferrer");
+      const message =
+        "새 탭 열기를 요청했습니다. 열리지 않으면 팝업 차단을 확인하세요. 외부 사이트 손동작 제어는 데스크톱 앱에서 지원합니다.";
+      setPresentationLinkStatus(message);
+      addLog(message);
+      return;
+    }
+    const result = await window.motionAPI.openPresentationUrl(
       profile.presentationUrl,
     );
     const message = result?.ok
@@ -286,7 +340,7 @@ export function usePresentationController() {
     const ready = await startCamera();
     if (!ready) return;
     await setPresentationMode("slide");
-    if (profile.presentationUrl) {
+    if (window.motionAPI && profile.presentationUrl) {
       const result = await window.motionAPI?.openPresentationUrl(
         profile.presentationUrl,
       );
@@ -295,15 +349,28 @@ export function usePresentationController() {
         return;
       }
     }
-    const enabled = await window.motionAPI?.setMotionEnabled(true);
+    const enabled = window.motionAPI
+      ? await window.motionAPI.setMotionEnabled(true)
+      : true;
     setMotionOn(Boolean(enabled));
     if (!enabled) {
       addLog("발표 제어는 Electron 앱에서 실행하세요.");
       return;
     }
     setSessionStartedAt((current) => current ?? Date.now());
-    if (!sessionStartedAt) setSessionElapsed(0);
-    addLog(sessionStartedAt ? "발표 세션 재개" : "발표 세션 시작");
+    if (!sessionStartedAt) {
+      setSessionElapsed(0);
+      setRehearsalSlide(1);
+      setRehearsalBlack(false);
+      setRehearsalClicks(0);
+    }
+    addLog(
+      sessionStartedAt
+        ? "발표 세션 재개"
+        : isDesktop
+          ? "발표 세션 시작"
+          : "웹 리허설 시작 · 외부 사이트는 제어하지 않습니다.",
+    );
   };
 
   const endPresentationSession = async () => {
@@ -312,29 +379,96 @@ export function usePresentationController() {
     addLog("발표 세션 종료");
   };
 
-  const refreshSystemStatus = async () => {
-    const [nextPermissions, displayInfo] = await Promise.all([
-      window.motionAPI?.getPermissions(),
-      window.motionAPI?.getDisplays(),
+  const refreshSystemStatus = useCallback(async () => {
+    setSystemStatusError("");
+    if (!window.motionAPI) {
+      let camera = streamRef.current ? "granted" : "unknown";
+      try {
+        const result = await navigator.permissions.query({
+          name: "camera" as PermissionName,
+        });
+        camera = result.state === "prompt" ? "not-determined" : result.state;
+      } catch {
+        /* Some browsers cannot query camera permission; do not invent a denial. */
+      }
+      setPermissions({
+        camera,
+        accessibility: "unsupported",
+        screen: "unsupported",
+      });
+      return;
+    }
+    const [permissionResult, displayResult] = await Promise.allSettled([
+      window.motionAPI.getPermissions(),
+      window.motionAPI.getDisplays(),
     ]);
-    if (nextPermissions) setPermissions(nextPermissions);
-    if (displayInfo) {
-      setDisplays(displayInfo.displays);
+    if (permissionResult.status === "fulfilled")
+      setPermissions(permissionResult.value);
+    if (displayResult.status === "fulfilled") {
+      const info = displayResult.value;
+      setDisplays(info.displays);
       setSelectedDisplayId(
-        displayInfo.selectedId ||
-          displayInfo.displays.find((item) => item.primary)?.id ||
-          displayInfo.displays[0]?.id ||
+        info.selectedId ||
+          info.displays.find((d) => d.primary)?.id ||
+          info.displays[0]?.id ||
           "",
       );
     }
+    if (
+      permissionResult.status === "rejected" ||
+      displayResult.status === "rejected"
+    ) {
+      setSystemStatusError(
+        "일부 시스템 정보를 가져오지 못했습니다. 다시 새로고침하거나 앱을 재실행하세요.",
+      );
+    }
+  }, []);
+
+  const requestPermission = async (
+    permission: "camera" | "accessibility" | "screen",
+  ) => {
+    try {
+      if (window.motionAPI)
+        await window.motionAPI.openPermissionSettings(permission);
+      else if (permission === "camera") {
+        if (streamRef.current) {
+          await refreshSystemStatus();
+          return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      await refreshSystemStatus();
+    } catch {
+      setSystemStatusError(
+        "권한 요청을 완료하지 못했습니다. 실행 중인 앱 또는 브라우저의 권한 설정을 확인하세요.",
+      );
+      if (permission === "camera")
+        setPermissions((p) => ({ ...p, camera: "denied" }));
+    }
   };
+
+  useEffect(() => {
+    const refresh = () => {
+      void refreshSystemStatus();
+    };
+    const visible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, [refreshSystemStatus]);
 
   const handleGesture = (gesture: MotionGestureId) => {
     if (gesture === "toggle-motion") {
-      void window.motionAPI?.toggleMotion().then((enabled) => {
-        setMotionOn(enabled);
-        addLog(`전화 모양 · 모션 ${enabled ? "ON" : "OFF"}`);
-      });
+      void toggleMotion();
       return;
     }
     if (!motionOn || mode !== "slide") return;
@@ -356,7 +490,11 @@ export function usePresentationController() {
         addLog("먼저 V 사인으로 실행할 자료를 선택하세요.");
         return;
       }
-      void openResource(selected);
+      if (!window.motionAPI) {
+        const message = `웹 리허설 · ${selected.name} 실행 동작 감지. 실제 링크는 자료 열기 버튼으로 여세요.`;
+        setRehearsalMessage(message);
+        addLog(message);
+      } else void openResource(selected);
       return;
     }
     const action = FIXED_ACTIONS.find(
@@ -376,6 +514,8 @@ export function usePresentationController() {
         streamRef.current = null;
         if (videoRef.current) videoRef.current.srcObject = null;
         setCameraState("idle");
+        setMotionOn(false);
+        setSessionStartedAt(null);
       }),
     );
     void window.motionAPI?.getPresentationMode().then(setMode);
@@ -400,7 +540,7 @@ export function usePresentationController() {
       window.clearTimeout(statusTimer);
       subscriptions.forEach((unsubscribe) => unsubscribe?.());
     };
-  }, []);
+  }, [refreshSystemStatus]);
 
   useEffect(() => {
     localStorage.setItem("displayMode", displayMode);
@@ -429,18 +569,32 @@ export function usePresentationController() {
     canvasRef,
     petCanvasRef,
     cameraState === "active",
-    "#9fe9ff",
+    "#b794ff",
     handleGesture,
     (nextMode) => {
       if (motionOn && mode !== nextMode) void setPresentationMode(nextMode);
     },
     (point) => {
+      if (!window.motionAPI && motionOn && mode !== "slide") {
+        rehearsalPointerRef.current = point;
+        setRehearsalPointer(point);
+        return;
+      }
       if (motionOn && mode === "cursor") window.motionAPI?.moveCursor(point);
       if (motionOn && mode === "laser") window.motionAPI?.moveCursor(point);
     },
     () => {
       if (motionOn && mode !== "slide") {
-        window.motionAPI?.clickCursor();
+        if (!window.motionAPI) {
+          const { x, y } = rehearsalPointerRef.current;
+          if (x >= 0.35 && x <= 0.65 && y >= 0.3 && y <= 0.7) {
+            setRehearsalClicks((n) => n + 1);
+            setRehearsalMessage("클릭 성공 · 중앙 표적을 눌렀습니다.");
+          } else
+            setRehearsalMessage(
+              "클릭 동작 감지 · 포인터를 중앙 표적으로 옮겨보세요.",
+            );
+        } else window.motionAPI.clickCursor();
         addLog("왼손 펼치기 → 주먹 · 클릭");
       }
     },
@@ -459,6 +613,15 @@ export function usePresentationController() {
   ];
 
   return {
+    isDesktop,
+    rehearsalSlide,
+    rehearsalBlack,
+    rehearsalClicks,
+    rehearsalPointer,
+    rehearsalMessage,
+    systemStatusError,
+    requestPermission,
+    setPresentationMode,
     profile,
     updateProfile,
     motionOn,

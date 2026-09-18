@@ -54,6 +54,7 @@ function harness() {
   }
   const display = {
     id: 1,
+    size: { width: 1000, height: 800 },
     bounds: { x: 0, y: 0, width: 1000, height: 800 },
     workArea: { x: 0, y: 0, width: 1000, height: 800 },
     label: "Test display",
@@ -136,6 +137,7 @@ function harness() {
   );
   ready();
   return {
+    electron,
     windows,
     writes,
     ipcMain,
@@ -265,4 +267,33 @@ test("default shortcuts remain backwards compatible", async () => {
     true,
   );
   assert.equal(h.writes.at(-1), "shortcut 124 0\n");
+});
+
+test("camera permission requests only when undetermined, denied opens system settings", async () => {
+  const h = harness();
+  let requested = 0;
+  const opened = [];
+  h.electron.systemPreferences.getMediaAccessStatus = () => "not-determined";
+  h.electron.systemPreferences.askForMediaAccess = async (kind) => {
+    assert.equal(kind, "camera");
+    requested++;
+    return true;
+  };
+  h.electron.shell.openExternal = async (url) => opened.push(url);
+  assert.equal(await h.call("system:open-permission", "camera"), true);
+  assert.equal(requested, 1);
+  assert.equal(opened.length, 0);
+  h.electron.systemPreferences.getMediaAccessStatus = () => "denied";
+  await h.call("system:open-permission", "camera");
+  assert.equal(requested, 1);
+  assert.match(opened[0], /Privacy_Camera/);
+});
+
+test("display enumeration returns a real primary monitor without extra permission", () => {
+  const h = harness();
+  const result = h.call("display:list");
+  assert.equal(result.displays.length, 1);
+  assert.equal(result.displays[0].id, "1");
+  assert.equal(result.displays[0].primary, true);
+  assert.match(result.displays[0].label, /1000×800/);
 });

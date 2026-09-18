@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 export default function Laser() {
   const [settings, setSettings] = useState({
-    color: "#9fe9ff",
+    color: "#b794ff",
     size: 24,
     trail: true,
     shareCompatible: false,

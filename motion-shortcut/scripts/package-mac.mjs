@@ -13,7 +13,7 @@ import { join, resolve } from "node:path";
 const root = resolve(".");
 const releaseDirectory = join(root, "release");
 const stagingDirectory = join(root, ".package-staging");
-const appName = "Flickey.app";
+const appName = "Adam.app";
 const appPath = join(releaseDirectory, appName);
 const resourcesPath = join(appPath, "Contents", "Resources");
 const plistPath = join(appPath, "Contents", "Info.plist");
@@ -21,7 +21,7 @@ const macOSPath = join(appPath, "Contents", "MacOS");
 const version = JSON.parse(
   readFileSync(join(root, "package.json"), "utf8"),
 ).version;
-const artifactBase = `Flickey-${version}-arm64`;
+const artifactBase = `Adam-${version}-arm64`;
 const localIdentity = "Motion Shortcut Local Code Signing";
 let signingIdentity = "-";
 try {
@@ -78,16 +78,16 @@ const setPlist = (key, value, type = "string") => {
     execFileSync(plistBuddy, ["-c", `Add :${key} ${type} ${value}`, plistPath]);
   }
 };
-renameSync(join(macOSPath, "Electron"), join(macOSPath, "Flickey"));
-setPlist("CFBundleName", "Flickey");
-setPlist("CFBundleDisplayName", "Flickey");
-setPlist("CFBundleExecutable", "Flickey");
+renameSync(join(macOSPath, "Electron"), join(macOSPath, "Adam"));
+setPlist("CFBundleName", "Adam");
+setPlist("CFBundleDisplayName", "Adam");
+setPlist("CFBundleExecutable", "Adam");
 setPlist("CFBundleIdentifier", "com.motionshortcut.app");
 setPlist("CFBundleShortVersionString", version);
 setPlist("CFBundleVersion", version);
 setPlist(
   "NSCameraUsageDescription",
-  "발표자의 손동작을 인식하여 Flickey 발표 명령을 실행하기 위해 카메라를 사용합니다.",
+  "발표자의 손동작을 인식하여 Adam 발표 명령을 실행하기 위해 카메라를 사용합니다.",
 );
 setPlist(
   "NSAppleEventsUsageDescription",
@@ -165,7 +165,9 @@ try {
   );
   dmgCreated = true;
 } catch {
-  console.warn("DMG 생성은 건너뛰었습니다. Flickey.app과 ZIP은 정상 생성되었습니다.");
+  console.warn(
+    "DMG 생성은 건너뛰었습니다. Adam.app과 ZIP은 정상 생성되었습니다.",
+  );
 }
 
 rmSync(stagingDirectory, { recursive: true, force: true });

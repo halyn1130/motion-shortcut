@@ -34,7 +34,9 @@ describe("Flickey 발표 인터페이스", () => {
     expect(
       screen.queryByRole("button", { name: "MOTION OFF" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "발표 시작" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "발표 시작" }),
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: "모션 OFF" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "전체 화면" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "손만 보기" })).toBeDisabled();

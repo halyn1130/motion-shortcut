@@ -106,6 +106,7 @@ export function ShortcutSettings({
               </button>
               <button
                 aria-label={`${ACTION_LABELS[action]} 테스트`}
+                disabled={!c.isDesktop}
                 onClick={() => void c.executeAction(action)}
               >
                 테스트
@@ -116,7 +117,9 @@ export function ShortcutSettings({
       </div>
       <p role="status" className="settings-message">
         {message ||
-          "설정은 현재 발표 프로필에 자동 저장됩니다. 테스트는 실제 발표 앱에 입력을 전달합니다."}
+          (c.isDesktop
+            ? "설정은 현재 발표 프로필에 자동 저장됩니다. 테스트는 실제 발표 앱에 입력을 전달합니다."
+            : "커스텀키의 실제 입력 테스트는 데스크톱 앱에서 지원합니다.")}
       </p>
     </section>
   );

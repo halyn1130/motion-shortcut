@@ -63,8 +63,20 @@ export function HomePage({
             <canvas ref={canvasRef} aria-hidden="true" />
             {cameraState !== "active" && (
               <div className="camera-empty">
-                <strong>발표자를 인식할 준비가 되었습니다</strong>
-                <p>{cameraError || "카메라를 켜고 화면 중앙에 서 주세요."}</p>
+                <img className="standby-hand" src="./assets/adam-hand-field.svg" alt="" aria-hidden="true" />
+                <strong>
+                  {cameraState === "requesting"
+                    ? "카메라 연결 중"
+                    : cameraState === "error"
+                      ? "카메라를 연결할 수 없습니다"
+                      : "카메라가 꺼져 있습니다"}
+                </strong>
+                <p>
+                  {cameraError ||
+                    (cameraState === "requesting"
+                      ? "카메라 접근 권한을 확인하고 있습니다."
+                      : "아래에서 카메라를 켠 뒤, 발표를 시작하세요.")}
+                </p>
               </div>
             )}
             {cameraState === "active" && (
@@ -125,6 +137,14 @@ export function HomePage({
             </button>
           </div>
           <button
+            type="button"
+            disabled
+            title="기능 테스트는 준비 중입니다."
+            aria-label="기능 테스트 (준비 중)"
+          >
+            기능 테스트
+          </button>
+          <button
             disabled={cameraState === "requesting"}
             onClick={() =>
               void (cameraState === "active" ? stopCamera() : startCamera())
@@ -164,6 +184,12 @@ export function HomePage({
           </div>
         </div>
       </section>
+      {!c.isDesktop && (
+        <p className="runtime-notice">
+          웹 실행 중 · 카메라와 손동작 인식은 사용할 수 있지만, 외부 발표
+          사이트·OS 마우스 제어와 모니터 선택은 데스크톱 앱이 필요합니다.
+        </p>
+      )}
       <PresentationPreparation controller={c} />
     </div>
   );

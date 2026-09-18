@@ -41,7 +41,7 @@ let overlayEditing = false;
 let overlayScale = 1;
 let presentationAppName = null;
 let laserSettings = {
-  color: "#9fe9ff",
+  color: "#b794ff",
   size: 24,
   trail: true,
   shareCompatible: false,
@@ -60,7 +60,7 @@ async function getFrontmostAppName() {
       'tell application "System Events" to get name of first application process whose frontmost is true',
     ]);
     const name = stdout.trim();
-    return name && !/^(Flickey|Electron)$/i.test(name) ? name : null;
+    return name && !/^(Adam|Flickey|Electron)$/i.test(name) ? name : null;
   } catch {
     return null;
   }
@@ -141,14 +141,18 @@ function readLaserSettings() {
   try {
     const saved = JSON.parse(fs.readFileSync(laserSettingsPath(), "utf8"));
     return {
-      color: /^#[0-9a-f]{6}$/i.test(saved.color) ? saved.color : "#9fe9ff",
+      color:
+        /^#[0-9a-f]{6}$/i.test(saved.color) &&
+        saved.color.toLowerCase() !== "#9fe9ff"
+          ? saved.color
+          : "#b794ff",
       size: Math.max(12, Math.min(48, Number(saved.size) || 24)),
       trail: saved.trail !== false,
       shareCompatible: Boolean(saved.shareCompatible),
     };
   } catch {
     return {
-      color: "#9fe9ff",
+      color: "#b794ff",
       size: 24,
       trail: true,
       shareCompatible: false,
@@ -369,6 +373,12 @@ ipcMain.handle("system:open-permission", async (_event, permission) => {
   };
   const pane = panes[permission];
   if (!pane) return false;
+  if (
+    permission === "camera" &&
+    systemPreferences.getMediaAccessStatus("camera") === "not-determined"
+  ) {
+    return systemPreferences.askForMediaAccess("camera");
+  }
   if (permission === "accessibility") {
     // 사용자가 권한 점검 버튼을 직접 눌렀을 때만 macOS 권한 목록에
     // 현재 Flickey 번들을 등록한다. 모션 실행 중에는 팝업을 요청하지 않는다.
@@ -607,7 +617,7 @@ function sendMacKey(key, modifiers = []) {
   ) {
     return {
       ok: false,
-      error: "시스템 설정에서 Flickey의 손쉬운 사용 권한이 필요합니다.",
+      error: "시스템 설정에서 앱의 손쉬운 사용 권한이 필요합니다.",
     };
   }
   if (!ensureCursorHelper())
@@ -874,8 +884,8 @@ function createWindow() {
     height: 820,
     minWidth: 880,
     minHeight: 640,
-    title: "Flickey",
-    backgroundColor: "#080909",
+    title: "Adam",
+    backgroundColor: "#0e1020",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,

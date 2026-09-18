@@ -870,7 +870,7 @@ function drawKeyboardHands(
   context.setTransform(scale, 0, 0, scale, 0, 0);
   context.clearRect(0, 0, width, height);
   for (const hand of hands) {
-    const color = hand.handedness === "Left" ? "#65f6dc" : "#78b5ff";
+    const color = hand.handedness === "Left" ? "#b794ff" : "#ddd0ff";
     const point = (index: number) => ({
       x: hand.landmarks[index].x * width,
       y: hand.landmarks[index].y * height,

@@ -1,6 +1,14 @@
 import type { PresentationController } from "../features/presentation/usePresentationController";
 import { SectionTitle } from "../components/SectionTitle";
 import { ShortcutSettings } from "../components/ShortcutSettings";
+const permissionLabels: Record<string, string> = {
+  granted: "허용됨",
+  "not-determined": "요청 전",
+  denied: "거부됨 · 설정 확인",
+  restricted: "시스템 제한",
+  unsupported: "데스크톱 앱 전용",
+  unknown: "상태 확인 불가",
+};
 export function SettingsPage({
   controller: c,
 }: {
@@ -17,6 +25,12 @@ export function SettingsPage({
       <section className="control-panel">
         {" "}
         <SectionTitle index="SYS" title="권한 점검" />
+        <p className="muted">
+          {c.isDesktop
+            ? "개발 실행 중이면 시스템 설정에 Electron으로 표시될 수 있습니다. 권한 변경 후 앱으로 돌아오면 자동 갱신됩니다."
+            : "웹에서는 카메라 권한만 확인합니다. OS 손쉬운 사용·화면 기록 권한은 데스크톱 앱에서 관리합니다."}
+        </p>
+        {c.systemStatusError && <p role="status">{c.systemStatusError}</p>}
         <div className="permission-list">
           {(
             [
@@ -27,11 +41,12 @@ export function SettingsPage({
           ).map(([id, label]) => (
             <button
               key={id}
-              onClick={() => void window.motionAPI?.openPermissionSettings(id)}
+              disabled={!c.isDesktop && id !== "camera"}
+              onClick={() => void c.requestPermission(id)}
             >
               <span>{label}</span>
               <b className={permissions[id] === "granted" ? "ok" : "warn"}>
-                {permissions[id] === "granted" ? "허용됨" : "확인 필요"}
+                {permissionLabels[permissions[id]] ?? "상태 확인 불가"}
               </b>
             </button>
           ))}
