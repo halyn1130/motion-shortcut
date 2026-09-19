@@ -27,6 +27,12 @@ export const APP_LABELS = {
   "web-slides": "웹 슬라이드 (Chrome)",
 };
 
+export function normalizeHttpUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 function detectWebPresentation(url: string) {
   try {
     const parsed = new URL(url);
@@ -262,13 +268,14 @@ export function usePresentationController() {
   const openResource = async (
     resource: PresentationProfile["resources"][number],
   ) => {
-    if (resource.kind !== "url" || !detectWebPresentation(resource.value)) {
+    const url = normalizeHttpUrl(resource.value);
+    if (resource.kind !== "url" || !detectWebPresentation(url)) {
       setPresentationLinkStatus(
         "http/https 형식의 추가 자료 URL을 입력하세요.",
       );
       return;
     }
-    window.open(resource.value, "_blank", "noopener,noreferrer");
+    window.open(url, "_blank", "noopener,noreferrer");
     setPresentationLinkStatus(
       `${resource.name} 새 탭 열기 요청 · 추가 자료는 제어하지 않습니다.`,
     );

@@ -131,6 +131,37 @@ describe("web and desktop runtime boundaries", () => {
       "추가 자료는 제어하지 않습니다",
     );
   });
+  it("additional resource URLs get an https scheme only when no scheme is present", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const { result } = renderHook(usePresentationController);
+    const openValue = (value: string) =>
+      act(async () => {
+        await result.current.openResource({
+          id: "resource-1",
+          name: "추가 자료",
+          kind: "url",
+          value,
+          returnAfterMs: 0,
+        });
+      });
+    await openValue("  example.com ");
+    expect(open).toHaveBeenLastCalledWith(
+      "https://example.com",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    await openValue("https://a.b");
+    expect(open).toHaveBeenLastCalledWith(
+      "https://a.b",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    expect(open).toHaveBeenCalledTimes(2);
+    await openValue("javascript:alert(1)");
+    await openValue("mailto:a@b.com");
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(result.current.presentationLinkStatus).toContain("http/https");
+  });
   it("browser permission refresh distinguishes prompt/denied and desktop-only permissions", async () => {
     const { result } = renderHook(usePresentationController);
     await act(async () => {
