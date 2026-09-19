@@ -29,7 +29,7 @@ describe("발표 프로필 커스텀키", () => {
     );
     const profile = loadProfile();
     expect(profile.name).toBe("기존 발표");
-    expect(profile.resources).toEqual(legacy.resources);
+    expect(profile.resources).toEqual(legacy.resources.map(r => ({...r, returnAfterMs: 0})));
     expect(profile.shortcuts).toEqual({});
     expect(profile.mappings).toEqual(FIXED_MAPPINGS);
   });

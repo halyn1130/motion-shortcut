@@ -20,7 +20,6 @@ export function HomePage({
     selectedResource,
     stopCamera,
     motionOn,
-    toggleMotion,
     sessionStartedAt,
     sessionElapsed,
     startPresentationSession,
@@ -63,7 +62,12 @@ export function HomePage({
             <canvas ref={canvasRef} aria-hidden="true" />
             {cameraState !== "active" && (
               <div className="camera-empty">
-                <img className="standby-hand" src="./assets/adam-hand-field.svg" alt="" aria-hidden="true" />
+                <img
+                  className="standby-hand"
+                  src="./assets/adam-hand-field.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
                 <strong>
                   {cameraState === "requesting"
                     ? "카메라 연결 중"
@@ -114,57 +118,43 @@ export function HomePage({
           </p>
         )}
         <div className="home-console-toolbar">
-          <div
-            className="camera-view-options"
-            role="group"
-            aria-label="카메라 표시 방식"
-          >
-            <button
-              type="button"
-              disabled={cameraState !== "active"}
-              aria-pressed={cameraView === "camera"}
-              onClick={() => changeCameraView("camera")}
+          <div className="camera-controls-group">
+            <div
+              className="camera-view-options"
+              role="group"
+              aria-label="카메라 표시 방식"
             >
-              전체 화면
-            </button>
+              <button
+                type="button"
+                disabled={cameraState !== "active"}
+                aria-pressed={cameraView === "camera"}
+                onClick={() => changeCameraView("camera")}
+              >
+                전체 화면
+              </button>
+              <button
+                type="button"
+                disabled={cameraState !== "active"}
+                aria-pressed={cameraView === "hands"}
+                onClick={() => changeCameraView("hands")}
+              >
+                손만 보기
+              </button>
+            </div>
             <button
-              type="button"
-              disabled={cameraState !== "active"}
-              aria-pressed={cameraView === "hands"}
-              onClick={() => changeCameraView("hands")}
+              className="camera-power-button"
+              disabled={cameraState === "requesting"}
+              onClick={() =>
+                void (cameraState === "active" ? stopCamera() : startCamera())
+              }
             >
-              손만 보기
+              {cameraState === "active"
+                ? "카메라 끄기"
+                : cameraState === "requesting"
+                  ? "연결 중…"
+                  : "카메라 켜기"}
             </button>
           </div>
-          <button
-            type="button"
-            disabled
-            title="기능 테스트는 준비 중입니다."
-            aria-label="기능 테스트 (준비 중)"
-          >
-            기능 테스트
-          </button>
-          <button
-            disabled={cameraState === "requesting"}
-            onClick={() =>
-              void (cameraState === "active" ? stopCamera() : startCamera())
-            }
-          >
-            {cameraState === "active"
-              ? "카메라 끄기"
-              : cameraState === "requesting"
-                ? "연결 중…"
-                : "카메라 켜기"}
-          </button>
-          <button
-            className="motion-toggle"
-            aria-pressed={motionOn}
-            disabled={cameraState !== "active"}
-            title="카메라는 유지하고 손동작 명령 실행만 켜거나 끕니다."
-            onClick={() => void toggleMotion()}
-          >
-            모션 {motionOn ? "ON" : "OFF"}
-          </button>
           <div className="session-controls">
             <button
               className="session-button"
@@ -184,12 +174,6 @@ export function HomePage({
           </div>
         </div>
       </section>
-      {!c.isDesktop && (
-        <p className="runtime-notice">
-          웹 실행 중 · 카메라와 손동작 인식은 사용할 수 있지만, 외부 발표
-          사이트·OS 마우스 제어와 모니터 선택은 데스크톱 앱이 필요합니다.
-        </p>
-      )}
       <PresentationPreparation controller={c} />
     </div>
   );

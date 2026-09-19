@@ -24,22 +24,9 @@ export function PresentationTools({
         : `슬라이드 이동 실패 · ${result?.error ?? "Electron 앱에서 실행하세요."}`,
     );
   };
-  const restore = async () => {
-    const result = await window.motionAPI?.restorePresentation();
-    report(
-      result?.ok
-        ? "발표 화면으로 복귀"
-        : `복귀 실패 · ${result?.error ?? "Electron 앱에서 실행하세요."}`,
-    );
-  };
   return (
     <details className="presentation-tools">
       <summary>발표 보조 제어</summary>
-      {!c.isDesktop && (
-        <p>
-          외부 발표 화면 이동·복귀는 데스크톱 앱 전용입니다.
-        </p>
-      )}
       <div className="presentation-tools-body">
         <div>
           <p id="slide-jump-help">
@@ -71,19 +58,6 @@ export function PresentationTools({
               이동
             </button>
           </div>
-        </div>
-        <div>
-          <p id="presentation-return-help">
-            추가 자료나 다른 앱을 연 뒤, 마지막으로 지정한 발표 프로그램을
-            앞으로 가져옵니다.
-          </p>
-          <button
-            aria-describedby="presentation-return-help"
-            disabled={!c.isDesktop}
-            onClick={() => void restore()}
-          >
-            발표 화면 복귀
-          </button>
         </div>
       </div>
       {status && (

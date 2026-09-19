@@ -1,41 +1,70 @@
 import { useState } from "react";
+import { PreparationDemo } from "../components/PreparationDemo";
 
 const lessons = {
-  slides: {
-    label: "슬라이드 넘기기",
-    mode: "슬라이드 모드",
-    enter: "검지·중지·약지 세 손가락을 약 0.7초 펴세요.",
-    actions: [
-      ["다음 장", "손바닥을 펴고 오른쪽으로 스와이프", "→"],
-      ["이전 장", "손바닥을 펴고 왼쪽으로 스와이프", "←"],
+  preparation: {
+    label: "발표 준비",
+    title: "자료 선택과 추가 자료",
+    description: "홈에서 프로필 이름을 정하고 사용할 자료 유형을 선택하세요.",
+    steps: [
+      [
+        "자료 선택",
+        "‘데모 덱으로 연습’ 또는 ‘내 PDF 업로드’를 선택한 뒤 ‘발표 시작’을 누르세요. 선택한 자료가 별도의 팝업 발표 창에 열립니다.",
+      ],
+      [
+        "PDF 선택",
+        "PDF를 드롭 영역에 놓거나 ‘파일 선택’으로 발표할 파일을 선택하세요. 선택한 파일명을 확인한 뒤 발표를 시작하세요.",
+      ],
+      [
+        "추가 자료",
+        "‘추가 자료 추가’로 이름과 URL을 입력하고 ‘새 탭에서 열기’를 누르세요. 자동 복귀 기능은 없습니다.",
+      ],
     ],
-    note: "양손을 펼쳐도 슬라이드 모드로 전환됩니다.",
   },
-  pointer: {
-    label: "포인터로 클릭하기",
-    mode: "포인터 모드",
-    enter: "한 손으로 L 모양을 약 0.7초 유지하세요.",
-    actions: [
-      ["이동", "오른손 검지 또는 붙인 검지·중지를 움직이세요.", "↗"],
-      ["클릭", "왼손을 펼쳤다가 주먹을 쥐세요.", "·"],
+  camera: {
+    label: "카메라와 모션",
+    title: "영상 표시와 모션 상태",
+    description: "카메라와 모션은 홈의 발표 제어 센터에서 관리합니다.",
+    steps: [
+      [
+        "카메라 켜기",
+        "브라우저에서 카메라 접근을 허용하세요. 권한 상태는 설정에서 확인할 수 있습니다.",
+      ],
+      [
+        "표시 방식",
+        "카메라가 켜지면 ‘전체 화면’과 ‘손만 보기’를 선택할 수 있습니다. 마지막 선택은 다음 실행에도 유지됩니다.",
+      ],
+      [
+        "모션 ON / OFF",
+        "전화 모양의 손동작을 약 1.2초 유지해 모션 상태를 바꿉니다. 카메라는 켜진 상태로 유지됩니다.",
+      ],
     ],
-    note: "보라색 레이저 표시와 실제 클릭 위치가 함께 움직입니다.",
   },
-  resources: {
-    label: "추가 자료 열기",
-    mode: "자료 선택과 실행",
-    enter: "홈의 발표 준비에서 링크·파일·앱을 먼저 추가하세요.",
-    actions: [
-      ["자료 선택", "V 사인을 약 0.7초 유지하세요.", "01"],
-      ["자료 실행", "검지 하나를 약 0.7초 유지하세요.", "02"],
+  customization: {
+    label: "모션·키보드 설정",
+    title: "한 기능, 두 가지 입력 설정",
+    description:
+      "설정의 ‘모션 · 키보드 커스텀’ 표에서 같은 행의 두 입력을 비교하세요.",
+    steps: [
+      [
+        "모션 커스텀",
+        "드롭다운에서 손동작을 선택합니다. 현재는 UI 미리보기이며 실제 인식 규칙을 바꾸거나 저장하지 않습니다.",
+      ],
+      [
+        "키보드 커스텀",
+        "키 버튼을 누르고 원하는 키를 입력하세요. 일반 키와 Shift 조합을 지정할 수 있고, 중복된 키는 안내가 표시됩니다.",
+      ],
+      [
+        "저장과 복원",
+        "키 설정은 현재 브라우저의 프로필에 저장됩니다. ‘복원’으로 기본키를 되돌릴 수 있습니다. 실제 키보드 발표 제어는 아직 연결하지 않았습니다.",
+      ],
     ],
-    note: "자료를 연 뒤에는 발표 보조 제어의 ‘발표 화면 복귀’를 사용하세요.",
   },
 } as const;
 type Lesson = keyof typeof lessons;
 
 export function GuidePage() {
-  const [selected, setSelected] = useState<Lesson>("slides");
+  const [selected, setSelected] = useState<Lesson>("preparation");
   const lesson = lessons[selected];
   return (
     <div className="guide-page guide-revised">
@@ -43,43 +72,43 @@ export function GuidePage() {
         className="control-panel guide-start"
         aria-labelledby="guide-start-title"
       >
-        <h2 id="guide-start-title">처음이라면, 이 순서로</h2>
+        <h2 id="guide-start-title">웹 화면 사용 순서</h2>
         <ol className="guide-start-steps">
           <li>
             <span aria-hidden="true">01</span>
             <div>
-              <h3>발표 준비</h3>
-              <p>홈에서 발표 프로그램과 자료를 연결하세요.</p>
+              <h3>홈에서 준비</h3>
+              <p>프로필, 자료 유형과 추가 링크를 정리하세요.</p>
               <a href="#/home">홈으로 이동 →</a>
+              <PreparationDemo />
             </div>
           </li>
           <li>
             <span aria-hidden="true">02</span>
             <div>
-              <h3>권한 확인</h3>
-              <p>카메라·손쉬운 사용 권한을 확인하세요.</p>
+              <h3>입력 방식 설정</h3>
+              <p>카메라 권한, 포인터 감도와 커스텀 표를 확인하세요.</p>
               <a href="#/settings">설정으로 이동 →</a>
+              <PreparationDemo variant="settings" />
             </div>
           </li>
           <li>
             <span aria-hidden="true">03</span>
             <div>
-              <h3>카메라 켜고 시작</h3>
-              <p>
-                홈에서 카메라를 켠 뒤 <strong>발표 시작</strong>을 누르세요.
-              </p>
+              <h3>현재 상태 확인</h3>
+              <p>연결된 기능과 준비 중인 UI는 개발 페이지에서 확인하세요.</p>
+              <a href="#/developer">개발로 이동 →</a>
+              <PreparationDemo variant="status" />
             </div>
           </li>
         </ol>
       </section>
-
       <section
         className="control-panel guide-learn"
         aria-labelledby="guide-learn-title"
       >
         <div className="guide-learn-heading">
-          <h2 id="guide-learn-title">어떤 동작이 필요한가요?</h2>
-          <p>하나씩 골라 확인하세요.</p>
+          <h2 id="guide-learn-title">필요한 사용법 찾기</h2>
         </div>
         <div className="guide-choices" role="group" aria-label="배울 기능 선택">
           {Object.entries(lessons).map(([id, item]) => (
@@ -100,20 +129,13 @@ export function GuidePage() {
           aria-atomic="true"
         >
           <div className="guide-mode">
-            <span>먼저</span>
-            <h3>{lesson.mode}</h3>
-            <p>{lesson.enter}</p>
-            <small>
-              현재 모드와 제어 상태는 카메라 화면에서 확인할 수 있어요.
-            </small>
+            <h3>{lesson.title}</h3>
+            <p>{lesson.description}</p>
           </div>
           <div className="guide-actions">
             <dl>
-              {lesson.actions.map(([title, description, symbol]) => (
+              {lesson.steps.map(([title, description]) => (
                 <div key={title}>
-                  <span className="guide-action-symbol" aria-hidden="true">
-                    {symbol}
-                  </span>
                   <div>
                     <dt>{title}</dt>
                     <dd>{description}</dd>
@@ -121,82 +143,51 @@ export function GuidePage() {
                 </div>
               ))}
             </dl>
-            <p className="guide-note">{lesson.note}</p>
           </div>
         </div>
       </section>
-
       <aside className="guide-stop" aria-label="제어 멈추기">
         <strong>잠깐 멈추고 싶을 때</strong>
         <p>
-          <b>모션 OFF</b>를 누르거나 <b>양손 주먹을 약 0.9초</b> 유지하세요.
-          카메라는 켜둔 채 제어만 멈춥니다.
+          <b>양손 주먹을 약 0.9초</b> 유지하세요. 카메라는 켜둔 채 모션 제어만
+          멈춥니다. 다시 사용하려면 <b>전화 모양을 약 1.2초</b> 유지하거나
+          홈에서 <b>발표 재개</b>를 누르세요.
+        </p>
+        <p>
+          카메라까지 종료하려면 <b>카메라 끄기</b>를 누르세요.
         </p>
       </aside>
 
       <section className="guide-details" aria-labelledby="guide-details-title">
-        <h2 id="guide-details-title">필요할 때 찾아보기</h2>
+        <h2 id="guide-details-title">자주 확인하는 내용</h2>
         <details>
-          <summary>다른 손동작과 커스텀키</summary>
+          <summary>발표 시작을 누르면 PDF나 새 발표 창이 열리나요?</summary>
           <div className="guide-detail-body">
-            <dl className="guide-reference">
-              <div>
-                <dt>화면 가리기</dt>
-                <dd>한 손바닥을 약 0.8초 펼치기</dd>
-              </div>
-              <div>
-                <dt>발표 종료</dt>
-                <dd>한 손 주먹을 약 1초 유지</dd>
-              </div>
-              <div>
-                <dt>모션 ON / OFF</dt>
-                <dd>전화 모양을 약 1.2초 유지</dd>
-              </div>
-              <div>
-                <dt>다른 포인터 전환 동작</dt>
-                <dd>검지 X·뿔 모양·양손 V도 통합 포인터로 전환합니다.</dd>
-              </div>
-            </dl>
             <p>
-              설정의 커스텀키는 기본 모션이 전달할 키보드 입력을 바꿉니다. 자료
-              선택과 긴급 정지 동작은 유지됩니다.
+              네. 선택한 데모 덱이나 PDF가 별도의 팝업 발표 창에 열립니다.
+              PDF로 발표하려면 먼저 ‘내 PDF 업로드’에서 파일을 선택하세요.
+              창이 열리지 않으면 브라우저에서 이 사이트의 팝업을 허용한 뒤
+              ‘발표 시작’을 다시 누르세요.
             </p>
           </div>
         </details>
         <details>
-          <summary>카메라·모션·발표 시작은 어떻게 다른가요?</summary>
+          <summary>추가 자료 링크가 열리지 않아요</summary>
           <div className="guide-detail-body">
             <p>
-              <strong>카메라 켜기</strong>는 영상과 손 추적을 시작합니다.{" "}
-              <strong>발표 시작</strong>은 실제 손동작 제어까지 켭니다.
-            </p>
-            <p>
-              <strong>모션 OFF</strong>는 제어만 멈춥니다. 멈춘 발표는{" "}
-              <strong>발표 재개</strong>로 이어가세요. 세션을 끝내려면{" "}
-              <strong>발표 종료</strong> 또는 <strong>카메라 끄기</strong>를
-              사용하세요.
-            </p>
-            <p>
-              카메라는 전체 화면·손만 보기 중 선택할 수 있고, 마지막 표시 방식을
-              기억합니다.
+              http:// 또는 https://로 시작하는 올바른 URL을 입력했는지 확인하세요.
+              ‘새 탭에서 열기’를 눌러도 열리지 않으면 브라우저에서 이 사이트의
+              팝업 및 리디렉션을 허용한 뒤 다시 시도하세요. 추가 자료를 확인한
+              후에는 발표 창을 직접 선택해 돌아오세요.
             </p>
           </div>
         </details>
         <details>
-          <summary>화면 공유와 실행 환경</summary>
+          <summary>카메라가 켜지지 않아요</summary>
           <div className="guide-detail-body">
             <p>
-              실제 발표 앱 제어는 macOS용 Electron 앱에서 동작합니다. 웹
-              미리보기에서는 화면 구성을 확인할 수 있습니다.
-            </p>
-            <p>
-              레이저·손 추적 오버레이를 청중에게 보여주려면{" "}
-              <strong>전체 화면을 공유</strong>하세요. 창 하나만 공유할 때는
-              공유 서비스의 마우스 포인터 표시 설정에 따라 결과가 달라집니다.
-            </p>
-            <p>
-              카메라 영상은 기기의 로컬 모델로 처리합니다. 카메라를 끄면 영상
-              트랙과 모션 제어도 종료됩니다.
+              사이트의 카메라 권한과 다른 프로그램의 카메라 사용 여부를 확인한
+              뒤, 설정에서 ‘권한 상태 새로고침’을 누르세요.
             </p>
           </div>
         </details>

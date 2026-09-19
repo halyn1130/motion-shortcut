@@ -98,7 +98,13 @@ describe("web and desktop runtime boundaries", () => {
       }),
     );
     await act(async () => {
-      await result.current.setPresentationLink();
+      await result.current.openResource({
+        id: "resource-1",
+        name: "추가 자료",
+        kind: "url",
+        value: result.current.profile.presentationUrl,
+        returnAfterMs: 0,
+      });
     });
     expect(open).not.toHaveBeenCalled();
     act(() =>
@@ -108,14 +114,22 @@ describe("web and desktop runtime boundaries", () => {
       }),
     );
     await act(async () => {
-      await result.current.setPresentationLink();
+      await result.current.openResource({
+        id: "resource-1",
+        name: "추가 자료",
+        kind: "url",
+        value: result.current.profile.presentationUrl,
+        returnAfterMs: 0,
+      });
     });
     expect(open).toHaveBeenCalledWith(
       "https://example.com/slides",
       "_blank",
       "noopener,noreferrer",
     );
-    expect(result.current.presentationLinkStatus).toContain("팝업 차단");
+    expect(result.current.presentationLinkStatus).toContain(
+      "추가 자료는 제어하지 않습니다",
+    );
   });
   it("browser permission refresh distinguishes prompt/denied and desktop-only permissions", async () => {
     const { result } = renderHook(usePresentationController);
@@ -134,13 +148,11 @@ describe("web and desktop runtime boundaries", () => {
   });
   it("desktop refresh still updates permissions when display enumeration fails", async () => {
     const { result, unmount } = renderHook(usePresentationController);
-    const getPermissions = vi
-      .fn()
-      .mockResolvedValue({
-        camera: "granted",
-        screen: "restricted",
-        accessibility: "granted",
-      });
+    const getPermissions = vi.fn().mockResolvedValue({
+      camera: "granted",
+      screen: "restricted",
+      accessibility: "granted",
+    });
     const getDisplays = vi
       .fn()
       .mockRejectedValue(new Error("display unavailable"));

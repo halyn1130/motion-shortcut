@@ -34,10 +34,8 @@ describe("Flickey 발표 인터페이스", () => {
     expect(
       screen.queryByRole("button", { name: "MOTION OFF" }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "발표 시작" }),
-    ).toBeVisible();
-    expect(screen.getByRole("button", { name: "모션 OFF" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "발표 시작" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "모션 OFF" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "전체 화면" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "손만 보기" })).toBeDisabled();
     expect(screen.getByText("발표 제어 센터")).toBeVisible();
@@ -135,19 +133,13 @@ describe("Flickey 발표 인터페이스", () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "카메라 켜기" }));
     expect(screen.getByRole("button", { name: "전체 화면" })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: "모션 OFF" }));
-    expect(screen.getByRole("button", { name: "모션 ON" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await userEvent.click(screen.getByRole("button", { name: "모션 ON" }));
     expect(screen.getByRole("button", { name: "카메라 끄기" })).toBeEnabled();
     expect(stopTrack).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "손만 보기" }));
     await userEvent.click(screen.getByRole("button", { name: "카메라 끄기" }));
     expect(stopTrack).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "손만 보기" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "모션 OFF" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "모션 OFF" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "카메라 켜기" }));
     expect(screen.getByRole("button", { name: "손만 보기" })).toHaveAttribute(
       "aria-pressed",
@@ -155,24 +147,33 @@ describe("Flickey 발표 인터페이스", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "카메라 끄기" }));
     await userEvent.click(screen.getByRole("link", { name: "설정" }));
+    expect(
+      screen.queryByRole("button", { name: "다음 슬라이드 테스트" }),
+    ).not.toBeInTheDocument();
+    expect(executePresentationCommand).not.toHaveBeenCalled();
     await userEvent.click(
-      await screen.findByRole("button", { name: "다음 슬라이드 테스트" }),
+      screen.getByRole("button", { name: "다음 슬라이드 키 지정" }),
     );
-    expect(executePresentationCommand).toHaveBeenCalledWith(
-      "next-slide",
-      "google-slides",
-      "",
-      undefined,
-    );
-    await userEvent.click(screen.getByRole("link", { name: "개발" }));
-    expect(await screen.findByText(/다음 슬라이드 실행/)).toBeInTheDocument();
+    await userEvent.keyboard("k");
+    expect(
+      screen.getByRole("button", { name: "다음 슬라이드 키 지정" }),
+    ).toHaveTextContent("K");
+    expect(
+      screen.getByRole("heading", { name: "모션 · 키보드 커스텀" }),
+    ).toBeInTheDocument();
+    expect(
+      JSON.parse(localStorage.getItem("flickey.presentation-profile.v1")!)
+        .shortcuts["next-slide"].key,
+    ).toBe("k");
     delete window.motionAPI;
   });
 
   it("발표 자료 슬롯을 추가할 수 있다", async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "+ 자료 추가" }));
-    expect(screen.getByRole("textbox", { name: "자료 3 이름" })).toHaveValue(
+    await userEvent.click(
+      screen.getByRole("button", { name: "+ 추가 자료 추가" }),
+    );
+    expect(screen.getByRole("textbox", { name: "추가 자료 이름" })).toHaveValue(
       "자료 3",
     );
   });

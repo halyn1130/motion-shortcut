@@ -20,7 +20,7 @@ export const DEFAULT_PROFILE: PresentationProfile = {
   shortcuts: {},
   resources: [
     { id: "resource-1", name: "자료 1", kind: "url", value: "" },
-    { id: "resource-2", name: "자료 2", kind: "file", value: "" },
+    { id: "resource-2", name: "자료 2", kind: "url", value: "" },
   ],
 };
 
@@ -33,6 +33,11 @@ export function loadProfile(): PresentationProfile {
       ...DEFAULT_PROFILE,
       ...parsed,
       shortcuts: parsed.shortcuts ?? {},
+      resources: Array.isArray(parsed.resources)
+        ? parsed.resources
+            .filter((r: { kind?: string }) => r.kind === "url")
+            .map((r: object) => ({ ...r, returnAfterMs: 0 }))
+        : DEFAULT_PROFILE.resources,
       mappings: FIXED_MAPPINGS,
     } as PresentationProfile;
   } catch {

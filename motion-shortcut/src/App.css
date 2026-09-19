@@ -2163,3 +2163,401 @@
   .presenter-app::before { clip-path: inset(64px 0 0 0); opacity: .5; filter: blur(5px) saturate(.85) brightness(.9); }
   .presenter-app::after { top: 0; }
 }
+
+.deck-options{display:flex;flex-wrap:wrap;gap:8px}.deck-options button[aria-pressed="true"]{border-color:#bc8cff;background:#30213f}.pdf-drop{margin-top:14px;padding:20px;border:1px dashed #9f88bc;background:#16111f;display:flex;flex-direction:column;gap:12px}.pdf-drop.is-dragging{border-color:#ead9ff;background:#30213f}.pdf-drop p{overflow-wrap:anywhere;margin:0}.pdf-drop small{color:var(--muted)}.pdf-drop button{align-self:flex-start}.preparation-profile>label,.resource-editor>label{display:flex;flex-direction:column;gap:6px}.preparation-resources>.resource-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.preparation-resources>p{font-size:12px}.resource-editor>label{margin-bottom:12px}.resource-picker-item strong{overflow-wrap:anywhere}
+
+/* Extend only the divider beyond the centered header, without scroll overflow. */
+.presenter-app .presenter-topbar {
+  position: relative;
+  border-bottom-color: transparent;
+}
+.presenter-app .presenter-topbar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 1px;
+  background: #63547755;
+  box-shadow: 0 0 0 100vmax #63547755;
+  clip-path: inset(0 -100vmax);
+  pointer-events: none;
+}
+
+/* Distinct motion reference and keyboard preference sections. */
+.motion-settings-list { margin: 12px 0 0; }
+.motion-settings-list > div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.motion-settings-list dd { margin: 0; color: var(--muted); }
+.keyboard-settings .shortcut-row { grid-template-columns: minmax(140px, 1fr) 170px 64px; }
+@media (max-width: 720px) {
+  .keyboard-settings .shortcut-row { grid-template-columns: minmax(0, 1fr) 64px; }
+  .keyboard-settings .shortcut-row > div { grid-column: 1 / -1; }
+}
+
+.input-customization-scroll { overflow-x: auto; margin-top: 20px; }
+.input-customization-table { width: 100%; min-width: 580px; border-collapse: collapse; text-align: left; }
+.input-customization-table th, .input-customization-table td { padding: 16px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.input-customization-table thead th { color: var(--muted); font-size: 13px; font-weight: 500; }
+.input-customization-table tbody th { width: 25%; font-weight: 600; }
+.input-customization-table td { width: 37.5%; }
+.input-customization-table select { width: 100%; }
+.custom-key-controls { display: flex; align-items: center; gap: 8px; }
+.custom-key-controls button:first-child { flex: 1; min-width: 100px; }
+.custom-key-controls button:last-child { flex: 0 0 auto; }
+
+/* Web diagnostics: current state and implementation notes share one reading column. */
+.developer-controls:has(.web-runtime-list) { display: block; }
+.web-runtime-list { margin: 20px 0; }
+.web-runtime-list > div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.web-runtime-list dd { margin: 0; color: var(--text); }
+.implementation-status { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.implementation-status dl { margin: 16px 0 0; }
+.implementation-status dl > div { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.implementation-status dt { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
+.implementation-status dt span { color: var(--accent); font-size: 12px; font-weight: 500; }
+.implementation-status dd { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+
+.developer-controls > a { color: var(--accent); text-underline-offset: 4px; }
+
+/* Shared breathing room after the last panel on every page. */
+.presenter-app main {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 720px) {
+  .presenter-app main {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Footer draft: restrained typography, real links and clearly pending contacts. */
+.presenter-app .site-footer { margin: 0 auto; padding: 16px 0; }
+.site-footer-main { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 20px; align-items: center; }
+.site-footer-brand { display: flex; align-items: center; gap: 12px; }
+.site-footer-brand img { width: 40px; height: 40px; object-fit: contain; mix-blend-mode: screen; }
+.site-footer-brand p { margin: 0; }
+.site-footer-contact > span { display: none; }
+.site-footer-contact p { margin: 2px 0; }
+.site-footer nav { display: flex; flex-direction: row; flex-wrap: wrap; gap: 16px; }
+.site-footer a, .footer-privacy a { color: var(--text); text-decoration: none; }
+.site-footer a:hover, .footer-privacy a:hover { color: var(--accent); text-decoration: underline; }
+.site-footer small { margin-left: 6px; color: var(--muted); }
+.site-footer-bottom { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; padding-top: 0; border-top: 0; }
+.footer-privacy { max-width: 900px; margin-inline: auto; }
+.footer-privacy dl > div { padding-block: 16px; border-bottom: 1px solid var(--line); }
+.footer-privacy dt { font-weight: 600; }
+.footer-privacy dd { margin: 8px 0 0; color: var(--muted); }
+.footer-privacy > a { display: inline-block; margin-top: 24px; }
+@media (max-width: 720px) {
+  .site-footer-main { grid-template-columns: 1fr; gap: 10px; }
+  .site-footer nav { flex-direction: row; flex-wrap: wrap; gap: 20px; }
+  .site-footer-bottom { flex-wrap: wrap; gap: 8px; }
+}
+
+/* Shared web typography and spacing scale. */
+.presenter-app {
+  --ui-font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  --ui-panel-padding: 24px;
+  font-family: var(--ui-font);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: -0.015em;
+}
+.presenter-app :is(button, input, select, textarea) { font-family: var(--ui-font); font-size: 14px; line-height: 1.4; }
+.presenter-app h1 { font-size: 28px; line-height: 1.3; font-weight: 700; letter-spacing: -0.025em; }
+.presenter-app h2, .presenter-app .preparation-heading h2, .presenter-app .home-console .console-title h2 { font-size: 18px; line-height: 1.4; font-weight: 650; }
+.presenter-app h3 { font-size: 15px; line-height: 1.5; font-weight: 600; }
+.presenter-app .page-heading { padding-block: 32px 24px; }
+.presenter-app .page-heading p { font-size: 14px; margin-top: 8px; }
+.presenter-app .control-panel { padding: var(--ui-panel-padding); }
+.presenter-app :is(.settings-stack, .developer-grid, .guide-revised) { gap: 24px; }
+.presenter-app :is(.control-panel, .guide-detail-body) > p { font-size: 14px; line-height: 1.65; margin-top: 12px; }
+.presenter-app button { min-height: 44px; padding: 10px 16px; }
+.presenter-app input:not([type="range"]):not([type="checkbox"]), .presenter-app select { min-height: 44px; padding: 10px 12px; }
+.presenter-app .preparation-heading, .presenter-app .home-console .console-heading { padding: 16px var(--ui-panel-padding); min-height: 60px; }
+.presenter-app .home-console-toolbar { padding: 16px var(--ui-panel-padding); gap: 8px; }
+.presenter-app .preparation-profile, .presenter-app .preparation-resources { padding: var(--ui-panel-padding); }
+.presenter-app .preparation-profile { display: block; }
+.presenter-app .preparation-profile > h3:first-child,
+.presenter-app .preparation-resources > .resource-heading { min-height: 44px; margin: 0 0 16px; display: flex; align-items: center; }
+.presenter-app .preparation-resources > .resource-heading { justify-content: space-between; gap: 16px; }
+.presenter-app .preparation-panel h3 { font-size: 15px; line-height: 1.5; color: var(--text); margin: 0; }
+.presenter-app .preparation-profile > label + h3 { margin: 24px 0 12px; }
+.presenter-app .preparation-panel label:not(.return-option) { font-size: 13px; line-height: 1.5; gap: 8px; margin: 0; }
+.presenter-app .resource-browser { gap: 24px; align-items: start; }
+.presenter-app .resource-editor { display: flex; flex-direction: column; gap: 16px; }
+.presenter-app .resource-editor > label { margin: 0; }
+.presenter-app .resource-editor-actions { margin: 0; gap: 8px; }
+.presenter-app .preparation-profile > p { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.presenter-app .resource-editor > p:empty { display: none; }
+.presenter-app .resource-picker { margin: 0; padding: 0; gap: 8px; }
+.presenter-app .resource-picker-item { padding: 12px; min-height: 56px; }
+.presenter-app .resource-picker-item strong { font-size: 14px; font-weight: 600; }
+.presenter-app .pdf-drop { margin-top: 16px; padding: 16px; gap: 12px; }
+.presenter-app .input-customization-table :is(th, td) { padding: 16px 12px; font-size: 14px; }
+.presenter-app .input-customization-table thead th { font-size: 13px; }
+.presenter-app .guide-actions :is(dt, dd), .presenter-app .guide-mode p { font-size: 14px; line-height: 1.65; }
+.presenter-app .guide-actions dd { margin-top: 8px; }
+.presenter-app .site-footer { font-size: 12px; line-height: 1.6; }
+@media (max-width: 720px) {
+  .presenter-app { --ui-panel-padding: 16px; }
+  .presenter-app h1 { font-size: 24px; }
+  .presenter-app .page-heading { padding-block: 24px 20px; }
+  .presenter-app .resource-browser { grid-template-columns: 1fr; gap: 16px; }
+  .presenter-app .resource-editor { padding-top: 16px; }
+}
+
+/* Presentation console: grouped view selection, distinct camera and session actions. */
+.presenter-app .home-console .console-heading { min-height: 60px; align-items: center; }
+.presenter-app .home-console .console-title { flex-direction: row; align-items: center; }
+.presenter-app .home-console .camera-empty { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 32px 24px; text-align: center; }
+.presenter-app .home-console .standby-hand { width: 160px; height: 160px; margin: 0 0 8px; object-fit: contain; opacity: .8; }
+.presenter-app .home-console .camera-empty strong { font-size: 16px; line-height: 1.5; font-weight: 600; }
+.presenter-app .home-console .camera-empty p { margin: 0; max-width: 44ch; font-size: 13px; line-height: 1.6; }
+.presenter-app .home-console-toolbar { justify-content: space-between; gap: 16px; }
+.camera-controls-group { display: flex; align-items: center; gap: 16px; min-width: 0; flex-wrap: wrap; }
+.presenter-app .home-console-toolbar .camera-view-options { display: flex; gap: 0; padding: 3px; border: 1px solid var(--line); border-radius: 6px; background: #0c0c12; }
+.presenter-app .camera-view-options button { min-height: 36px; padding: 8px 14px; border: 1px solid transparent; background: transparent; border-radius: 3px; font-size: 13px; }
+.presenter-app .camera-view-options button[aria-pressed="true"] { background: #292132; border-color: #77618c; color: var(--text); }
+.presenter-app .camera-view-options button:disabled { opacity: .55; }
+.presenter-app .home-console-toolbar .session-controls { margin: 0 0 0 auto; }
+.presenter-app .home-console .session-button { min-width: 120px; font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) {
+  .presenter-app .home-console .camera-empty { padding: 20px 16px; gap: 8px; }
+  .presenter-app .home-console .standby-hand { width: 112px; height: 112px; margin-bottom: 4px; }
+  .presenter-app .home-console-toolbar { gap: 12px; }
+  .camera-controls-group { width: 100%; gap: 12px; justify-content: space-between; }
+  .presenter-app .home-console-toolbar .camera-power-button { padding-inline: 12px; }
+  .presenter-app .home-console-toolbar .session-controls { width: 100%; }
+  .presenter-app .home-console .session-button { width: 100%; }
+}
+
+/* Align the secondary pages to the same content and spacing rhythm. */
+.presenter-app:is(.is-settings, .is-guide, .is-developer) .page-heading,
+.presenter-app :is(.settings-stack, .guide-page.guide-revised, .developer-grid) {
+  width: min(100%, 1040px);
+  max-width: 1040px;
+  margin-inline: auto;
+}
+.presenter-app :is(.settings-stack, .guide-page.guide-revised, .developer-grid) { gap: 24px; }
+.presenter-app :is(.settings-stack, .guide-revised, .developer-grid) .section-heading { margin: 0; padding: 0; }
+.presenter-app :is(.settings-stack, .guide-revised, .developer-grid) h2 { margin: 0; }
+.presenter-app .permission-list { margin-top: 16px; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; }
+.presenter-app .permission-list > button:last-child { grid-column: auto; margin: 0; }
+.presenter-app .range-control { margin-top: 16px; gap: 16px; }
+.presenter-app .input-customization-scroll { margin-top: 16px; }
+.presenter-app .settings-message { margin: 16px 0 0; }
+.presenter-app .guide-start-steps { margin: 20px 0 0; gap: 24px; }
+.presenter-app .guide-start-steps h3 { margin: 0 0 8px; }
+.presenter-app .guide-start-steps p { margin: 0 0 12px; }
+.presenter-app .guide-choices { margin: 16px 0 24px; gap: 8px; }
+.presenter-app .guide-lesson { gap: 24px; min-height: 0; }
+.presenter-app .guide-mode { padding-right: 24px; }
+.presenter-app .guide-mode h3 { margin: 0 0 12px; }
+.presenter-app .guide-mode p { margin: 0; }
+.presenter-app .guide-actions dl > div { padding: 0 0 16px; }
+.presenter-app .guide-actions dl > div:last-child { padding-bottom: 0; }
+.presenter-app .guide-stop { display: block; padding: 20px var(--ui-panel-padding); }
+.presenter-app .guide-stop p { margin-top: 12px; }
+.presenter-app .guide-details { padding: var(--ui-panel-padding); }
+.presenter-app .guide-details h2 { margin-bottom: 16px; }
+.presenter-app .guide-details summary { padding: 16px 0; }
+.presenter-app .guide-detail-body { padding: 0 0 20px; }
+.presenter-app .guide-detail-body p { margin: 0; }
+.presenter-app .web-runtime-list { margin: 16px 0; }
+.presenter-app .web-runtime-list > div { padding: 12px 0; }
+.presenter-app .implementation-status { margin-top: 24px; padding-top: 24px; }
+.presenter-app .implementation-status dl { margin: 16px 0 0; }
+.presenter-app .implementation-status dl > div { padding: 16px 0; }
+.presenter-app .implementation-status dd { margin-top: 8px; }
+.presenter-app .developer-logs .resource-heading { margin: 0; align-items: center; gap: 16px; flex-wrap: wrap; }
+.presenter-app .developer-logs .activity-list { margin: 16px 0 0; padding: 0; list-style: none; }
+.presenter-app .developer-logs .activity-list li { padding: 12px 0; }
+@media (max-width: 720px) {
+  .presenter-app :is(.settings-stack, .guide-page.guide-revised, .developer-grid) { gap: 16px; }
+  .presenter-app .permission-list { grid-template-columns: 1fr; }
+  .presenter-app .guide-start-steps { gap: 20px; }
+  .presenter-app .guide-lesson { grid-template-columns: 1fr; gap: 20px; }
+  .presenter-app .guide-mode { padding: 0 0 20px; border-right: 0; border-bottom: 1px solid var(--line); }
+}
+
+/* Button hierarchy: primary action, quiet surfaces, lightweight utilities. */
+.presenter-app button {
+  border-radius: 7px;
+  border-color: #ffffff1c;
+  background: #201d28;
+  color: #e9e5ef;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.presenter-app button:hover:not(:disabled) { background: #2c2736; border-color: #ffffff36; }
+.presenter-app button:active:not(:disabled) { background: #352c43; }
+.presenter-app button:disabled { opacity: .42; cursor: default; }
+.presenter-app button:focus-visible { outline: 2px solid #c5a0ff; outline-offset: 3px; }
+.presenter-app .session-button,
+.presenter-app .primary-button { background: #b88af1; border-color: transparent; color: #1b102b; font-weight: 650; border-radius: 7px; }
+.presenter-app .session-button:hover:not(:disabled),
+.presenter-app .primary-button:hover:not(:disabled) { background: #cba5fc; border-color: transparent; }
+.presenter-app .session-button:active:not(:disabled) { background: #a979df; }
+.presenter-app .button-quiet { background: transparent; border-color: transparent; color: #c4bdcf; }
+.presenter-app .button-quiet:hover:not(:disabled) { background: #ffffff09; border-color: transparent; color: #eee5ff; }
+.presenter-app .button-danger:hover:not(:disabled) { background: #f3758612; color: #ffa5b1; }
+.presenter-app .deck-options button { background: #ffffff04; border-color: #ffffff18; }
+.presenter-app .deck-options button[aria-pressed="true"],
+.presenter-app .guide-choices button[aria-pressed="true"] { background: #b88af11c; border-color: #b88af166; color: #e0c8ff; }
+.presenter-app .home-console-toolbar .camera-view-options { border-color: #ffffff12; background: #0d0c12; border-radius: 9px; padding: 3px; }
+.presenter-app .camera-view-options button { background: transparent; border-color: transparent; border-radius: 6px; }
+.presenter-app .camera-view-options button[aria-pressed="true"] { background: #302839; border-color: transparent; color: #e5d4fa; }
+.presenter-app .resource-picker-item { background: transparent; border-color: transparent; border-radius: 6px; }
+.presenter-app .resource-picker-item[aria-pressed="true"] { background: #b88af114; border-color: #b88af142; }
+.presenter-app button.recording { border-color: #c5a0ff; background: #b88af11c; color: #eadbff; }
+@media (prefers-reduced-motion: reduce) { .presenter-app button { transition: none; } }
+
+/* Refined shared control surfaces across home, settings, guide and developer. */
+.presenter-app {
+  --button-surface: #211e29;
+  --button-edge: #d8cbe626;
+  --button-highlight: inset 0 1px 0 #ffffff0b;
+}
+.presenter-app button {
+  border-radius: 8px;
+  border-color: var(--button-edge);
+  background: linear-gradient(180deg, #ffffff05, transparent), var(--button-surface);
+  box-shadow: var(--button-highlight);
+  font-weight: 550;
+  letter-spacing: -.01em;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+.presenter-app button:hover:not(:disabled) { background-color: #302a3c; border-color: #d8cbe647; box-shadow: inset 0 1px 0 #ffffff12; }
+.presenter-app button:active:not(:disabled) { background: #211a2d; box-shadow: inset 0 1px 3px #00000035; }
+.presenter-app button:disabled { opacity: .48; box-shadow: none; }
+.presenter-app :is(.session-button, .primary-button) {
+  background: linear-gradient(180deg, #c09aee, #b28add);
+  border-color: #d5b2ff66;
+  color: #20132f;
+  font-weight: 650;
+  box-shadow: inset 0 1px 0 #ffffff30;
+}
+.presenter-app :is(.session-button, .primary-button):hover:not(:disabled) { background: linear-gradient(180deg, #cda9f5, #bd96e8); border-color: #e6ceff99; box-shadow: inset 0 1px 0 #ffffff40; }
+.presenter-app :is(.session-button, .primary-button):active:not(:disabled) { background: #aa7ed5; box-shadow: inset 0 1px 3px #38204730; }
+.presenter-app .button-quiet { background: transparent; border-color: transparent; box-shadow: none; color: #c5bdce; }
+.presenter-app .button-quiet:hover:not(:disabled) { background: #e0caff0a; border-color: transparent; box-shadow: none; color: #f1e8fc; }
+.presenter-app .button-danger:hover:not(:disabled) { background: #f3758612; color: #ffa5b1; }
+.presenter-app :is(.deck-options, .guide-choices) button { background: #ffffff03; border-color: #d8cbe620; box-shadow: none; }
+.presenter-app :is(.deck-options, .guide-choices) button[aria-pressed="true"] { background: #ac83d824; border-color: #b994dd70; color: #ead8ff; box-shadow: var(--button-highlight); }
+.presenter-app .camera-view-options button { border-radius: 5px; background: transparent; border-color: transparent; box-shadow: none; }
+.presenter-app .camera-view-options button[aria-pressed="true"] { background: #342b40; border-color: #ccb2e526; box-shadow: var(--button-highlight); color: #ead8ff; }
+.presenter-app .resource-picker-item { background: transparent; border-color: transparent; box-shadow: none; }
+.presenter-app .resource-picker-item[aria-pressed="true"] { background: #ac83d817; border-color: #b994dd45; box-shadow: none; }
+.presenter-app .custom-key-controls button:first-child { background: #17141e; border-color: #ac98c447; box-shadow: inset 0 1px 0 #ffffff0c, 0 2px 0 #07060b; font-variant-numeric: tabular-nums; }
+.presenter-app .custom-key-controls button.recording { background: #39284d; border-color: #c5a0ff; color: #f0e3ff; box-shadow: none; }
+.presenter-app .permission-list button b { border-radius: 4px; padding: 3px 8px; background: #ffffff07; font-size: 12px; font-weight: 500; }
+.presenter-app button:focus-visible { outline: 2px solid #c5a0ff; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .presenter-app button { transition: none; } }
+
+/* Separate information, selection and execution by structure rather than more boxes. */
+.presenter-app .home-console { border-color: #76618680; border-radius: 10px; overflow: hidden; }
+.presenter-app .preparation-panel { border: 0; border-radius: 0; background: #101016d9; }
+.presenter-app .preparation-heading { background: transparent; border-bottom: 1px solid var(--line); }
+.presenter-app .preparation-profile { background: #1b172180; }
+.presenter-app .preparation-resources { background: #10101680; }
+.presenter-app .resource-picker-item { border: 0; border-left: 2px solid transparent; border-radius: 0; background: transparent; text-align: left; box-shadow: none; }
+.presenter-app .resource-picker-item[aria-pressed="true"] { border-color: var(--accent); background: #b88af110; color: #ecdfff; }
+.presenter-app .resource-picker-item:hover:not(:disabled) { border-color: #b88af170; background: #ffffff06; box-shadow: none; }
+.presenter-app :is(.settings-permissions, .settings-sensitivity) { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: #101016c9; box-shadow: none; backdrop-filter: none; }
+.presenter-app .settings-sensitivity .range-control { max-width: 640px; }
+.presenter-app .keyboard-settings { border: 0; border-radius: 0; background: #101016ed; box-shadow: none; }
+.presenter-app .input-customization-table thead { background: #211a2b; }
+.presenter-app .input-customization-table tbody tr:nth-child(even) { background: #ffffff03; }
+.presenter-app .permission-list button:first-child { background: #ffffff04; border: 1px solid #ffffff14; box-shadow: none; }
+.presenter-app .guide-start { border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.presenter-app .guide-start-steps li > span { font-size: 20px; font-weight: 600; line-height: 1.3; }
+.presenter-app .guide-learn { background: #101016ed; border: 0; border-radius: 0; box-shadow: none; }
+.presenter-app .guide-choices { gap: 16px; border-bottom: 1px solid var(--line); }
+.presenter-app .guide-choices button { background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding-inline: 4px; color: var(--muted); }
+.presenter-app .guide-choices button[aria-pressed="true"] { background: transparent; border-color: var(--accent); color: #ead8ff; box-shadow: none; }
+.presenter-app .guide-choices button:hover:not(:disabled) { background: #ffffff04; color: var(--text); box-shadow: none; }
+.presenter-app .guide-details { background: transparent; }
+.presenter-app .developer-controls { border: 0; border-radius: 0; background: #101016d9; box-shadow: none; }
+.presenter-app .web-runtime-list { display: flex; flex-wrap: wrap; gap: 24px; padding: 16px 0; border-block: 1px solid var(--line); }
+.presenter-app .web-runtime-list > div { display: block; flex: 1 1 120px; border: 0; padding: 0; }
+.presenter-app .web-runtime-list dt { font-size: 12px; color: var(--muted); }
+.presenter-app .web-runtime-list dd { margin: 8px 0 0; font-size: 18px; font-weight: 600; }
+.presenter-app .implementation-status dt span { color: var(--muted); }
+.presenter-app .developer-logs { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: #0c0b11ed; box-shadow: none; }
+.presenter-app .developer-logs .activity-list li { border-bottom: 1px solid #ffffff0b; font-size: 13px; color: var(--muted); }
+@media (max-width: 720px) {
+  .presenter-app .guide-choices { gap: 8px; }
+  .presenter-app .web-runtime-list { gap: 16px; }
+}
+
+/* Larger, deliberate motion selectors; native selection retains keyboard support. */
+.motion-select-field { position: relative; width: 100%; }
+.presenter-app .motion-select-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 48px 0 16px;
+  border: 1px solid #a58bbb55;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff04, transparent), #1c1723;
+  color: #eee5f7;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: normal;
+  box-shadow: inset 0 1px 0 #ffffff09;
+  cursor: pointer;
+  color-scheme: dark;
+}
+.motion-select-field svg { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: #c5a4e9; pointer-events: none; }
+.presenter-app .motion-select-field select:hover { background-color: #292031; border-color: #bb95df99; }
+.presenter-app .motion-select-field select:focus-visible { outline: 2px solid #c5a0ff; outline-offset: 3px; border-color: #c5a0ff; }
+.presenter-app .motion-select-field option { background: #1c1723; color: #eee5f7; font-weight: 400; }
+.presenter-app .custom-key-controls button:first-child { min-height: 48px; }
+
+.presenter-app .preparation-start-actions { display: flex; justify-content: flex-end; margin-top: 24px; }
+.presenter-app .preparation-start-actions .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-width: 120px; min-height: 44px; }
+
+/* Match the real controls to the guide demonstrations. */
+.presenter-app .range-control input[type="range"] {
+  appearance: none; -webkit-appearance: none; min-width: 0; width: 100%;
+  height: 32px; padding: 0; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; cursor: pointer;
+}
+.presenter-app .range-control input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 4px; background: #393044;
+}
+.presenter-app .range-control input[type="range"]::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; width: 14px; height: 14px;
+  margin-top: -5px; border: 0; border-radius: 50%; background: #c5a0ff;
+  box-shadow: 0 0 10px #a777dc55;
+}
+.presenter-app .range-control input[type="range"]::-moz-range-track {
+  height: 4px; border: 0; border-radius: 4px; background: #393044;
+}
+.presenter-app .range-control input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px; border: 0; border-radius: 50%;
+  background: #c5a0ff; box-shadow: 0 0 10px #a777dc55;
+}
+.presenter-app .range-control input[type="range"]:focus-visible {
+  outline: 2px solid #c5a0ff; outline-offset: 5px; border-radius: 6px;
+}
+.presenter-app .range-control strong { color: #d1c8dc; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.presenter-app .web-runtime-list {
+  display: block; padding: 8px 20px; background: #15111c;
+  border: 1px solid #c5a0ff26; border-radius: 10px;
+}
+.presenter-app .web-runtime-list > div {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; min-height: 52px; padding: 12px 0; border-bottom: 1px solid #c5a0ff16;
+}
+.presenter-app .web-runtime-list > div:last-child { border-bottom: 0; }
+.presenter-app .web-runtime-list dt { color: #d1c8dc; font-size: 14px; }
+.presenter-app .web-runtime-list dd {
+  display: flex; align-items: center; gap: 16px; margin: 0;
+  color: #bcb1c8; font-size: 13px; font-weight: 400; text-align: right;
+}
+.runtime-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: #4a3d5b; }
+.runtime-dot.is-on { background: #c5a0ff; box-shadow: 0 0 8px #c5a0ff99; }
+.runtime-dot.is-error { background: #ef9b9b; box-shadow: 0 0 8px #ef9b9b55; }

@@ -1,135 +1,80 @@
-import { useEffect, useState } from "react";
 import type { PresentationController } from "../features/presentation/usePresentationController";
 import { SectionTitle } from "../components/SectionTitle";
+
+const implementation = [
+  ["추가 자료", "URL 새 탭 열기", "파일·앱 유형과 자동 복귀 제거"],
+  ["데모 덱 / PDF", "UI 준비", "유형 선택·파일명 표시만 제공"],
+  ["모션 커스텀", "UI 미리보기", "선택값은 실제 인식 규칙에 미연결"],
+  ["키보드 커스텀", "설정 저장", "키 지정·중복 확인·복원 / 실제 실행 미연결"],
+  ["발표 뷰어", "미연결", "PDF 렌더링·새 발표 창 구현 제외"],
+];
+const cameraLabels = {
+  idle: "꺼짐",
+  requesting: "권한 요청 중",
+  active: "켜짐",
+  error: "연결 오류",
+};
+
 export function DeveloperPage({
   controller: c,
 }: {
   controller: PresentationController;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    void window.motionAPI?.getOverlayLayout?.().then((layout) => {
-      setEditing(layout.editing);
-      setScale(layout.scale);
-    });
-    return () => {
-      void window.motionAPI?.setOverlayEditing(false);
-    };
-  }, []);
-  const {
-    displayMode,
-    changeDisplayMode,
-    displays,
-    selectedDisplayId,
-    setSelectedDisplayId,
-    cameraState,
-    logs,
-    setLogs,
-  } = c;
+  const { cameraState, logs, setLogs } = c;
   return (
     <div className="developer-grid">
       <section className="control-panel developer-controls">
-        <div className="developer-overlay">
-          <SectionTitle title="손 추적 오버레이" />
-          <p>
-            연결된 발표 화면에 손 추적 오버레이를 표시합니다. 표시를 꺼도
-            카메라와 손동작 인식은 유지됩니다.
-          </p>
-          <button
-            role="switch"
-            disabled={!c.isDesktop}
-            aria-checked={displayMode !== "camera"}
-            onClick={() =>
-              void changeDisplayMode(
-                displayMode === "camera" ? "hand-pet" : "camera",
-              )
-            }
-          >
-            손 추적 오버레이 {displayMode === "camera" ? "OFF" : "ON"}
-          </button>
-          <p className="muted">
-            {!c.isDesktop
-              ? "다른 화면 위의 손 추적 오버레이는 데스크톱 앱 전용입니다."
-              : cameraState === "active"
-                ? "카메라가 연결되어 있습니다."
-                : "홈에서 카메라를 켜면 추적을 시작합니다."}
-          </p>
-          <div className="developer-overlay-adjustments">
-            <button
-              disabled={!c.isDesktop || displayMode === "camera"}
-              aria-pressed={editing}
-              onClick={() => {
-                const next = !editing;
-                setEditing(next);
-                void window.motionAPI?.setOverlayEditing(next);
-              }}
-            >
-              {editing ? "오버레이 위치 고정" : "오버레이 위치 조정"}
-            </button>
-            <label className="field">
-              오버레이 크기
-              <input
-                aria-label="오버레이 크기"
-                disabled={!c.isDesktop}
-                type="range"
-                min="0.6"
-                max="1.6"
-                step="0.1"
-                value={scale}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setScale(value);
-                  void window.motionAPI?.setOverlayScale(value);
-                }}
-              />
-            </label>
+        <SectionTitle title="웹 실행 상태" />
+        <p className="muted">
+          현재 브라우저의 상태입니다. 앱 전용 오버레이와 모니터 선택은 사용하지
+          않습니다.
+        </p>
+        <dl className="web-runtime-list">
+          <div>
+            <dt>카메라 연결</dt>
+            <dd>{cameraLabels[cameraState]}<span aria-hidden="true" className={`runtime-dot ${cameraState === "active" ? "is-on" : cameraState === "error" ? "is-error" : ""}`} /></dd>
           </div>
-        </div>
-        <div className="developer-monitor">
-          <SectionTitle index="03C" title="제어 모니터" />
-          <select
-            aria-label="제어 모니터"
-            disabled={!c.isDesktop || !displays.length}
-            value={selectedDisplayId}
-            onChange={(event) => {
-              const id = event.target.value;
-              setSelectedDisplayId(id);
-              void window.motionAPI?.setDisplay(id);
-            }}
-          >
-            {!displays.length && (
-              <option value="">
-                {c.isDesktop
-                  ? "모니터 목록을 불러오지 못했습니다"
-                  : "모니터 선택은 데스크톱 앱에서 지원합니다"}
-              </option>
-            )}
-            {displays.map((display) => (
-              <option key={display.id} value={display.id}>
-                {display.label} {display.primary ? "(주 모니터)" : ""}
-              </option>
+          <div>
+            <dt>손 추적</dt>
+            <dd>{cameraState !== "active" ? "대기" : c.activeTracking.state === "tracking" ? "추적 중" : "손을 보여주세요"}<span aria-hidden="true" className={`runtime-dot ${cameraState === "active" && c.activeTracking.state === "tracking" ? "is-on" : ""}`} /></dd>
+          </div>
+          <div>
+            <dt>모션 제어</dt>
+            <dd>{c.motionOn ? "ON" : "OFF"}<span aria-hidden="true" className={`runtime-dot ${c.motionOn ? "is-on" : ""}`} /></dd>
+          </div>
+          <div>
+            <dt>카메라 표시</dt>
+            <dd>{c.cameraView === "hands" ? "손만 보기" : "전체 화면"}</dd>
+          </div>
+        </dl>
+        <a href="#/settings">입력 설정 확인 →</a>
+        <div className="implementation-status">
+          <SectionTitle title="현재 구현 범위" />
+          <p className="muted">화면 구현과 실제 기능 연결을 구분합니다.</p>
+          <dl>
+            {implementation.map(([name, status, detail]) => (
+              <div key={name}>
+                <dt>
+                  {name}
+                  <span>{status}</span>
+                </dt>
+                <dd>{detail}</dd>
+              </div>
             ))}
-          </select>
-
-          {c.isDesktop && (
-            <button onClick={() => void c.refreshSystemStatus()}>
-              모니터 새로고침
-            </button>
-          )}
-          {c.systemStatusError && <p role="status">{c.systemStatusError}</p>}
-          <p className="muted">
-            시스템 포인터와 레이저 표시가 이동할 모니터입니다.
-          </p>
+          </dl>
         </div>
       </section>
       <section className="control-panel developer-logs">
         <div className="resource-heading">
           <SectionTitle title="실행 로그" />
-          <button disabled={!logs.length} onClick={() => setLogs([])}>
+          <button className="button-quiet" disabled={!logs.length} onClick={() => setLogs([])}>
             실행 이력 지우기
           </button>
         </div>
+        <p className="muted">
+          이 화면에서 발생한 실행 이력입니다. 외부 사이트의 제어 성공 여부를
+          뜻하지 않습니다.
+        </p>
         {logs.length ? (
           <ol className="activity-list" aria-live="polite">
             {logs.map((log, index) => (

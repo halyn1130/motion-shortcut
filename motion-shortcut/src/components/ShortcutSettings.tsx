@@ -4,6 +4,7 @@ import { FIXED_ACTIONS } from "../features/presentation/usePresentationControlle
 import {
   ACTION_LABELS,
   GESTURE_OPTIONS,
+  type GesturePattern,
   type KeyShortcut,
   type PresentationAction,
 } from "../features/presentation/types";
@@ -18,108 +19,184 @@ export function ShortcutSettings({
   controller: PresentationController;
 }) {
   const [recording, setRecording] = useState<PresentationAction | null>(null);
+  const [motionDraft, setMotionDraft] = useState(c.profile.mappings);
   const [message, setMessage] = useState("");
   return (
-    <section className="control-panel">
-      <h2>기본 모션 · 커스텀키</h2>
+    <section
+      className="control-panel keyboard-settings"
+      aria-labelledby="keyboard-settings-title"
+    >
+      <h2 id="keyboard-settings-title">모션 · 키보드 커스텀</h2>
       <p>
-        키 지정 버튼을 누르고 원하는 키 조합을 입력하세요. ⌘·⌃·⌥·⇧ 조합도 사용할
-        수 있습니다. Tab은 다음 항목으로 이동합니다.
+        기능별 모션과 키보드를 나란히 설정하세요. 모션 선택은 UI 미리보기이며,
+        키보드 실행 기능은 추후 연결됩니다.
       </p>
-      <div className="shortcut-list">
-        {FIXED_ACTIONS.map((action) => {
-          const shortcut = c.profile.shortcuts[action] ?? {
-            key: DEFAULT_KEYS[action]!,
-            modifiers: [],
-          };
-          return (
-            <div className="shortcut-row" key={action}>
-              <div>
-                <strong>{ACTION_LABELS[action]}</strong>
-                <span>
-                  {
-                    GESTURE_OPTIONS.find(
-                      (item) => item.id === c.profile.mappings[action],
-                    )?.label
-                  }
-                </span>
-              </div>
-              <button
-                className={recording === action ? "recording" : ""}
-                aria-label={`${ACTION_LABELS[action]} 키 지정`}
-                aria-pressed={recording === action}
-                onClick={() => {
-                  setRecording(action);
-                  setMessage("변경할 키 조합을 누르세요.");
-                }}
-                onBlur={() => setRecording(null)}
-                onKeyDown={(event) => {
-                  if (recording !== action || event.key === "Tab") return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  const key =
-                    event.key === " "
-                      ? "Space"
-                      : event.key.length === 1
-                        ? event.key.toLowerCase()
-                        : event.key;
-                  if (["Meta", "Control", "Alt", "Shift"].includes(key)) return;
-                  if (!supportedKey(key)) {
-                    setMessage(
-                      "영문·숫자·방향키·Space·Enter·Escape·Backspace를 사용하세요.",
-                    );
-                    return;
-                  }
-                  const modifiers: KeyShortcut["modifiers"] = [];
-                  if (event.metaKey) modifiers.push("Meta");
-                  if (event.ctrlKey) modifiers.push("Control");
-                  if (event.altKey) modifiers.push("Alt");
-                  if (event.shiftKey) modifiers.push("Shift");
-                  c.updateProfile({
-                    ...c.profile,
-                    shortcuts: {
-                      ...c.profile.shortcuts,
-                      [action]: { key, modifiers },
-                    },
-                  });
-                  setRecording(null);
-                  setMessage(
-                    `${ACTION_LABELS[action]}: ${formatShortcut({ key, modifiers })} 저장됨`,
-                  );
-                }}
-              >
-                {recording === action
-                  ? "키 입력 대기…"
-                  : formatShortcut(shortcut)}
-              </button>
-              <button
-                aria-label={`${ACTION_LABELS[action]} 기본키 복원`}
-                disabled={!c.profile.shortcuts[action]}
-                onClick={() => {
-                  const shortcuts = { ...c.profile.shortcuts };
-                  delete shortcuts[action];
-                  c.updateProfile({ ...c.profile, shortcuts });
-                  setMessage("기본키로 복원했습니다.");
-                }}
-              >
-                복원
-              </button>
-              <button
-                aria-label={`${ACTION_LABELS[action]} 테스트`}
-                disabled={!c.isDesktop}
-                onClick={() => void c.executeAction(action)}
-              >
-                테스트
-              </button>
-            </div>
-          );
-        })}
+      <div
+        className="input-customization-scroll"
+        role="region"
+        aria-label="모션과 키보드 설정 표"
+        tabIndex={0}
+      >
+        <table className="input-customization-table">
+          <thead>
+            <tr>
+              <th scope="col">기능</th>
+              <th scope="col">모션 커스텀</th>
+              <th scope="col">키보드 커스텀</th>
+            </tr>
+          </thead>
+          <tbody>
+            {FIXED_ACTIONS.map((action) => {
+              const shortcut = c.profile.shortcuts[action] ?? {
+                key: DEFAULT_KEYS[action]!,
+                modifiers: [],
+              };
+              return (
+                <tr key={action}>
+                  <th scope="row">{ACTION_LABELS[action]}</th>
+                  <td>
+                    <div className="motion-select-field">
+                      <select
+                        aria-label={`${ACTION_LABELS[action]} 모션 선택`}
+                        value={motionDraft[action]}
+                        onChange={(event) =>
+                          setMotionDraft({
+                            ...motionDraft,
+                            [action]: event.target.value as GesturePattern,
+                          })
+                        }
+                      >
+                        {GESTURE_OPTIONS.map((gesture) => (
+                          <option key={gesture.id} value={gesture.id}>
+                            {gesture.label}
+                          </option>
+                        ))}
+                      </select>
+                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path
+                          d="m6 8 4 4 4-4"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="custom-key-controls">
+                      <button
+                        className={recording === action ? "recording" : ""}
+                        aria-label={`${ACTION_LABELS[action]} 키 지정`}
+                        aria-pressed={recording === action}
+                        onClick={() => {
+                          setRecording(action);
+                          setMessage("변경할 키 조합을 누르세요.");
+                        }}
+                        onBlur={() => setRecording(null)}
+                        onKeyDown={(event) => {
+                          if (recording !== action || event.key === "Tab")
+                            return;
+                          event.preventDefault();
+                          event.stopPropagation();
+                          const key =
+                            event.key === " "
+                              ? "Space"
+                              : event.key.length === 1
+                                ? event.key.toLowerCase()
+                                : event.key;
+                          if (["Meta", "Control", "Alt", "Shift"].includes(key))
+                            return;
+                          if (!supportedKey(key)) {
+                            setMessage(
+                              "영문·숫자·방향키·Space·Enter·Escape·Backspace를 사용하세요.",
+                            );
+                            return;
+                          }
+                          const modifiers: KeyShortcut["modifiers"] = [];
+                          if (event.metaKey) modifiers.push("Meta");
+                          if (event.ctrlKey) modifiers.push("Control");
+                          if (event.altKey) modifiers.push("Alt");
+                          if (event.shiftKey) modifiers.push("Shift");
+                          if (event.metaKey || event.ctrlKey || event.altKey) {
+                            setMessage(
+                              "브라우저 단축키와 겹치지 않도록 일반 키 또는 Shift 조합을 사용하세요.",
+                            );
+                            return;
+                          }
+                          const conflict = FIXED_ACTIONS.some(
+                            (other) =>
+                              other !== action &&
+                              formatShortcut(
+                                c.profile.shortcuts[other] ?? {
+                                  key: DEFAULT_KEYS[other]!,
+                                  modifiers: [],
+                                },
+                              ) === formatShortcut({ key, modifiers }),
+                          );
+                          if (conflict) {
+                            setMessage(
+                              "다른 기능에 지정된 키입니다. 다른 키를 선택하세요.",
+                            );
+                            return;
+                          }
+                          c.updateProfile({
+                            ...c.profile,
+                            shortcuts: {
+                              ...c.profile.shortcuts,
+                              [action]: { key, modifiers },
+                            },
+                          });
+                          setRecording(null);
+                          setMessage(
+                            `${ACTION_LABELS[action]}: ${formatShortcut({ key, modifiers })} 저장됨`,
+                          );
+                        }}
+                      >
+                        {recording === action
+                          ? "키 입력 대기…"
+                          : formatShortcut(shortcut)}
+                      </button>
+                      <button
+                        className="button-quiet"
+                        aria-label={`${ACTION_LABELS[action]} 기본키 복원`}
+                        disabled={!c.profile.shortcuts[action]}
+                        onClick={() => {
+                          const defaultKey = DEFAULT_KEYS[action];
+                          if (
+                            FIXED_ACTIONS.some(
+                              (other) =>
+                                other !== action &&
+                                c.profile.shortcuts[other]?.key ===
+                                  defaultKey &&
+                                c.profile.shortcuts[other]?.modifiers.length ===
+                                  0,
+                            )
+                          ) {
+                            setMessage(
+                              "기본키가 다른 기능에 사용 중입니다. 해당 기능의 키를 먼저 바꾸세요.",
+                            );
+                            return;
+                          }
+                          const shortcuts = { ...c.profile.shortcuts };
+                          delete shortcuts[action];
+                          c.updateProfile({ ...c.profile, shortcuts });
+                          setMessage("기본키로 복원했습니다.");
+                        }}
+                      >
+                        복원
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
       <p role="status" className="settings-message">
         {message ||
-          (c.isDesktop
-            ? "설정은 현재 발표 프로필에 자동 저장됩니다. 테스트는 실제 발표 앱에 입력을 전달합니다."
-            : "커스텀키의 실제 입력 테스트는 데스크톱 앱에서 지원합니다.")}
+          "키 버튼을 누른 뒤 원하는 키를 입력하세요. 키 설정은 프로필에 저장됩니다."}
       </p>
     </section>
   );

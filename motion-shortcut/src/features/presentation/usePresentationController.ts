@@ -243,12 +243,7 @@ export function usePresentationController() {
         addLog(`${ACTION_LABELS[action]} 실패 · 등록된 자료가 없습니다.`);
         return;
       }
-      const result = await window.motionAPI?.openPresentationResource(resource);
-      addLog(
-        result?.ok
-          ? `${resource.name} 열기 성공`
-          : `${resource.name} 열기 실패 · ${result?.error ?? "Electron에서 실행하세요."}`,
-      );
+      await openResource(resource);
       return;
     }
     const result = await window.motionAPI?.executePresentationCommand(
@@ -267,28 +262,15 @@ export function usePresentationController() {
   const openResource = async (
     resource: PresentationProfile["resources"][number],
   ) => {
-    if (!resource.value) {
-      addLog(`${resource.name} 실패 · 등록된 자료가 없습니다.`);
-      return;
-    }
-    if (!window.motionAPI) {
-      if (resource.kind !== "url" || !detectWebPresentation(resource.value)) {
-        addLog(
-          "웹에서는 http/https 링크 자료만 열 수 있습니다. 파일·앱 실행은 데스크톱 앱에서 지원합니다.",
-        );
-        return;
-      }
-      window.open(resource.value, "_blank", "noopener,noreferrer");
-      addLog(
-        `${resource.name} 새 탭 열기 요청 · 팝업 차단 시 브라우저 설정을 확인하세요.`,
+    if (resource.kind !== "url" || !detectWebPresentation(resource.value)) {
+      setPresentationLinkStatus(
+        "http/https 형식의 추가 자료 URL을 입력하세요.",
       );
       return;
     }
-    const result = await window.motionAPI.openPresentationResource(resource);
-    addLog(
-      result?.ok
-        ? `${resource.name} 열기 성공`
-        : `${resource.name} 열기 실패 · ${result?.error ?? "Electron에서 실행하세요."}`,
+    window.open(resource.value, "_blank", "noopener,noreferrer");
+    setPresentationLinkStatus(
+      `${resource.name} 새 탭 열기 요청 · 추가 자료는 제어하지 않습니다.`,
     );
   };
 
@@ -309,46 +291,10 @@ export function usePresentationController() {
     return id;
   };
 
-  const setPresentationLink = async () => {
-    const detected = detectWebPresentation(profile.presentationUrl);
-    if (!detected) {
-      setPresentationLinkStatus(
-        "https://로 시작하는 올바른 링크를 입력하세요.",
-      );
-      return;
-    }
-    updateProfile({ ...profile, app: detected.app });
-    if (!window.motionAPI) {
-      window.open(profile.presentationUrl, "_blank", "noopener,noreferrer");
-      const message =
-        "새 탭 열기를 요청했습니다. 열리지 않으면 팝업 차단을 확인하세요. 외부 사이트 손동작 제어는 데스크톱 앱에서 지원합니다.";
-      setPresentationLinkStatus(message);
-      addLog(message);
-      return;
-    }
-    const result = await window.motionAPI.openPresentationUrl(
-      profile.presentationUrl,
-    );
-    const message = result?.ok
-      ? `${detected.label} 링크를 제어 대상으로 지정했습니다.`
-      : `링크를 열지 못했습니다 · ${result?.error ?? "Electron에서 실행하세요."}`;
-    setPresentationLinkStatus(message);
-    addLog(message);
-  };
-
   const startPresentationSession = async () => {
     const ready = await startCamera();
     if (!ready) return;
     await setPresentationMode("slide");
-    if (window.motionAPI && profile.presentationUrl) {
-      const result = await window.motionAPI?.openPresentationUrl(
-        profile.presentationUrl,
-      );
-      if (!result?.ok) {
-        addLog(`발표 링크 열기 실패 · ${result?.error}`);
-        return;
-      }
-    }
     const enabled = window.motionAPI
       ? await window.motionAPI.setMotionEnabled(true)
       : true;
@@ -652,7 +598,6 @@ export function usePresentationController() {
     executeAction,
     openResource,
     addResource,
-    setPresentationLink,
     startPresentationSession,
     endPresentationSession,
     refreshSystemStatus,
