@@ -2568,3 +2568,6 @@
 
 /* Keep grain and artwork blur, without filtering the entire scrolling viewport. */
 .presenter-app::after { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+.presenter-app .home-console-toolbar { justify-content: flex-end; }
+.presenter-app .home-console-toolbar .camera-controls-group { margin-left: auto; justify-content: flex-end; }

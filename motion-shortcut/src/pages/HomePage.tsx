@@ -21,9 +21,6 @@ export function HomePage({
     stopCamera,
     motionOn,
     sessionStartedAt,
-    sessionElapsed,
-    startPresentationSession,
-    endPresentationSession,
   } = c;
   const cameraStatus =
     cameraState === "active"
@@ -33,9 +30,6 @@ export function HomePage({
         : cameraState === "error"
           ? "카메라 연결 오류"
           : "카메라 꺼짐";
-  const elapsed = `${Math.floor(sessionElapsed / 60)
-    .toString()
-    .padStart(2, "0")}:${(sessionElapsed % 60).toString().padStart(2, "0")}`;
   return (
     <div className="home-workspace">
       <section
@@ -155,23 +149,7 @@ export function HomePage({
                   : "카메라 켜기"}
             </button>
           </div>
-          <div className="session-controls">
-            <button
-              className="session-button"
-              disabled={cameraState === "requesting"}
-              onClick={() =>
-                void (sessionStartedAt && motionOn
-                  ? endPresentationSession()
-                  : startPresentationSession())
-              }
-            >
-              {sessionStartedAt
-                ? motionOn
-                  ? `발표 종료 ${elapsed}`
-                  : "발표 재개"
-                : "발표 시작"}
-            </button>
-          </div>
+
         </div>
       </section>
       <PresentationPreparation controller={c} />
