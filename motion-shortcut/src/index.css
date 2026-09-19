@@ -33,6 +33,25 @@ body:not(.overlay-page):not(.keyboard-page) {
     radial-gradient(circle at 86% 2%, #26343d24 0, transparent 28%),
     radial-gradient(circle at 6% 95%, #4e151b0a 0, transparent 18%), #050709;
 }
+/* 메인 앱은 최소 1100×720(App.css .presenter-app). 더 작은 창에서는 겹침 대신 스크롤. */
+html:not(.overlay-page):not(.keyboard-page):not(.laser-page),
+html:not(.overlay-page):not(.keyboard-page):not(.laser-page) body {
+  overflow: auto;
+}
+@media (max-width: 720px) {
+  html:not(.overlay-page):not(.keyboard-page):not(.laser-page) body::before {
+    content: "데스크톱 브라우저에서 열어 주세요";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 1000;
+    padding: 8px 16px;
+    background: #b794ff;
+    color: #171025;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+}
 .overlay-page,
 .overlay-page body,
 .overlay-page #root {
