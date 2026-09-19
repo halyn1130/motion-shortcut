@@ -2561,3 +2561,10 @@
 .runtime-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: #4a3d5b; }
 .runtime-dot.is-on { background: #c5a0ff; box-shadow: 0 0 8px #c5a0ff99; }
 .runtime-dot.is-error { background: #ef9b9b; box-shadow: 0 0 8px #ef9b9b55; }
+
+/* Landmark graphic: keep joints legible at the resting camera size. */
+.presenter-app .home-console .standby-hand { width: 176px; height: 176px; opacity: 1; }
+@media (max-width: 720px) { .presenter-app .home-console .standby-hand { width: 128px; height: 128px; } }
+
+/* Keep grain and artwork blur, without filtering the entire scrolling viewport. */
+.presenter-app::after { -webkit-backdrop-filter: none; backdrop-filter: none; }

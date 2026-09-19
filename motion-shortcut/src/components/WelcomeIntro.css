@@ -1,0 +1,32 @@
+.welcome-intro { position: fixed; inset: 0; z-index: 10000; overflow: hidden; color: #eee8f6; background: radial-gradient(ellipse at 50% 64%, #332146 0, #13101d 42%, #09090f 76%); animation: intro-exit 2s linear both; }
+.intro-wordmark { position: absolute; top: 32px; left: 40px; font-size: 14px; letter-spacing: .3em; }
+.intro-stage { position: absolute; inset: 12% 0 15%; display: grid; place-items: center; perspective: 1400px; }
+.intro-laptop { width: min(640px, 70vw); position: relative; transform-style: preserve-3d; transform: rotateX(5deg) rotateY(-10deg) rotateZ(-2deg); animation: intro-device 2s cubic-bezier(.2,.7,.2,1) both; z-index: 1; }
+.intro-lid { padding: 12px; border-radius: 18px 18px 7px 7px; background: linear-gradient(125deg,#8b8393,#29252f 8%,#101015 80%,#78717f); border: 1px solid #b4a4c066; box-shadow: 0 18px 70px #0009; }
+.intro-display { position: relative; aspect-ratio: 16/10; border-radius: 7px; overflow: hidden; background: #efebf4; color: #20172c; }
+.intro-display-bar, .intro-slide-footer { position: absolute; left: 5%; right: 5%; display: flex; justify-content: space-between; font-size: clamp(6px, .7vw, 10px); letter-spacing: .06em; z-index: 2; }
+.intro-display-bar { top: 6%; }.intro-slide-footer { bottom: 6%; }
+.intro-slide-track { display: flex; width: 200%; height: 100%; animation: intro-slides 2s cubic-bezier(.65,0,.25,1) both; }
+.intro-slide { width: 50%; flex-shrink: 0; padding: 8% 3% 4%; position: relative; overflow: hidden; }
+.intro-eyebrow { font-size: clamp(5px,.7vw,10px); letter-spacing: .1em; position: relative; z-index: 1; }
+.intro-slide strong { position: relative; z-index: 1; display: block; margin-top: 4%; font-size: clamp(24px,4.1vw,58px); line-height: .98; letter-spacing: -.055em; font-weight: 750; }
+.intro-slide em { color: #76509d; font-style: normal; }
+.intro-orbit { position: absolute; width: 34%; right: -2%; top: 22%; opacity: .25; transform: rotate(-12deg); }
+.intro-orbit img { width: 100%; }
+.intro-hand { position: absolute; right: -2%; top: 19%; height: 72%; opacity: .65; }
+.intro-pointer { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: #9360c5; box-shadow: 0 0 0 6px #9360c522; left: 68%; top: 65%; animation: intro-point 2s ease-in-out both; }
+.intro-deck { position: absolute; top: calc(100% - 1px); left: -7%; width: 114%; height: 25%; transform-origin: top; transform: rotateX(62deg); border: 1px solid #b5aabd66; border-radius: 2px 2px 12px 12px; background: linear-gradient(170deg,#77717e,#39343f 65%,#96889e); }
+.intro-keys { margin: 4% auto 0; width: 82%; height: 43%; border-radius: 3px; background: repeating-linear-gradient(90deg,transparent 0 5%,#66606e 5% 6%),repeating-linear-gradient(0deg,#18161e 0 22%,#66606e 22% 26%); }
+.intro-trackpad { margin: 2% auto; width: 23%; height: 30%; border: 1px solid #aaa0b16b; border-radius: 3px; }
+.intro-laptop-edge { position: absolute; top: 111%; left: -7%; width: 114%; height: 5px; border-radius: 0 0 80% 80%; background: #5d5565; }
+.intro-floor { position: absolute; width: 65%; height: 12%; bottom: 6%; border-radius: 50%; background: #050509; filter: blur(30px); opacity: .6; }
+.intro-caption { position: absolute; bottom: 8%; width: 100%; text-align: center; font-size: clamp(13px,1.4vw,19px); color: #d3c3e3; letter-spacing: .015em; animation: intro-copy 2s ease both; }
+@keyframes intro-device { 0% { opacity: 0; transform: translateY(25px) rotateX(10deg) rotateY(-19deg) rotateZ(-3deg) scale(.94); } 22% { opacity: 1; } 100% { opacity: 1; transform: translateY(-6px) rotateX(3deg) rotateY(-5deg) rotateZ(-1deg) scale(1); } }
+@keyframes intro-slides { 0%,40% { transform: translateX(0); } 66%,100% { transform: translateX(-50%); } }
+@keyframes intro-point { 0%,16% { opacity: 0; transform: translate(-60px,15px); } 30%,40% { opacity: 1; transform: translate(0,0); } 70%,100% { opacity: 1; transform: translate(35px,-30px); } }
+@keyframes intro-copy { 0%,12% { opacity: 0; transform: translateY(8px); } 30%,100% { opacity: 1; transform: translateY(0); } }
+@keyframes intro-exit { 0%,87% { opacity: 1; } 100% { opacity: 0; } }
+@media(max-width:600px) { .intro-laptop { width: 86vw; } .intro-wordmark { left: 20px; top: 30px; } .intro-caption { padding: 0 22px; bottom: 18%; } .intro-lid { padding: 7px; border-radius: 10px; } .intro-slide strong { font-size: clamp(24px,7vw,42px); } }
+@media(prefers-reduced-motion:reduce) { .welcome-intro { display: none; } .welcome-intro * { animation: none; } }
+
+.intro-hand { opacity: 1; }

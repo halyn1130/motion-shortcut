@@ -64,7 +64,7 @@ export function HomePage({
               <div className="camera-empty">
                 <img
                   className="standby-hand"
-                  src="./assets/adam-hand-field.svg"
+                  src="./assets/adam-hand-wireframe-3d.png"
                   alt=""
                   aria-hidden="true"
                 />

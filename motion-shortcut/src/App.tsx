@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
+import { useSmoothWheel } from "./hooks/useSmoothWheel";
+import { WelcomeIntro } from "./components/WelcomeIntro";
 import { usePresentationController } from "./features/presentation/usePresentationController";
 import { HomePage } from "./pages/HomePage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -27,6 +29,15 @@ function readPage(): Page {
 }
 export default function App() {
   const c = usePresentationController();
+  const [introVisible, setIntroVisible] = useState(
+    () => !!window.matchMedia && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useSmoothWheel(!introVisible);
+  const finishIntro = useCallback(() => {
+    const restoreFocus = document.activeElement?.closest(".welcome-intro");
+    setIntroVisible(false);
+    if (restoreFocus) requestAnimationFrame(() => heading.current?.focus());
+  }, []);
   const [page, setPage] = useState<Page>(readPage);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -38,7 +49,9 @@ export default function App() {
     return () => window.removeEventListener("hashchange", change);
   }, []);
   return (
-    <div className={`presenter-app is-${page}`}>
+    <>
+    {introVisible && <WelcomeIntro onDone={finishIntro} />}
+    <div inert={introVisible} className={`presenter-app is-${page}`}>
       <a
         className="skip-link"
         href="#page-title"
@@ -192,5 +205,6 @@ export default function App() {
         </div>
       </footer>
     </div>
+    </>
   );
 }
