@@ -36,8 +36,8 @@ describe("Flickey 발표 인터페이스", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "발표 시작" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "모션 OFF" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "전체 화면" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "손만 보기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "전체 화면" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "손만 보기" })).toBeEnabled();
     expect(screen.getByText("발표 제어 센터")).toBeVisible();
   });
 
@@ -138,7 +138,7 @@ describe("Flickey 발표 인터페이스", () => {
     await userEvent.click(screen.getByRole("button", { name: "손만 보기" }));
     await userEvent.click(screen.getByRole("button", { name: "카메라 끄기" }));
     expect(stopTrack).toHaveBeenCalledOnce();
-    expect(screen.getByRole("button", { name: "손만 보기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "손만 보기" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "모션 OFF" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "카메라 켜기" }));
     expect(screen.getByRole("button", { name: "손만 보기" })).toHaveAttribute(
@@ -184,13 +184,13 @@ describe("Flickey 발표 인터페이스", () => {
       "true",
     );
     await userEvent.click(screen.getByRole("button", { name: "손만 보기" }));
-    expect(localStorage.getItem("flickey.camera-view.v1")).toBeNull();
+    expect(localStorage.getItem("flickey.camera-view.v1")).toBe("hands");
     await userEvent.click(screen.getByRole("button", { name: "카메라 켜기" }));
     await userEvent.click(screen.getByRole("button", { name: "손만 보기" }));
     await userEvent.click(screen.getByRole("button", { name: "카메라 끄기" }));
     initial.unmount();
     render(<App />);
-    expect(screen.getByRole("button", { name: "손만 보기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "손만 보기" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "손만 보기" })).toHaveAttribute(
       "aria-pressed",
       "true",

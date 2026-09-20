@@ -35,6 +35,42 @@ describe("web and desktop runtime boundaries", () => {
     vi.restoreAllMocks();
     delete window.motionAPI;
   });
+  it("demo isolates all native commands and supports five slides, blackout, pointer and emergency stop", async () => {
+    const native = vi.fn(() => { throw new Error("Demo must never call the native bridge"); });
+    window.motionAPI = new Proxy({}, { get: () => native }) as NonNullable<typeof window.motionAPI>;
+    const stop = vi.fn();
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue({ getTracks: () => [{ stop }] } as unknown as MediaStream);
+    const { result } = renderHook(() => usePresentationController("demo"));
+    await act(async () => { await result.current.toggleMotion(); });
+    await act(async () => { await result.current.executeAction("black-screen"); });
+    expect(result.current.rehearsalBlack).toBe(true);
+    await act(async () => { (tracking.args[5] as (g: string) => void)("swipe-right"); });
+    expect(result.current.rehearsalSlide).toBe(2);
+    expect(result.current.rehearsalBlack).toBe(false);
+    await act(async () => { for (let i = 0; i < 8; i++) await result.current.executeAction("next-slide"); });
+    expect(result.current.rehearsalSlide).toBe(5);
+    await act(async () => { await result.current.setPresentationMode("cursor"); });
+    act(() => { (tracking.args[7] as (p: { x: number; y: number }) => void)({ x: .5, y: .5 }); });
+    act(() => { (tracking.args[8] as () => void)(); });
+    expect(result.current.rehearsalClicks).toBe(1);
+    act(() => { (tracking.args[10] as () => void)(); });
+    expect(result.current.motionOn).toBe(false);
+    await act(async () => { await result.current.stopCamera(); });
+    expect(stop).toHaveBeenCalled();
+    expect(native).not.toHaveBeenCalled();
+  });
+  it("stops a pending camera request when the home camera is handed off", async () => {
+    let resolve!: (stream: MediaStream) => void;
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(new Promise(r => { resolve = r; }));
+    const stop = vi.fn();
+    const { result } = renderHook(() => usePresentationController("demo"));
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.startCamera(); });
+    await act(async () => { await result.current.stopCamera(); });
+    await act(async () => { resolve({ getTracks: () => [{ stop }] } as unknown as MediaStream); await pending; });
+    expect(stop).toHaveBeenCalled();
+    expect(result.current.cameraState).toBe("idle");
+  });
   it("web motion toggles without a desktop bridge and gestures update only the sample", async () => {
     const { result } = renderHook(usePresentationController);
     await act(async () => {
@@ -178,7 +214,6 @@ describe("web and desktop runtime boundaries", () => {
     );
   });
   it("desktop refresh still updates permissions when display enumeration fails", async () => {
-    const { result, unmount } = renderHook(usePresentationController);
     const getPermissions = vi.fn().mockResolvedValue({
       camera: "granted",
       screen: "restricted",
@@ -190,7 +225,14 @@ describe("web and desktop runtime boundaries", () => {
     window.motionAPI = {
       getPermissions,
       getDisplays,
+      getMotionEnabled: vi.fn().mockResolvedValue(false),
+      getPresentationMode: vi.fn().mockResolvedValue("slide"),
+      getCursorSensitivity: vi.fn().mockResolvedValue(1),
+      onMotionChanged: vi.fn(), onCameraChanged: vi.fn(),
+      onPresentationModeChanged: vi.fn(), onCursorSensitivityChanged: vi.fn(),
+      setOverlayMode: vi.fn(),
     } as unknown as NonNullable<typeof window.motionAPI>;
+    const { result, unmount } = renderHook(usePresentationController);
     await act(async () => {
       await result.current.refreshSystemStatus();
     });

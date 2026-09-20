@@ -60,8 +60,9 @@ export const FIXED_ACTIONS: PresentationAction[] = [
   "exit-presentation",
 ];
 
-export function usePresentationController() {
-  const isDesktop = Boolean(window.motionAPI);
+export function usePresentationController(target: "external" | "demo" = "external") {
+  const api = target === "demo" ? undefined : window.motionAPI;
+  const isDesktop = Boolean(api);
   const [rehearsalSlide, setRehearsalSlide] = useState(1);
   const [rehearsalBlack, setRehearsalBlack] = useState(false);
   const [rehearsalClicks, setRehearsalClicks] = useState(0);
@@ -90,7 +91,6 @@ export function usePresentationController() {
       : "camera",
   );
   const changeCameraView = (next: "camera" | "hands") => {
-    if (!streamRef.current) return;
     setCameraView(next);
     localStorage.setItem("flickey.camera-view.v1", next);
   };
@@ -155,12 +155,17 @@ export function usePresentationController() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+      if (request !== cameraRequestRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return false;
+      }
       setCameraState("active");
       setPermissions((p) => ({ ...p, camera: "granted" }));
-      await window.motionAPI?.setCameraEnabled(true);
+      await api?.setCameraEnabled(true);
       addLog("카메라 연결 완료");
       return true;
     } catch (error) {
+      if (request !== cameraRequestRef.current) return false;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       const message =
@@ -190,24 +195,25 @@ export function usePresentationController() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    await window.motionAPI?.setCameraEnabled(false);
     setCameraState("idle");
     setMotionOn(false);
     setSessionStartedAt(null);
+    await api?.setMotionEnabled(false);
+    await api?.setCameraEnabled(false);
     addLog("카메라 OFF · 모션 안전 정지");
   };
 
   const toggleMotion = async () => {
     if (motionOn) {
-      await window.motionAPI?.setMotionEnabled(false);
+      await api?.setMotionEnabled(false);
       setMotionOn(false);
       addLog("모션 OFF");
       return;
     }
     const cameraReady = await startCamera();
     if (!cameraReady) return;
-    const enabled = window.motionAPI
-      ? await window.motionAPI.setMotionEnabled(true)
+    const enabled = api
+      ? await api.setMotionEnabled(true)
       : true;
     setMotionOn(Boolean(enabled));
     addLog(enabled ? "모션 ON" : "모션을 켜지 못했습니다.");
@@ -215,7 +221,7 @@ export function usePresentationController() {
 
   const setPresentationMode = async (next: PresentationMode) => {
     next = next === "laser" ? "cursor" : next;
-    const result = await window.motionAPI?.setPresentationMode(next);
+    const result = await api?.setPresentationMode(next);
     if (!result) {
       setMode(next);
       return;
@@ -229,14 +235,19 @@ export function usePresentationController() {
   };
 
   const executeAction = async (action: PresentationAction) => {
-    if (!window.motionAPI) {
-      if (action === "next-slide") setRehearsalSlide((n) => Math.min(3, n + 1));
+    if (!api) {
+      if (action === "next-slide" || action === "previous-slide") setRehearsalBlack(false);
+      if (action === "next-slide") setRehearsalSlide((n) => Math.min(target === "demo" ? 5 : 3, n + 1));
       if (action === "previous-slide")
         setRehearsalSlide((n) => Math.max(1, n - 1));
       if (action === "black-screen") setRehearsalBlack((b) => !b);
       if (action === "exit-presentation") {
         setMotionOn(false);
         setSessionStartedAt(null);
+        if (target === "demo") {
+          await stopCamera();
+          window.close();
+        }
       }
       const message = `웹 리허설 · ${ACTION_LABELS[action]}`;
       setRehearsalMessage(message);
@@ -252,7 +263,7 @@ export function usePresentationController() {
       await openResource(resource);
       return;
     }
-    const result = await window.motionAPI?.executePresentationCommand(
+    const result = await api?.executePresentationCommand(
       action,
       profile.app,
       profile.presentationUrl,
@@ -302,8 +313,8 @@ export function usePresentationController() {
     const ready = await startCamera();
     if (!ready) return;
     await setPresentationMode("slide");
-    const enabled = window.motionAPI
-      ? await window.motionAPI.setMotionEnabled(true)
+    const enabled = api
+      ? await api.setMotionEnabled(true)
       : true;
     setMotionOn(Boolean(enabled));
     if (!enabled) {
@@ -334,7 +345,7 @@ export function usePresentationController() {
 
   const refreshSystemStatus = useCallback(async () => {
     setSystemStatusError("");
-    if (!window.motionAPI) {
+    if (!api) {
       let camera = streamRef.current ? "granted" : "unknown";
       try {
         const result = await navigator.permissions.query({
@@ -352,8 +363,8 @@ export function usePresentationController() {
       return;
     }
     const [permissionResult, displayResult] = await Promise.allSettled([
-      window.motionAPI.getPermissions(),
-      window.motionAPI.getDisplays(),
+      api.getPermissions(),
+      api.getDisplays(),
     ]);
     if (permissionResult.status === "fulfilled")
       setPermissions(permissionResult.value);
@@ -375,14 +386,14 @@ export function usePresentationController() {
         "일부 시스템 정보를 가져오지 못했습니다. 다시 새로고침하거나 앱을 재실행하세요.",
       );
     }
-  }, []);
+  }, [api]);
 
   const requestPermission = async (
     permission: "camera" | "accessibility" | "screen",
   ) => {
     try {
-      if (window.motionAPI)
-        await window.motionAPI.openPermissionSettings(permission);
+      if (api)
+        await api.openPermissionSettings(permission);
       else if (permission === "camera") {
         if (streamRef.current) {
           await refreshSystemStatus();
@@ -417,7 +428,7 @@ export function usePresentationController() {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", visible);
     };
-  }, [refreshSystemStatus]);
+  }, [api, refreshSystemStatus]);
 
   const handleGesture = (gesture: MotionGestureId) => {
     if (gesture === "toggle-motion") {
@@ -443,7 +454,7 @@ export function usePresentationController() {
         addLog("먼저 V 사인으로 실행할 자료를 선택하세요.");
         return;
       }
-      if (!window.motionAPI) {
+      if (!api) {
         const message = `웹 리허설 · ${selected.name} 실행 동작 감지. 실제 링크는 자료 열기 버튼으로 여세요.`;
         setRehearsalMessage(message);
         addLog(message);
@@ -458,10 +469,10 @@ export function usePresentationController() {
 
   useEffect(() => {
     const subscriptions: Array<void | (() => void)> = [];
-    void window.motionAPI?.getMotionEnabled().then(setMotionOn);
-    subscriptions.push(window.motionAPI?.onMotionChanged(setMotionOn));
+    void api?.getMotionEnabled().then(setMotionOn);
+    subscriptions.push(api?.onMotionChanged(setMotionOn));
     subscriptions.push(
-      window.motionAPI?.onCameraChanged((enabled) => {
+      api?.onCameraChanged((enabled) => {
         if (enabled) return;
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -471,10 +482,10 @@ export function usePresentationController() {
         setSessionStartedAt(null);
       }),
     );
-    void window.motionAPI?.getPresentationMode().then(setMode);
-    subscriptions.push(window.motionAPI?.onPresentationModeChanged(setMode));
+    void api?.getPresentationMode().then(setMode);
+    subscriptions.push(api?.onPresentationModeChanged(setMode));
     subscriptions.push(
-      window.motionAPI?.onPresentationActivity?.((activity) => {
+      api?.onPresentationActivity?.((activity) => {
         const action = activity.command as PresentationAction;
         const label = ACTION_LABELS[action] ?? activity.command;
         addLog(
@@ -484,21 +495,21 @@ export function usePresentationController() {
         );
       }),
     );
-    void window.motionAPI?.getCursorSensitivity().then(setCursorSensitivity);
+    void api?.getCursorSensitivity().then(setCursorSensitivity);
     subscriptions.push(
-      window.motionAPI?.onCursorSensitivityChanged(setCursorSensitivity),
+      api?.onCursorSensitivityChanged(setCursorSensitivity),
     );
     const statusTimer = window.setTimeout(() => void refreshSystemStatus(), 0);
     return () => {
       window.clearTimeout(statusTimer);
       subscriptions.forEach((unsubscribe) => unsubscribe?.());
     };
-  }, [refreshSystemStatus]);
+  }, [api, refreshSystemStatus]);
 
   useEffect(() => {
     localStorage.setItem("displayMode", displayMode);
-    void window.motionAPI?.setOverlayMode(displayMode);
-  }, [displayMode]);
+    void api?.setOverlayMode(displayMode);
+  }, [api, displayMode]);
 
   useEffect(() => {
     if (!sessionStartedAt) return;
@@ -528,17 +539,17 @@ export function usePresentationController() {
       if (motionOn && mode !== nextMode) void setPresentationMode(nextMode);
     },
     (point) => {
-      if (!window.motionAPI && motionOn && mode !== "slide") {
+      if (!api && motionOn && mode !== "slide") {
         rehearsalPointerRef.current = point;
         setRehearsalPointer(point);
         return;
       }
-      if (motionOn && mode === "cursor") window.motionAPI?.moveCursor(point);
-      if (motionOn && mode === "laser") window.motionAPI?.moveCursor(point);
+      if (motionOn && mode === "cursor") api?.moveCursor(point);
+      if (motionOn && mode === "laser") api?.moveCursor(point);
     },
     () => {
       if (motionOn && mode !== "slide") {
-        if (!window.motionAPI) {
+        if (!api) {
           const { x, y } = rehearsalPointerRef.current;
           if (x >= 0.35 && x <= 0.65 && y >= 0.3 && y <= 0.7) {
             setRehearsalClicks((n) => n + 1);
@@ -547,18 +558,18 @@ export function usePresentationController() {
             setRehearsalMessage(
               "클릭 동작 감지 · 포인터를 중앙 표적으로 옮겨보세요.",
             );
-        } else window.motionAPI.clickCursor();
+        } else api.clickCursor();
         addLog("왼손 펼치기 → 주먹 · 클릭");
       }
     },
     cursorSensitivity,
     () => {
       if (!motionOn) return;
-      void window.motionAPI?.setMotionEnabled(false);
+      void api?.setMotionEnabled(false);
       setMotionOn(false);
       addLog("양손 주먹 · 긴급 정지");
     },
-    (frame) => window.motionAPI?.sendHandOverlayFrame?.(frame),
+    (frame) => api?.sendHandOverlayFrame?.(frame),
   );
   const activeTracking = tracking;
   const selectedResource = profile.resources.filter((item) => item.value)[

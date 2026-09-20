@@ -1,0 +1,17 @@
+.demo-presentation { position: fixed; inset: 0; background: #151020; color: #f4edff; font-family: system-ui, sans-serif; }
+.demo-media { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.demo-media video, .demo-media canvas { width: 1px; height: 1px; }
+.demo-slide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6vw; text-align: center; background: radial-gradient(ellipse at top, #49305e, #151020 75%); }
+.demo-slide h1 { font-size: clamp(32px, 5vw, 88px); margin: 24px 0; }
+.demo-slide p { font-size: clamp(16px, 2vw, 30px); max-width: 850px; }
+.demo-slide.is-black { background: #000; }
+.demo-controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 24px; background: #151020eb; }
+.demo-controls button { background: #38274c; color: white; border: 1px solid #886da5; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+.demo-controls button:disabled { opacity: .5; }
+.demo-controls p { width: 100%; margin: 0; text-align: center; }
+.demo-presentation:fullscreen .demo-controls { opacity: 0; transition: opacity .2s; }
+.demo-presentation:fullscreen .demo-controls:hover, .demo-presentation:fullscreen .demo-controls:focus-within { opacity: 1; }
+.demo-target { position: absolute; left: 35%; top: 30%; width: 30%; height: 40%; display: grid; place-items: center; border: 2px dashed #dec4ff; background: #271a3ee8; border-radius: 24px; }
+.demo-pointer { position: absolute; width: 18px; height: 18px; border: 3px solid white; background: #b794ff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.demo-error { position: absolute; top: 0; left: 5%; right: 5%; padding: 16px; background: #681c32; z-index: 2; }
+.demo-ended { padding: 40px; }

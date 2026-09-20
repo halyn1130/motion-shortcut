@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectSwipeGesture } from "./useHandTracking";
+import { blockPalmAfterSwipe, detectSwipeGesture } from "./useHandTracking";
 
 type Point = { x: number; y: number };
 
@@ -42,5 +42,17 @@ describe("슬라이드 스와이프", () => {
       );
     });
     expect(result).toBe(expected);
+  });
+});
+
+describe("스와이프 후 손바닥 재무장", () => {
+  it("시간이 지나도 손바닥을 유지하면 차단하고 다른 자세나 손 내리기로 해제한다", () => {
+    const state = { current: false };
+    expect(blockPalmAfterSwipe(state, true, true)).toBe(true);
+    for (let i = 0; i < 100; i++) expect(blockPalmAfterSwipe(state, false, true)).toBe(true);
+    expect(blockPalmAfterSwipe(state, false, false)).toBe(false);
+    expect(blockPalmAfterSwipe(state, false, true)).toBe(false);
+    expect(blockPalmAfterSwipe(state, true, false)).toBe(true);
+    expect(blockPalmAfterSwipe(state, false, false)).toBe(false);
   });
 });

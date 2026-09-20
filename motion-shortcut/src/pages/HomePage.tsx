@@ -128,7 +128,6 @@ export function HomePage({
             >
               <button
                 type="button"
-                disabled={cameraState !== "active"}
                 aria-pressed={cameraView === "camera"}
                 onClick={() => changeCameraView("camera")}
               >
@@ -136,7 +135,6 @@ export function HomePage({
               </button>
               <button
                 type="button"
-                disabled={cameraState !== "active"}
                 aria-pressed={cameraView === "hands"}
                 onClick={() => changeCameraView("hands")}
               >

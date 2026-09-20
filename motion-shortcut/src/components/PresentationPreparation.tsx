@@ -5,6 +5,23 @@ export function PresentationPreparation({
 }: {
   controller: PresentationController;
 }) {
+  const popup = useRef<Window | null>(null);
+  const [popupError, setPopupError] = useState("");
+  const openDemo = () => {
+    if (popup.current && !popup.current.closed) { void c.stopCamera(); popup.current.focus(); return; }
+    const url = new URL(window.location.href);
+    url.search = "?demo";
+    url.hash = "";
+    const next = window.open(url.href, "adam-demo-presentation", "popup,width=1280,height=800");
+    if (!next) {
+      setPopupError("팝업이 차단되었습니다. 주소창의 팝업 차단 아이콘 또는 브라우저 사이트 설정에서 이 사이트의 팝업을 허용한 뒤 발표 시작을 다시 누르세요.");
+      return;
+    }
+    popup.current = next;
+    setPopupError("");
+    void c.stopCamera();
+    next.focus();
+  };
   const [editing, setEditing] = useState<string | null>(null),
     [dragging, setDragging] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -83,7 +100,7 @@ export function PresentationPreparation({
             >
               <p>{fileName || "PDF를 여기로 끌어 놓으세요"}</p>
               <small>
-                PDF 파일을 선택한 뒤 발표 시작을 누르면 별도의 발표 창에서 열립니다.
+                PDF 발표는 준비 중입니다. 현재는 데모 덱으로 연습할 수 있습니다.
               </small>
               <input
                 ref={input}
@@ -101,15 +118,17 @@ export function PresentationPreparation({
             </div>
           )}
           <div className="preparation-start-actions">
-            {/* UI placeholder: the viewer developer will connect the selected source here. */}
             <button
               type="button"
               className="primary-button"
-              title="선택한 자료로 발표 창 열기"
+              title={source === "demo" ? "데모 발표 창 열기" : "PDF 발표 준비 중"}
+              disabled={source === "pdf"}
+              onClick={openDemo}
             >
               발표 시작 <span aria-hidden="true">↗</span>
             </button>
           </div>
+          {popupError && <p role="alert">{popupError}</p>}
         </section>
         <section
           className="preparation-resources"

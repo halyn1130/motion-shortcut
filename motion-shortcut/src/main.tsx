@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App.tsx";
 import Overlay from "./Overlay.tsx";
 import Keyboard from "./Keyboard.tsx";
+import { DemoPresentation } from "./components/DemoPresentation";
 import Laser from "./Laser.tsx";
 
 const params = new URLSearchParams(window.location.search);
@@ -16,7 +17,7 @@ if (isLaser) document.documentElement.classList.add("laser-page");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {isLaser ? (
+    {params.has("demo") ? <DemoPresentation /> : isLaser ? (
       <Laser />
     ) : isKeyboard ? (
       <Keyboard />

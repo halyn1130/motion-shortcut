@@ -93,6 +93,7 @@ export function useHandTracking(
     Record<"Left" | "Right", Array<{ x: number; y: number; at: number }>>
   >({ Left: [], Right: [] });
   const swipeCooldownRef = useRef(0);
+  const palmBlockedRef = useRef(false);
   const onGestureRef = useRef(onGesture);
   const onModeGestureRef = useRef(onModeGesture);
   const onCursorMoveRef = useRef(onCursorMove);
@@ -129,6 +130,11 @@ export function useHandTracking(
     }
 
     let cancelled = false;
+    lastVideoTimeRef.current = -1;
+    candidateRef.current = { id: null, since: 0, lastSeen: 0 };
+    triggeredRef.current = false;
+    palmBlockedRef.current = false;
+    swipeHistoryRef.current = { Left: [], Right: [] };
 
     const run = async () => {
       try {
@@ -193,7 +199,14 @@ export function useHandTracking(
         video.currentTime !== lastVideoTimeRef.current
       ) {
         lastVideoTimeRef.current = video.currentTime;
-        const result = landmarker.detectForVideo(video, performance.now());
+        let result;
+        try {
+          result = landmarker.detectForVideo(video, performance.now());
+        } catch (error) {
+          setErrorMessage(error instanceof Error ? error.message : "손동작 인식에 실패했습니다. 카메라를 다시 켜세요.");
+          setState("error");
+          return;
+        }
         const hand = result.landmarks[0];
         const score = result.handedness[0]?.[0]?.score ?? 0;
         if (hand) {
@@ -287,8 +300,9 @@ export function useHandTracking(
             onCursorClickRef.current,
           );
           const detectedGestures = hands.map(classifyGesture);
+          const palmBlocked = blockPalmAfterSwipe(palmBlockedRef, Boolean(swipeGesture), detectedGestures.includes("open-palm"));
           const detected =
-            modeGesture || emergencyStop || swipeGesture
+            modeGesture || emergencyStop || swipeGesture || (palmBlocked && detectedGestures.includes("open-palm"))
               ? null
               : detectedGestures.includes("toggle-motion")
                 ? "toggle-motion"
@@ -341,6 +355,7 @@ export function useHandTracking(
           setConfidence(Math.round(score * 100));
         } else {
           overlayFrameRef.current?.({ hands: [], ratio: 16 / 9 });
+          palmBlockedRef.current = false;
           smoothedRef.current = null;
           swipeHistoryRef.current = { Left: [], Right: [] };
           modeGestureRef.current = {
@@ -395,6 +410,12 @@ export function useHandTracking(
         modeGestureLabel: "",
         gestureProgress: 0,
       };
+}
+
+export function blockPalmAfterSwipe(state: { current: boolean }, swiped: boolean, palmVisible: boolean) {
+  if (swiped) state.current = true;
+  else if (!palmVisible) state.current = false;
+  return state.current;
 }
 
 function heldProgress(since: number, now: number, holdMs: number) {

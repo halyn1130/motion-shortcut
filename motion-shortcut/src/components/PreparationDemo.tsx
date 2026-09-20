@@ -24,13 +24,13 @@ export function PreparationDemo({ variant = "preparation" }: { variant?: "prepar
   }, []);
   return (
     <figure ref={ref} className={`prep-demo ${!visible ? "is-paused" : ""} ${reduced ? "is-static" : ""}`}>
-      {variant === "preparation" ? <div className="prep-demo-scene" role="img" aria-label="사용 흐름 시연: PDF 파일을 선택하면 발표.pdf가 표시되고 발표 시작 버튼이 강조됩니다.">
-        <div className="prep-demo-top" aria-hidden="true"><span>자료 선택</span><span>PDF</span></div>
+      {variant === "preparation" ? <div className="prep-demo-scene" role="img" aria-label="사용 흐름 시연: 데모 덱을 선택하고 발표 시작으로 별도 발표 창을 엽니다.">
+        <div className="prep-demo-top" aria-hidden="true"><span>자료 선택</span><span>DEMO</span></div>
         <div className="prep-demo-drop" aria-hidden="true">
-          <span className="prep-demo-hint">PDF를 여기에 놓으세요</span>
-          <span className="prep-demo-ready"><span>✓</span> 발표.pdf</span>
+          <span className="prep-demo-hint">데모 덱으로 연습</span>
+          <span className="prep-demo-ready"><span>✓</span> 데모 슬라이드 5장</span>
         </div>
-        <div className="prep-demo-file" aria-hidden="true"><svg viewBox="0 0 32 40" fill="none"><path d="M5 1h15l7 7v31H5z" fill="#30233f" stroke="#c49bf2"/><path d="M20 1v8h7" stroke="#c49bf2"/></svg><span>PDF</span></div>
+        <div className="prep-demo-file" aria-hidden="true"><svg viewBox="0 0 32 40" fill="none"><path d="M5 1h15l7 7v31H5z" fill="#30233f" stroke="#c49bf2"/><path d="M20 1v8h7" stroke="#c49bf2"/></svg><span>DEMO</span></div>
         <span className="prep-demo-start" aria-hidden="true">발표 시작 <span>↗</span></span>
         <svg className="prep-demo-cursor" aria-hidden="true" viewBox="0 0 24 28"><path d="M3 2v21l6-6 4 9 4-2-4-8h8Z" fill="#eee3ff" stroke="#17111f" strokeWidth="1.5"/></svg>
       </div> : variant === "settings" ? (
