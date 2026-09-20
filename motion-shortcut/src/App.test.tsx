@@ -171,7 +171,7 @@ describe("Flickey 발표 인터페이스", () => {
   it("발표 자료 슬롯을 추가할 수 있다", async () => {
     render(<App />);
     await userEvent.click(
-      screen.getByRole("button", { name: "+ 추가 자료 추가" }),
+      screen.getByRole("button", { name: "추가 자료 추가" }),
     );
     expect(screen.getByRole("textbox", { name: "추가 자료 이름" })).toHaveValue(
       "자료 3",

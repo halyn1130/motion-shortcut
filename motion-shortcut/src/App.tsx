@@ -10,7 +10,7 @@ const pages = {
   home: ["홈", "발표 준비와 실시간 제어"],
   settings: ["설정", "권한과 입력 설정"],
   guide: ["가이드", "사용법과 기능 설명"],
-  privacy: ["개인정보 안내", "정식 공개 전 검토가 필요한 초안입니다."],
+  privacy: ["개인정보 안내", "카메라 사용과 브라우저에 저장되는 정보를 안내합니다."],
 } as const;
 type Page = keyof typeof pages;
 const navigationPaths: Record<Exclude<Page, "privacy">, string> = {
@@ -146,52 +146,49 @@ export default function App() {
         {page === "privacy" && (
           <section
             className="control-panel footer-privacy"
-            aria-label="개인정보 안내 초안"
+            aria-label="개인정보 안내"
           >
-            <h2>개인정보 안내 · 초안</h2>
+            <h2>개인정보 안내</h2>
             <p>
-              서비스 공개 전에 실제 운영 방식과 데이터 처리 내용을 확인하여
-              확정할 문서입니다.
+              Adam은 손동작 인식을 위해 카메라를 사용하지만, 영상과 개인정보를 서버로 보내거나 저장하지 않습니다.
             </p>
             <dl>
               <div>
                 <dt>운영 주체 및 문의</dt>
-                <dd>팀 이름, 담당자, 문의 이메일 입력 필요</dd>
+                <dd>Team 곰팡이 (2026 원티드 해커톤 출품작) · 문의: <a href="mailto:gompangy2e@gmail.com">gompangy2e@gmail.com</a></dd>
               </div>
               <div>
                 <dt>카메라</dt>
                 <dd>
-                  손동작 인식을 위해 브라우저 카메라 권한을 요청합니다. 영상
-                  전송·저장 여부와 처리 범위는 배포 전 확인 필요
+                  발표 제어를 위해 브라우저의 카메라 권한을 요청합니다. 영상은 브라우저 안에서 실행되는 손 인식 모델(MediaPipe)로만 처리되며, 외부 서버로 전송되거나 파일로 저장되지 않습니다.
+                  카메라는 사용자가 카메라 켜기, 발표 시작 또는 모션 시작을 선택할 때 동작하며, 카메라 끄기 버튼이나 해당 창 닫기로 중단됩니다.
                 </dd>
               </div>
               <div>
-                <dt>브라우저 저장 정보</dt>
+                <dt>브라우저에 저장되는 정보</dt>
                 <dd>
-                  프로필, 키 설정과 표시 설정을 브라우저에 저장합니다. 최종 저장
-                  항목과 삭제 방법 확인 필요
+                  발표 프로필(이름, 발표 프로그램, 추가 자료 링크), 손동작·키 설정, 화면 표시 설정을 이 브라우저의 저장소(localStorage)에만 저장합니다.
+                  계정 정보, 영상, 손 좌표 기록은 저장하지 않습니다. 브라우저의 사이트 데이터 삭제로 모두 제거됩니다.
                 </dd>
               </div>
               <div>
-                <dt>PDF 및 추가 링크</dt>
+                <dt>외부 링크</dt>
                 <dd>
-                  선택한 PDF는 서버에 업로드하지 않고 현재 브라우저에서 표시합니다. 추가
-                  링크는 외부 사이트로 연결됩니다.
+                  사용자가 직접 등록한 추가 자료 링크는 새 탭에서 외부 사이트로 이동합니다. 해당 사이트의 개인정보 처리는 각 사이트의 정책을 따릅니다.
                 </dd>
               </div>
               <div>
-                <dt>배포 환경</dt>
+                <dt>서비스 이용 기록</dt>
                 <dd>
-                  호스팅 로그, 분석 도구, 외부 서비스 이용 여부 및 보관 기간
-                  확인 필요
+                  별도의 분석 도구나 추적 스크립트를 사용하지 않습니다. 호스팅 서비스(Vercel)가 접속 로그를 기본 수집할 수 있으며, 이는 서비스 운영 목적으로만 사용됩니다.
                 </dd>
               </div>
               <div>
                 <dt>시행일</dt>
-                <dd>정식 공개일 확정 후 입력</dd>
+                <dd>2026년 9월 21일</dd>
               </div>
             </dl>
-            <a href="#/home">홈으로 돌아가기</a>
+            <a href="#/home">← 돌아가기</a>
           </section>
         )}
       </main>
@@ -221,8 +218,8 @@ export default function App() {
           </div>
           <div className="site-footer-contact">
             <span>TEAM / CONTACT</span>
-            <p>제작팀 · 추후 공개</p>
-            <p>문의 이메일 · 추후 공개</p>
+            <p>제작팀 · 곰팡이</p>
+            <p>문의 이메일 · <a href="mailto:gompangy2e@gmail.com">gompangy2e@gmail.com</a></p>
           </div>
           <nav aria-label="하단 메뉴">
             <a
@@ -233,7 +230,7 @@ export default function App() {
               GitHub ↗
             </a>
             <a href="#/privacy">
-              개인정보 안내 <small>초안</small>
+              개인정보 안내
             </a>
           </nav>
         </div>
