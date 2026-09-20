@@ -105,13 +105,13 @@ export function TutorialMotion({ slide }: { slide: number }) {
   // Separate deliberate swipes with a hold at each end; never wave the wrist.
   const swipe = smooth((t - 0.15) / 0.13) - smooth((t - 0.62) / 0.13);
   const close = smooth((t - 0.12) / 0.18) * (1 - smooth((t - 0.82) / 0.16));
-  // Briefly close the hand to release the palm gesture; a held fist ends the presentation.
-  const resetPalm = smooth((t - 0.44) / 0.035) * (1 - smooth((t - 0.50) / 0.035));
-  const screenHidden = t >= 0.22 && t < 0.68;
+  // Leave the camera view before showing the palm again to toggle the screen back on.
+  const palmOpacity = 1 - smooth((t - 0.32) / 0.10) + smooth((t - 0.54) / 0.10);
+  const screenHidden = t >= 0.22 && t < 0.76;
   const resume = smooth((t - 0.52) / 0.18);
   const labels = [
     "손날을 카메라 쪽으로 세우고 오른쪽, 왼쪽으로 밀어 넘기기",
-    "손바닥을 유지해 화면을 가린 뒤 주먹을 잠깐 쥐었다가 바로 손바닥을 펼쳐 화면 복원",
+    "손바닥을 유지해 화면을 가린 뒤 손이 사라졌다가 다시 펼친 손으로 나타나 화면 복원",
     "L자로 포인터 전환, 오른손 검지와 왼손 주먹으로 클릭, 세 손가락으로 슬라이드 복귀",
     "양손 주먹으로 정지한 뒤 오른손을 전화기 모양으로 펼쳐 재개",
     "한 손을 천천히 주먹 쥐어 발표 종료",
@@ -144,12 +144,14 @@ export function TutorialMotion({ slide }: { slide: number }) {
         {slide === 2 && (
           <>
             <Laptop lit={!screenHidden} />
-            <Hand pose={blend(open, fist, resetPalm)} x={180} y={190} scale={0.8} />
+            <g opacity={palmOpacity}>
+              <Hand pose={open} x={180} y={190} scale={0.8} />
+            </g>
             <text x="400" y="282" textAnchor="middle">
               {t < 0.22 ? "손바닥 유지 · 화면 가리기"
-                : t < 0.44 ? "화면이 가려졌습니다"
-                : t < 0.535 ? "주먹을 잠깐 쥐었다 바로 펼치세요"
-                : t < 0.68 ? "다시 손바닥 유지 · 화면 켜기"
+                : t < 0.32 ? "화면이 가려졌습니다"
+                : t < 0.54 ? "손을 카메라 밖으로 잠시 내려주세요"
+                : t < 0.76 ? "손바닥을 펼쳐 다시 보여주세요"
                 : "화면이 다시 켜졌습니다"}
             </text>
           </>
