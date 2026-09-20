@@ -81,7 +81,7 @@ export function HomePage({
                   {cameraError ||
                     (cameraState === "requesting"
                       ? "카메라 접근 권한을 확인하고 있습니다."
-                      : "아래에서 카메라를 켠 뒤, 발표를 시작하세요.")}
+                      : "발표 시작을 누르면 카메라가 자동으로 켜집니다.")}
                 </p>
               </div>
             )}

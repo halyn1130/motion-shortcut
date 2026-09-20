@@ -6,9 +6,12 @@ export function PresentationPreparation({
   controller: PresentationController;
 }) {
   const popup = useRef<Window | null>(null);
+  const pdfPopup = useRef<Window | null>(null);
+  const pdfUrl = useRef("");
+  const openedFile = useRef<File | null>(null);
   const [popupError, setPopupError] = useState("");
   const openDemo = () => {
-    if (popup.current && !popup.current.closed) { void c.stopCamera(); popup.current.focus(); return; }
+    if (popup.current && !popup.current.closed) { void c.startCamera(); popup.current.focus(); return; }
     const url = new URL(window.location.href);
     url.search = "?demo";
     url.hash = "";
@@ -19,7 +22,7 @@ export function PresentationPreparation({
     }
     popup.current = next;
     setPopupError("");
-    void c.stopCamera();
+    void c.startCamera();
     next.focus();
   };
   const [editing, setEditing] = useState<string | null>(null),
@@ -35,13 +38,44 @@ export function PresentationPreparation({
       ),
     });
   const [source, setSource] = useState<"demo" | "pdf">("demo");
-  const [fileName, setFileName] = useState("");
-  const selectFile = (file: File) =>
-    setFileName(
-      file.name.toLowerCase().endsWith(".pdf")
-        ? file.name
-        : "PDF 파일을 선택하세요.",
-    );
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
+  const selectFile = (file: File) => {
+    setPopupError("");
+    if (!file.name.toLowerCase().endsWith(".pdf") || !file.size) {
+      setPdfFile(null);
+      setFileError("내용이 있는 PDF 파일을 선택하세요.");
+      return;
+    }
+    setPdfFile(file);
+    setFileError("");
+  };
+  const openPdf = () => {
+    if (!pdfFile) return;
+    if (pdfPopup.current && !pdfPopup.current.closed && openedFile.current === pdfFile) {
+      setPopupError("");
+      void c.startCamera();
+      pdfPopup.current.focus();
+      return;
+    }
+    const blobUrl = URL.createObjectURL(pdfFile);
+    const url = new URL(window.location.href);
+    url.search = new URLSearchParams({ pdf: blobUrl, name: pdfFile.name }).toString();
+    url.hash = "";
+    const next = window.open(url.href, "adam-pdf-presentation", "popup,width=1280,height=800");
+    if (!next) {
+      URL.revokeObjectURL(blobUrl);
+      setPopupError("팝업이 차단되었습니다. 이 사이트의 팝업을 허용한 뒤 발표 시작을 다시 누르세요.");
+      return;
+    }
+    if (pdfUrl.current) URL.revokeObjectURL(pdfUrl.current);
+    pdfUrl.current = blobUrl;
+    openedFile.current = pdfFile;
+    pdfPopup.current = next;
+    setPopupError("");
+    void c.startCamera();
+    next.focus();
+  };
   return (
     <section className="preparation-panel" aria-labelledby="preparation-title">
       <div className="preparation-heading">
@@ -83,6 +117,34 @@ export function PresentationPreparation({
           </div>
           {source === "demo" ? (
             <p>데모 슬라이드로 손동작과 단축키를 익히고 발표를 연습하세요.</p>
+          ) : pdfFile ? (
+            <div className="uploaded-pdf" aria-label="업로드된 PDF">
+              <span className="uploaded-pdf-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 40" fill="none">
+                  <path d="M5 1h14l8 8v27a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M19 1v9h8" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                <b>PDF</b>
+              </span>
+              <div className="uploaded-pdf-info">
+                <strong title={pdfFile.name}>{pdfFile.name}</strong>
+                <span>{pdfFile.size < 1024 * 1024 ? `${Math.max(1, Math.round(pdfFile.size / 1024))} KB` : `${(pdfFile.size / (1024 * 1024)).toFixed(1)} MB`} · 선택됨</span>
+              </div>
+              <button
+                type="button"
+                className="uploaded-pdf-remove"
+                aria-label="PDF 삭제"
+                title="PDF 삭제"
+                onClick={() => {
+                  setPdfFile(null);
+                  setFileError("");
+                  setPopupError("");
+                  setDragging(false);
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+              </button>
+            </div>
           ) : (
             <div
               className={`pdf-drop ${dragging ? "is-dragging" : ""}`}
@@ -98,10 +160,11 @@ export function PresentationPreparation({
                   selectFile(e.dataTransfer.files[0]);
               }}
             >
-              <p>{fileName || "PDF를 여기로 끌어 놓으세요"}</p>
+              <p>PDF를 여기로 끌어 놓으세요</p>
               <small>
-                PDF 발표는 준비 중입니다. 현재는 데모 덱으로 연습할 수 있습니다.
+                PDF를 선택한 뒤 발표 시작을 누르면 별도 발표 창이 열립니다.
               </small>
+              {fileError && <p role="alert">{fileError}</p>}
               <input
                 ref={input}
                 type="file"
@@ -121,9 +184,9 @@ export function PresentationPreparation({
             <button
               type="button"
               className="primary-button"
-              title={source === "demo" ? "데모 발표 창 열기" : "PDF 발표 준비 중"}
-              disabled={source === "pdf"}
-              onClick={openDemo}
+              title={source === "demo" ? "데모 발표 창 열기" : "PDF 발표 창 열기"}
+              disabled={source === "pdf" && !pdfFile}
+              onClick={source === "pdf" ? openPdf : openDemo}
             >
               발표 시작 <span aria-hidden="true">↗</span>
             </button>

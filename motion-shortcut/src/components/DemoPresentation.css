@@ -46,3 +46,7 @@
 .demo-slide > small { color: #c6b5e4; font-size: 11px; font-weight: 500; letter-spacing: .16em; }
 .demo-slide > p, .tutorial-mode-copy p { color: #d9d2e9; font-weight: 400; }
 .demo-presentation:has(.demo-slide.is-black) { background: #000; }
+
+.demo-slide.pdf-slide { padding: 8px; overflow: hidden; }
+.pdf-page { width: 100%; height: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.pdf-page canvas { display: block; max-width: 100%; max-height: 100%; background: white; }
