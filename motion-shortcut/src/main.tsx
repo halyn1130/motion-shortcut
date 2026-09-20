@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { lazy, Suspense, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
@@ -6,6 +6,8 @@ import Overlay from "./Overlay.tsx";
 import Keyboard from "./Keyboard.tsx";
 import { DemoPresentation } from "./components/DemoPresentation";
 import Laser from "./Laser.tsx";
+
+const PdfPresentation = lazy(() => import("./components/PdfPresentation"));
 
 const params = new URLSearchParams(window.location.search);
 const isOverlay = params.has("overlay");
@@ -17,7 +19,7 @@ if (isLaser) document.documentElement.classList.add("laser-page");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {params.has("demo") ? <DemoPresentation /> : isLaser ? (
+    {params.has("pdf") ? <Suspense fallback={<p role="status">PDF를 불러오는 중…</p>}><PdfPresentation /></Suspense> : params.has("demo") ? <DemoPresentation /> : isLaser ? (
       <Laser />
     ) : isKeyboard ? (
       <Keyboard />

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { usePresentationController } from "../features/presentation/usePresentationController";
 import "./DemoPresentation.css";
+import type { PDFDocumentProxy } from "pdfjs-dist";
+import { PdfPage } from "./PdfPage";
 import { TutorialMotion } from "./TutorialMotion";
 
 const slides = [
@@ -12,15 +14,17 @@ const slides = [
   ["이제 발표를 종료하세요", "한 손만 주먹을 쥐어 발표를 마무리하세요."],
 ];
 
-export function DemoPresentation() {
-  const c = usePresentationController("demo");
+export function DemoPresentation({ pdf }: { pdf?: PDFDocumentProxy }) {
+  const pageCount = pdf?.numPages ?? slides.length;
+  const c = usePresentationController("demo", pageCount);
   const stage = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [error, setError] = useState("");
   const { executeAction, stopCamera, videoRef, canvasRef } = c;
   const actionRef = useRef(executeAction);
   const stopRef = useRef(stopCamera);
-  useEffect(() => { actionRef.current = executeAction; stopRef.current = stopCamera; });
+  const pageCountRef = useRef(pageCount);
+  useEffect(() => { actionRef.current = executeAction; stopRef.current = stopCamera; pageCountRef.current = pageCount; });
   useEffect(() => {
     const change = () => setFullscreen(Boolean(document.fullscreenElement));
     const key = (e: KeyboardEvent) => {
@@ -29,7 +33,7 @@ export function DemoPresentation() {
       if (action) { e.preventDefault(); void actionRef.current(action); }
       if (e.key === "Home" || e.key === "End") {
         e.preventDefault();
-        for (let i = 0; i < slides.length; i++) void actionRef.current(e.key === "Home" ? "previous-slide" : "next-slide");
+        for (let i = 0; i < pageCountRef.current; i++) void actionRef.current(e.key === "Home" ? "previous-slide" : "next-slide");
       }
     };
     const unload = () => { void stopRef.current(); };
@@ -51,8 +55,10 @@ export function DemoPresentation() {
   };
   return <div ref={stage} className="demo-presentation">
     <div className="demo-media" aria-hidden="true"><video ref={videoRef} muted playsInline /><canvas ref={canvasRef} /></div>
-    <main className={`demo-slide ${c.rehearsalBlack ? "is-black" : ""}`} aria-label="데모 슬라이드">
-      {!c.rehearsalBlack && <>
+    <main className={`demo-slide ${pdf ? "pdf-slide" : ""} ${c.rehearsalBlack ? "is-black" : ""}`} aria-label={pdf ? "PDF 슬라이드" : "데모 슬라이드"}>
+      {!c.rehearsalBlack && pdf && <PdfPage document={pdf} pageNumber={c.rehearsalSlide} />}
+      {!c.rehearsalBlack && pdf && c.mode !== "slide" && <span className="demo-pointer" style={{ left: `${c.rehearsalPointer.x * 100}%`, top: `${c.rehearsalPointer.y * 100}%` }} />}
+      {!c.rehearsalBlack && !pdf && <>
         <small>TUTORIAL</small>
         <h1>{slides[c.rehearsalSlide - 1][0]}</h1>
         <TutorialMotion key={c.rehearsalSlide} slide={c.rehearsalSlide} />
@@ -69,8 +75,8 @@ export function DemoPresentation() {
         <button aria-label="이전" title="이전 슬라이드" disabled={c.rehearsalSlide === 1} onClick={() => void c.executeAction("previous-slide")}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
         </button>
-        <span aria-live="polite" aria-atomic="true">{c.rehearsalSlide} / {slides.length}</span>
-        <button aria-label="다음" title="다음 슬라이드" disabled={c.rehearsalSlide === slides.length} onClick={() => void c.executeAction("next-slide")}>
+        <span aria-live="polite" aria-atomic="true">{c.rehearsalSlide} / {pageCount}</span>
+        <button aria-label="다음" title="다음 슬라이드" disabled={c.rehearsalSlide === pageCount} onClick={() => void c.executeAction("next-slide")}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
         </button>
       </nav>

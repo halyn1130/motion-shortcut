@@ -2691,3 +2691,15 @@
 @media (max-width: 720px) {
   .presenter-app .settings-modal { max-height: 90dvh; }
 }
+
+.uploaded-pdf { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 16px; border: 1px solid #ccb2e526; border-radius: 12px; background: #211a2b; }
+.uploaded-pdf-icon { position: relative; flex: 0 0 36px; height: 44px; color: #cbb1eb; }
+.uploaded-pdf-icon svg { width: 36px; height: 44px; }
+.uploaded-pdf-icon b { position: absolute; left: 7px; top: 22px; font-size: 10px; letter-spacing: .03em; }
+.uploaded-pdf-info { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; }
+.uploaded-pdf-info strong { overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; color: #eee5f7; }
+.uploaded-pdf-info span { font-size: 12px; color: var(--muted); }
+.presenter-app .uploaded-pdf-remove { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; min-height: 36px; padding: 8px; border: 1px solid #ccb2e526; border-radius: 8px; background: #ffffff05; color: #c9bad9; box-shadow: none; }
+.presenter-app .uploaded-pdf-remove:hover { color: #ffb8c4; background: #ff728518; border-color: #ff72854d; }
+.presenter-app .uploaded-pdf-remove:focus-visible { outline: 2px solid #c79aff; outline-offset: 3px; }
+.uploaded-pdf-remove svg { width: 18px; height: 18px; }
