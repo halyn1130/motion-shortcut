@@ -9,11 +9,7 @@ const lessons = {
     steps: [
       [
         "자료 선택",
-        <>
-          ‘데모 덱으로 연습’에서 ‘발표 시작’을 누르면 6장의 데모가 별도 팝업에 열립니다.
-          <br />
-          팝업의 모션 시작으로 손동작을 연습하세요.
-        </>,
+        "‘데모 덱으로 연습’에서 ‘발표 시작’을 누르면 6장의 데모가 별도 팝업에 열립니다.\n팝업의 모션 시작으로 손동작을 연습하세요.",
       ],
       [
         "PDF 선택",
@@ -21,7 +17,7 @@ const lessons = {
       ],
       [
         "추가 자료",
-        "‘추가 자료 추가’로 이름과 URL을 입력하고 ‘새 탭에서 열기’를 누르세요. 자동 복귀 기능은 없습니다.",
+        "‘추가 자료 추가’로 이름과 URL을 입력하고 ‘새 탭에서 열기’를 누르세요.\n자동 복귀 기능은 없습니다.",
       ],
     ],
   },
@@ -32,15 +28,15 @@ const lessons = {
     steps: [
       [
         "카메라 켜기",
-        "브라우저에서 카메라 접근을 허용하세요. 권한 상태는 설정에서 확인할 수 있습니다.",
+        "브라우저에서 카메라 접근을 허용하세요.\n권한 상태는 설정에서 확인할 수 있습니다.",
       ],
       [
         "표시 방식",
-        "카메라가 꺼져 있어도 ‘전체 화면’과 ‘손만 보기’를 선택할 수 있습니다. 마지막 선택은 다음 실행에도 유지됩니다.",
+        "카메라가 꺼져 있어도 ‘전체 화면’과 ‘손만 보기’를 선택할 수 있습니다.\n마지막 선택은 다음 실행에도 유지됩니다.",
       ],
       [
         "모션 ON / OFF",
-        "전화 모양의 손동작을 약 1.2초 유지해 모션 상태를 바꿉니다. 카메라는 켜진 상태로 유지됩니다.",
+        "전화 모양의 손동작을 약 1.2초 유지해 모션 상태를 바꿉니다.\n카메라는 켜진 상태로 유지됩니다.",
       ],
     ],
   },
@@ -52,15 +48,15 @@ const lessons = {
     steps: [
       [
         "모션 커스텀",
-        "각 기능의 드롭다운에서 사용할 손동작을 선택하세요. 다음·이전 슬라이드, 화면 가리기, 발표 종료에 맞는 동작을 지정할 수 있습니다.",
+        "각 기능의 드롭다운에서 사용할 손동작을 선택하세요.\n다음·이전 슬라이드, 화면 가리기, 발표 종료에 맞는 동작을 지정할 수 있습니다.",
       ],
       [
         "키보드 커스텀",
-        "키 버튼을 누르고 원하는 키를 입력하세요. 일반 키와 Shift 조합을 지정할 수 있고, 중복된 키는 안내가 표시됩니다.",
+        "키 버튼을 누르고 원하는 키를 입력하세요.\n일반 키와 Shift 조합을 지정할 수 있고, 중복된 키는 안내가 표시됩니다.",
       ],
       [
         "저장과 초기화",
-        "키 설정은 현재 브라우저의 프로필에 저장됩니다. ‘초기화’를 누르면 단축키가 기본값으로 돌아갑니다.",
+        "키 설정은 현재 브라우저의 프로필에 저장됩니다.\n‘초기화’를 누르면 단축키가 기본값으로 돌아갑니다.",
       ],
     ],
   },
@@ -69,7 +65,6 @@ type Lesson = keyof typeof lessons;
 
 export function GuidePage() {
   const [selected, setSelected] = useState<Lesson>("preparation");
-  const lesson = lessons[selected];
   return (
     <div className="guide-page guide-revised">
       <section
@@ -119,26 +114,35 @@ export function GuidePage() {
         </div>
         <div
           id="guide-lesson"
-          className="guide-lesson"
+          className="guide-lessons"
           aria-live="polite"
           aria-atomic="true"
         >
-          <div className="guide-mode">
-            <h3>{lesson.title}</h3>
-            <p>{lesson.description}</p>
-          </div>
-          <div className="guide-actions">
-            <dl>
-              {lesson.steps.map(([title, description]) => (
-                <div key={title}>
-                  <div>
-                    <dt>{title}</dt>
-                    <dd>{description}</dd>
-                  </div>
-                </div>
-              ))}
-            </dl>
-          </div>
+          {Object.entries(lessons).map(([id, lesson]) => (
+            <div
+              key={id}
+              className="guide-lesson"
+              aria-hidden={selected !== id}
+              inert={selected !== id}
+            >
+              <div className="guide-mode">
+                <h3>{lesson.title}</h3>
+                <p>{lesson.description}</p>
+              </div>
+              <div className="guide-actions">
+                <dl>
+                  {lesson.steps.map(([title, description]) => (
+                    <div key={title}>
+                      <div>
+                        <dt>{title}</dt>
+                        <dd>{description}</dd>
+                      </div>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
       <aside className="guide-stop" aria-label="제어 멈추기">

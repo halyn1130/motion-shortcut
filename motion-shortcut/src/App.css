@@ -1416,6 +1416,15 @@
   background: #b794ff26;
   color: #e1cfff;
 }
+.guide-lessons {
+  display: grid;
+}
+.guide-lessons > .guide-lesson {
+  grid-area: 1 / 1;
+}
+.guide-lessons > .guide-lesson[aria-hidden="true"] {
+  visibility: hidden;
+}
 .guide-lesson {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
@@ -1461,6 +1470,7 @@
   font-weight: 700;
 }
 .guide-actions dd {
+  white-space: pre-line;
   margin: 3px 0 0;
   color: var(--muted);
 }
