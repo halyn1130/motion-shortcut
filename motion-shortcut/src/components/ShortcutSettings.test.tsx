@@ -1,0 +1,26 @@
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, expect, it, vi } from "vitest";
+import { ShortcutSettings } from "./ShortcutSettings";
+import { usePresentationController } from "../features/presentation/usePresentationController";
+import { loadProfile } from "../features/presentation/profile";
+vi.mock("../features/camera/useHandTracking", () => ({ useHandTracking: () => ({ state: "idle", errorMessage: "" }) }));
+beforeEach(() => { localStorage.clear(); delete window.motionAPI; });
+function Settings() { return <ShortcutSettings controller={usePresentationController()} />; }
+it("blocks used and reserved motions, and allows reassignment after releasing a motion", async () => {
+  const user = userEvent.setup();
+  render(<Settings />);
+  const next = screen.getByRole("combobox", { name: "다음 슬라이드 모션 선택" });
+  const previous = screen.getByRole("combobox", { name: "이전 슬라이드 모션 선택" });
+  expect(within(previous).getByRole("option", { name: /오른쪽 스와이프/ })).toBeDisabled();
+  expect(within(next).getByRole("option", { name: /V 사인/ })).toBeDisabled();
+  expect(within(next).getByRole("option", { name: /검지 하나/ })).toBeDisabled();
+  await user.selectOptions(previous, "swipe-right");
+  expect(previous).toHaveValue("swipe-left");
+  await user.selectOptions(next, "");
+  expect(within(previous).getByRole("option", { name: /오른쪽 스와이프/ })).toBeEnabled();
+  await user.selectOptions(previous, "swipe-right");
+  expect(previous).toHaveValue("swipe-right");
+  expect(within(next).getByRole("option", { name: /오른쪽 스와이프/ })).toBeDisabled();
+  expect(loadProfile().mappings).toMatchObject({ "next-slide": "", "previous-slide": "swipe-right" });
+});

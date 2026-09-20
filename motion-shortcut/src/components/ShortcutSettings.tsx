@@ -19,7 +19,11 @@ export function ShortcutSettings({
   controller: PresentationController;
 }) {
   const [recording, setRecording] = useState<PresentationAction | null>(null);
-  const [motionDraft, setMotionDraft] = useState(c.profile.mappings);
+  const motionMappings = c.profile.mappings;
+  const assignedAction = (gesture: GesturePattern, action: PresentationAction) =>
+    (Object.keys(motionMappings) as PresentationAction[]).find(
+      (other) => other !== action && motionMappings[other] === gesture,
+    );
   const [message, setMessage] = useState("");
   return (
     <section
@@ -29,7 +33,8 @@ export function ShortcutSettings({
       <h2 id="keyboard-settings-title">모션 · 키보드 커스텀</h2>
       <p>
         각 발표 기능에 사용할 손동작과 단축키를 설정하세요.
-        발표 중 편한 입력 방식으로 제어할 수 있습니다.
+        이미 사용 중인 모션은 다른 기능에 지정할 수 없습니다.
+        모션을 옮기려면 기존 기능을 ‘지정 안 함’으로 변경하세요.
       </p>
       <div
         className="input-customization-scroll"
@@ -58,19 +63,30 @@ export function ShortcutSettings({
                     <div className="motion-select-field">
                       <select
                         aria-label={`${ACTION_LABELS[action]} 모션 선택`}
-                        value={motionDraft[action]}
-                        onChange={(event) =>
-                          setMotionDraft({
-                            ...motionDraft,
-                            [action]: event.target.value as GesturePattern,
-                          })
-                        }
+                        value={motionMappings[action]}
+                        onChange={(event) => {
+                          const gesture = event.target.value as GesturePattern | "";
+                          if (gesture && assignedAction(gesture, action)) {
+                            setMessage("다른 기능에 지정된 모션입니다. 기존 지정을 먼저 해제하세요.");
+                            return;
+                          }
+                          c.updateProfile({
+                            ...c.profile,
+                            mappings: { ...motionMappings, [action]: gesture },
+                          });
+                          setMessage(`${ACTION_LABELS[action]} 모션 설정이 저장되었습니다.`);
+                        }}
                       >
-                        {GESTURE_OPTIONS.map((gesture) => (
-                          <option key={gesture.id} value={gesture.id}>
-                            {gesture.label}
-                          </option>
-                        ))}
+                        <option value="">지정 안 함</option>
+                        {GESTURE_OPTIONS.map((gesture) => {
+                          const owner = assignedAction(gesture.id, action);
+                          const ownerLabel = owner === "resource-1" ? "자료 선택" : owner === "resource-2" ? "선택한 자료 실행" : owner ? ACTION_LABELS[owner] : "";
+                          return (
+                            <option key={gesture.id} value={gesture.id} disabled={Boolean(owner)}>
+                              {gesture.label}{owner ? ` (${ownerLabel}에서 사용 중)` : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                         <path
