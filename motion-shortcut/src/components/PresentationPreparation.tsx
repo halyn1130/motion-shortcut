@@ -106,7 +106,7 @@ export function PresentationPreparation({
               aria-pressed={source === "demo"}
               onClick={() => setSource("demo")}
             >
-              데모 덱으로 연습
+              튜토리얼
             </button>
             <button
               aria-pressed={source === "pdf"}
@@ -116,7 +116,7 @@ export function PresentationPreparation({
             </button>
           </div>
           {source === "demo" ? (
-            <p>데모 슬라이드로 손동작과 단축키를 익히고 발표를 연습하세요.</p>
+            <p>튜토리얼로 손동작과 단축키를 익히고 발표를 연습하세요.<br />튜토리얼은 기본 조작 설정을 기준으로 안내합니다.<br />커스텀 설정 연습은 내 PDF를 업로드해 진행하세요.</p>
           ) : pdfFile ? (
             <div className="uploaded-pdf" aria-label="업로드된 PDF">
               <span className="uploaded-pdf-icon" aria-hidden="true">
@@ -201,8 +201,8 @@ export function PresentationPreparation({
             <h3 id="resources-title">
               추가 자료 <span>{resources.length}</span>
             </h3>
-            <button className="button-quiet" onClick={() => setEditing(c.addResource())}>
-              + 추가 자료 추가
+            <button className="button-quiet" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label="추가 자료 추가" title="추가 자료 추가" onClick={() => setEditing(c.addResource())}>
+              <span aria-hidden="true" style={{ fontSize: 28, lineHeight: 1 }}>+</span>
             </button>
           </div>
           <div className="resource-browser">
