@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="52" viewBox="0 0 240 52">
+  <defs>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#16101f"/>
+      <stop offset=".32" stop-color="#0c0912"/>
+      <stop offset=".7" stop-color="#1a1029"/>
+      <stop offset="1" stop-color="#302045"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#925ad1"/>
+      <stop offset=".24" stop-color="#693ca6"/>
+      <stop offset=".52" stop-color="#241831" stop-opacity=".5"/>
+      <stop offset=".8" stop-color="#8050c2"/>
+      <stop offset="1" stop-color="#a775dd"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#a775dd" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#7030cb" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="reflection" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#7434ca" stop-opacity="0"/>
+      <stop offset=".55" stop-color="#7434ca" stop-opacity=".03"/>
+      <stop offset="1" stop-color="#9654eb" stop-opacity=".16"/>
+    </linearGradient>
+    <radialGradient id="violet-refraction" cx="0" cy=".8" r=".8">
+      <stop stop-color="#8032e5" stop-opacity=".45"/>
+      <stop offset=".3" stop-color="#4b2087" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#140b23" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="facet" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#8d43ed" stop-opacity="0"/>
+      <stop offset=".48" stop-color="#6930ae" stop-opacity=".05"/>
+      <stop offset=".52" stop-color="#a86df5" stop-opacity=".3"/>
+      <stop offset=".6" stop-color="#42216c" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#110b1b" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="surface"><rect x="1.5" y="1.5" width="237" height="49" rx="12"/></clipPath>
+  </defs>
+  <rect x="1" y="1" width="238" height="50" rx="12" fill="url(#glass)" stroke="url(#edge)" stroke-width="1.2"/>
+  <g clip-path="url(#surface)">
+    <rect width="240" height="52" fill="url(#violet-refraction)"/>
+    <path d="M-20 52 34 0h52L32 52Z" fill="url(#facet)"/>
+    <path d="m178 52 26-52h46l-34 52Z" fill="url(#facet)"/>
+    <path d="M4 38c8 11 29 9 43 10" fill="none" stroke="#8d46df" stroke-opacity=".38"/>
+
+    <path d="M0 0h240v17C167 9 89 34 0 22Z" fill="url(#sheen)"/>
+    <path d="M156 0h55l-43 52h-55Z" fill="url(#reflection)"/>
+    <path d="M12 3h216" stroke="#8550c6" stroke-opacity=".18" stroke-linecap="round"/>
+    <path d="M14 49h212" stroke="#9148eb" stroke-opacity=".18" stroke-linecap="round"/>
+  </g>
+  <rect x="3" y="3" width="234" height="46" rx="10" fill="none" stroke="#7d46ac" stroke-opacity=".08"/>
+  <text x="110" y="32" text-anchor="middle" fill="#d8c5ed" font-family="Arial, 'Noto Sans KR', sans-serif" font-size="16" font-weight="600">ADAM 시작하기</text>
+  <path d="M199 32l10-10m-9 0h9v9" fill="none" stroke="#b18ad9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
