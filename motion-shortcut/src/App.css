@@ -2703,3 +2703,18 @@
 .presenter-app .uploaded-pdf-remove:hover { color: #ffb8c4; background: #ff728518; border-color: #ff72854d; }
 .presenter-app .uploaded-pdf-remove:focus-visible { outline: 2px solid #c79aff; outline-offset: 3px; }
 .uploaded-pdf-remove svg { width: 18px; height: 18px; }
+
+/* Separate input types while retaining shared action rows. */
+.presenter-app .input-customization-table :is(th, td):nth-child(2) { padding-right: 24px; }
+.presenter-app .input-customization-table :is(th, td):nth-child(3) { padding-left: 24px; border-left: 1px solid var(--line); }
+.presenter-app .input-customization-table .custom-key-controls button { flex: 1; width: 100%; }
+.presenter-app .input-customization-table tfoot td { border-bottom: 0; padding-top: 16px; }
+.presenter-app .input-customization-table .customization-reset { width: 100%; min-height: 40px; color: var(--muted); }
+.presenter-app .input-customization-table .customization-reset:hover { color: var(--text); }
+@media (max-width: 600px) {
+  .presenter-app .input-customization-table :is(th, td):nth-child(2) { padding-right: 16px; }
+  .presenter-app .input-customization-table :is(th, td):nth-child(3) { padding-left: 16px; }
+}
+.presenter-app .input-customization-table { table-layout: fixed; }
+.presenter-app .input-customization-table :is(th, td):first-child { width: 25%; }
+.presenter-app .input-customization-table :is(th, td):nth-child(n+2) { width: 37.5%; }

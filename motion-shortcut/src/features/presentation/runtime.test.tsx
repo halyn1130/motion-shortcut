@@ -35,7 +35,7 @@ describe("web and desktop runtime boundaries", () => {
     vi.restoreAllMocks();
     delete window.motionAPI;
   });
-  it("demo isolates all native commands and supports six slides, blackout, pointer and emergency stop", async () => {
+  it("demo isolates all native commands and supports five slides, blackout, pointer and emergency stop", async () => {
     const native = vi.fn(() => { throw new Error("Demo must never call the native bridge"); });
     window.motionAPI = new Proxy({}, { get: () => native }) as NonNullable<typeof window.motionAPI>;
     const stop = vi.fn();
@@ -48,7 +48,7 @@ describe("web and desktop runtime boundaries", () => {
     expect(result.current.rehearsalSlide).toBe(2);
     expect(result.current.rehearsalBlack).toBe(false);
     await act(async () => { for (let i = 0; i < 8; i++) await result.current.executeAction("next-slide"); });
-    expect(result.current.rehearsalSlide).toBe(6);
+    expect(result.current.rehearsalSlide).toBe(5);
     await act(async () => { await result.current.setPresentationMode("cursor"); });
     act(() => { (tracking.args[7] as (p: { x: number; y: number }) => void)({ x: .5, y: .5 }); });
     act(() => { (tracking.args[8] as () => void)(); });

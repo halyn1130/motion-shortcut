@@ -105,13 +105,13 @@ export function TutorialMotion({ slide }: { slide: number }) {
   // Separate deliberate swipes with a hold at each end; never wave the wrist.
   const swipe = smooth((t - 0.15) / 0.13) - smooth((t - 0.62) / 0.13);
   const close = smooth((t - 0.12) / 0.18) * (1 - smooth((t - 0.82) / 0.16));
-  const lift = 1 - smooth((t - 0.12) / 0.2) * (1 - smooth((t - 0.5) / 0.24));
-  const reveal = smooth((t - 0.28) / 0.22) * (1 - smooth((t - 0.78) / 0.18));
+  // Briefly close the hand to release the palm gesture; a held fist ends the presentation.
+  const resetPalm = smooth((t - 0.44) / 0.035) * (1 - smooth((t - 0.50) / 0.035));
+  const screenHidden = t >= 0.22 && t < 0.68;
   const resume = smooth((t - 0.52) / 0.18);
   const labels = [
     "손날을 카메라 쪽으로 세우고 오른쪽, 왼쪽으로 밀어 넘기기",
-    "책상 아래로 손을 내렸다가 올려 손바닥 보여주기",
-    "검은 노트북 화면 앞에서 손바닥을 펴 화면 복원",
+    "손바닥을 유지해 화면을 가린 뒤 주먹을 잠깐 쥐었다가 바로 손바닥을 펼쳐 화면 복원",
     "L자로 포인터 전환, 오른손 검지와 왼손 주먹으로 클릭, 세 손가락으로 슬라이드 복귀",
     "양손 주먹으로 정지한 뒤 오른손을 전화기 모양으로 펼쳐 재개",
     "한 손을 천천히 주먹 쥐어 발표 종료",
@@ -143,49 +143,18 @@ export function TutorialMotion({ slide }: { slide: number }) {
         )}
         {slide === 2 && (
           <>
-            <Hand
-              pose={blend([0.35, 0.45, 0.4, 0.45, 0.5], open, lift)}
-              x={400}
-              y={305 - lift * 175}
-              scale={0.85}
-            />
-            {/* Draw the desk in front so the hand passes behind its edge. */}
-            <path
-              d="M240 178 H560 L596 198 H204 Z"
-              fill="#352b40"
-              stroke="#8c799d"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M204 198 H596 V216 H204 Z"
-              fill="#211b2a"
-              stroke="#72617f"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M220 217 V288 M580 217 V288"
-              stroke="#72617f"
-              strokeWidth="8"
-            />
-          </>
-        )}
-        {slide === 3 && (
-          <>
-            <Laptop lit={t > 0.52 && t < 0.78} />
-            <Hand
-              pose={blend(fist, open, reveal)}
-              x={180}
-              y={190}
-              scale={0.8}
-            />
+            <Laptop lit={!screenHidden} />
+            <Hand pose={blend(open, fist, resetPalm)} x={180} y={190} scale={0.8} />
             <text x="400" y="282" textAnchor="middle">
-              {t > 0.52 && t < 0.78
-                ? "화면이 다시 켜집니다"
-                : "손바닥을 펼쳐 보여주세요"}
+              {t < 0.22 ? "손바닥 유지 · 화면 가리기"
+                : t < 0.44 ? "화면이 가려졌습니다"
+                : t < 0.535 ? "주먹을 잠깐 쥐었다 바로 펼치세요"
+                : t < 0.68 ? "다시 손바닥 유지 · 화면 켜기"
+                : "화면이 다시 켜졌습니다"}
             </text>
           </>
         )}
-        {slide === 4 && (
+        {slide === 3 && (
           <>
             <g transform="translate(-110 0) scale(.85)">
               <Laptop lit pointer={t > 0.38} click={t > 0.68 && t < 0.82} />
@@ -223,7 +192,7 @@ export function TutorialMotion({ slide }: { slide: number }) {
             </text>
           </>
         )}
-        {slide === 5 && (
+        {slide === 4 && (
           <>
             <g opacity={1 - resume * 0.85}>
               <Hand
@@ -245,7 +214,7 @@ export function TutorialMotion({ slide }: { slide: number }) {
             </text>
           </>
         )}
-        {slide === 6 && (
+        {slide === 5 && (
           <>
             <Hand pose={blend(open, fist, close)} x={400} y={150} scale={1.2} />
           </>

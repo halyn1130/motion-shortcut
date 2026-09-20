@@ -24,3 +24,27 @@ it("blocks used and reserved motions, and allows reassignment after releasing a 
   expect(within(next).getByRole("option", { name: /오른쪽 스와이프/ })).toBeDisabled();
   expect(loadProfile().mappings).toMatchObject({ "next-slide": "", "previous-slide": "swipe-right" });
 });
+it("resets each input type independently and persists defaults", async () => {
+  const user = userEvent.setup();
+  render(<Settings />);
+  const next = screen.getByRole("combobox", { name: "다음 슬라이드 모션 선택" });
+  const previous = screen.getByRole("combobox", { name: "이전 슬라이드 모션 선택" });
+  await user.selectOptions(next, "");
+  await user.selectOptions(previous, "swipe-right");
+  await user.selectOptions(next, "swipe-left");
+  await user.click(screen.getByRole("button", { name: "다음 슬라이드 키 지정" }));
+  await user.keyboard("n");
+  const saved = loadProfile();
+  await user.click(screen.getByRole("button", { name: "모션 전체 초기화" }));
+  expect(next).toHaveValue("swipe-right");
+  expect(previous).toHaveValue("swipe-left");
+  expect(loadProfile().shortcuts).toEqual(saved.shortcuts);
+  expect(loadProfile().resources).toEqual(saved.resources);
+  await user.selectOptions(next, "");
+  const mappings = loadProfile().mappings;
+  await user.click(screen.getByRole("button", { name: "키보드 전체 초기화" }));
+  expect(loadProfile().shortcuts).toEqual({});
+  expect(loadProfile().mappings).toEqual(mappings);
+  expect(screen.getByRole("button", { name: "다음 슬라이드 키 지정" })).toHaveTextContent("→");
+  expect(screen.queryByRole("button", { name: /기본키 초기화/ })).not.toBeInTheDocument();
+});
