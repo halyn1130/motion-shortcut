@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { DemoPresentation } from "./DemoPresentation";
@@ -62,18 +62,19 @@ it("retains camera permission errors with the compact controls", async () => {
   expect(screen.getAllByRole("button")).toHaveLength(4);
 });
 
-it("releases the active home stream before the demo takes the camera", async () => {
+it("starts the control center camera and reuses it when the demo is already open", async () => {
   const stop = vi.fn();
   Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] }) } });
   vi.spyOn(window, "open").mockReturnValue({ closed: false, focus: vi.fn() } as unknown as Window);
   const { result } = renderHook(() => usePresentationController());
-  await act(async () => { await result.current.toggleMotion(); });
-  expect(result.current.motionOn).toBe(true);
+  expect(result.current.cameraState).toBe("idle");
   render(<PresentationPreparation controller={result.current} />);
   await userEvent.click(screen.getByRole("button", { name: "발표 시작" }));
-  expect(stop).toHaveBeenCalled();
-  expect(result.current.cameraState).toBe("idle");
-  expect(result.current.motionOn).toBe(false);
+  await waitFor(() => expect(result.current.cameraState).toBe("active"));
+  await userEvent.click(screen.getByRole("button", { name: "발표 시작" }));
+  expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+  expect(stop).not.toHaveBeenCalled();
+  expect(result.current.cameraState).toBe("active");
 });
 it("synchronizes fullscreen exit with the browser and supports keys while a control is focused", async () => {
   const exit = vi.fn().mockResolvedValue(undefined);

@@ -8,7 +8,7 @@ export function PresentationPreparation({
   const popup = useRef<Window | null>(null);
   const [popupError, setPopupError] = useState("");
   const openDemo = () => {
-    if (popup.current && !popup.current.closed) { void c.stopCamera(); popup.current.focus(); return; }
+    if (popup.current && !popup.current.closed) { void c.startCamera(); popup.current.focus(); return; }
     const url = new URL(window.location.href);
     url.search = "?demo";
     url.hash = "";
@@ -19,7 +19,7 @@ export function PresentationPreparation({
     }
     popup.current = next;
     setPopupError("");
-    void c.stopCamera();
+    void c.startCamera();
     next.focus();
   };
   const [editing, setEditing] = useState<string | null>(null),
