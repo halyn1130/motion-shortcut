@@ -51,3 +51,8 @@ describe("발표 프로필 커스텀키", () => {
     expect(supportedKey("F99")).toBe(false);
   });
 });
+
+it("removes duplicate and reserved gestures from saved custom mappings", () => {
+  saveProfile({ ...DEFAULT_PROFILE, mappings: { ...FIXED_MAPPINGS, "next-slide": "swipe-left", "previous-slide": "swipe-left", "black-screen": "victory" } });
+  expect(loadProfile().mappings).toMatchObject({ "next-slide": "swipe-left", "previous-slide": "", "black-screen": "", "resource-1": "victory", "resource-2": "index" });
+});

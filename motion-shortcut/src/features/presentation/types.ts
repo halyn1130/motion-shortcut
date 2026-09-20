@@ -42,7 +42,7 @@ export interface PresentationProfile {
   name: string;
   app: PresentationApp;
   presentationUrl: string;
-  mappings: Record<PresentationAction, GesturePattern>;
+  mappings: Record<PresentationAction, GesturePattern | "">;
   shortcuts: Partial<Record<PresentationAction, KeyShortcut>>;
   resources: PresentationResource[];
 }
