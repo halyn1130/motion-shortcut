@@ -28,18 +28,19 @@ it("explains popup blocking and keeps PDF presentation disabled", async () => {
   await userEvent.click(screen.getByRole("button", { name: "내 PDF 업로드" }));
   expect(screen.getByRole("button", { name: "발표 시작" })).toBeDisabled();
 });
-it("navigates six slides with accessible icon buttons and keys", async () => {
+it("navigates five slides with accessible icon buttons and keys", async () => {
   render(<DemoPresentation />);
-  expect(screen.getByText("1 / 6")).toBeVisible();
+  expect(screen.getByText("1 / 5")).toBeVisible();
   fireEvent.keyDown(window, { key: "End" });
-  expect(screen.getByText("6 / 6")).toBeVisible();
+  expect(screen.getByText("5 / 5")).toBeVisible();
   fireEvent.keyDown(window, { key: "ArrowLeft" });
-  expect(screen.getByText("5 / 6")).toBeVisible();
+  expect(screen.getByText("4 / 5")).toBeVisible();
   fireEvent.keyDown(window, { key: "Home" });
-  expect(screen.getByText("1 / 6")).toBeVisible();
+  expect(screen.getByText("1 / 5")).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "다음" }));
   expect(screen.getByLabelText("데모 슬라이드")).not.toHaveClass("is-black");
-  expect(screen.getByText("2 / 6")).toBeVisible();
+  expect(screen.getByText("2 / 5")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "화면을 가리고 다시 켜보세요" })).toBeVisible();
   expect(document.querySelector("video")?.closest("[aria-hidden=true]")).not.toBeNull();
   expect(screen.queryByText("모션 진단")).not.toBeInTheDocument();
 });
@@ -86,7 +87,7 @@ it("synchronizes fullscreen exit with the browser and supports keys while a cont
   fireEvent(document, new Event("fullscreenchange"));
   const control = screen.getByRole("button", { name: "전체 화면 종료" });
   fireEvent.keyDown(control, { key: "End" });
-  expect(screen.getByText("6 / 6")).toBeVisible();
+  expect(screen.getByText("5 / 5")).toBeVisible();
   await userEvent.click(control);
   expect(exit).toHaveBeenCalled();
   Object.defineProperty(document, "fullscreenElement", { configurable: true, value: null });

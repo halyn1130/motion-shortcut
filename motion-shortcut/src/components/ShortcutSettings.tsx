@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FIXED_MAPPINGS } from "../features/presentation/profile";
 import type { PresentationController } from "../features/presentation/usePresentationController";
 import { FIXED_ACTIONS } from "../features/presentation/usePresentationController";
 import {
@@ -173,41 +174,35 @@ export function ShortcutSettings({
                           ? "키 입력 대기…"
                           : formatShortcut(shortcut)}
                       </button>
-                      <button
-                        className="button-quiet"
-                        aria-label={`${ACTION_LABELS[action]} 기본키 초기화`}
-                        disabled={!c.profile.shortcuts[action]}
-                        onClick={() => {
-                          const defaultKey = DEFAULT_KEYS[action];
-                          if (
-                            FIXED_ACTIONS.some(
-                              (other) =>
-                                other !== action &&
-                                c.profile.shortcuts[other]?.key ===
-                                  defaultKey &&
-                                c.profile.shortcuts[other]?.modifiers.length ===
-                                  0,
-                            )
-                          ) {
-                            setMessage(
-                              "기본키가 다른 기능에 사용 중입니다. 해당 기능의 키를 먼저 바꾸세요.",
-                            );
-                            return;
-                          }
-                          const shortcuts = { ...c.profile.shortcuts };
-                          delete shortcuts[action];
-                          c.updateProfile({ ...c.profile, shortcuts });
-                          setMessage("단축키를 기본값으로 초기화했습니다.");
-                        }}
-                      >
-                        초기화
-                      </button>
                     </div>
                   </td>
                 </tr>
               );
             })}
           </tbody>
+          <tfoot>
+            <tr>
+              <td />
+              <td>
+                <button className="button-quiet customization-reset" onClick={() => {
+                  const mappings = { ...c.profile.mappings };
+                  for (const action of FIXED_ACTIONS) mappings[action] = FIXED_MAPPINGS[action];
+                  setRecording(null);
+                  c.updateProfile({ ...c.profile, mappings });
+                  setMessage("모션 설정을 모두 기본값으로 초기화했습니다. 키보드 설정은 유지됩니다.");
+                }}>모션 전체 초기화</button>
+              </td>
+              <td>
+                <button className="button-quiet customization-reset" onClick={() => {
+                  const shortcuts = { ...c.profile.shortcuts };
+                  for (const action of FIXED_ACTIONS) delete shortcuts[action];
+                  setRecording(null);
+                  c.updateProfile({ ...c.profile, shortcuts });
+                  setMessage("키보드 설정을 모두 기본값으로 초기화했습니다. 모션 설정은 유지됩니다.");
+                }}>키보드 전체 초기화</button>
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <p role="status" className="settings-message">

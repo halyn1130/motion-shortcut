@@ -60,7 +60,7 @@ export const FIXED_ACTIONS: PresentationAction[] = [
   "exit-presentation",
 ];
 
-export function usePresentationController(target: "external" | "demo" = "external", pageCount = 6) {
+export function usePresentationController(target: "external" | "demo" = "external", pageCount = 5) {
   const api = target === "demo" ? undefined : window.motionAPI;
   const isDesktop = Boolean(api);
   const [rehearsalSlide, setRehearsalSlide] = useState(1);
