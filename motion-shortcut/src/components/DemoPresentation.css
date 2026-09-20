@@ -1,17 +1,48 @@
-.demo-presentation { position: fixed; inset: 0; background: #151020; color: #f4edff; font-family: system-ui, sans-serif; }
+.demo-presentation { position: fixed; inset: 0; background: radial-gradient(ellipse 58% 60% at 78% -16%, #d3beff 0%, #9172d7 22%, #4b398370 53%, transparent 78%), radial-gradient(ellipse 60% 44% at 0% 105%, #48367480 0%, transparent 75%), #111124; color: #f5f1ff; font-family: "Pretendard Variable", Pretendard, sans-serif; }
 .demo-media { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .demo-media video, .demo-media canvas { width: 1px; height: 1px; }
-.demo-slide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6vw; text-align: center; background: radial-gradient(ellipse at top, #49305e, #151020 75%); }
+.demo-slide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6vw; text-align: center; background: transparent; }
 .demo-slide h1 { font-size: clamp(32px, 5vw, 88px); margin: 24px 0; }
 .demo-slide p { font-size: clamp(16px, 2vw, 30px); max-width: 850px; }
 .demo-slide.is-black { background: #000; }
-.demo-controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 24px; background: #151020eb; }
+.demo-controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 24px; background: transparent; }
 .demo-controls button { background: #38274c; color: white; border: 1px solid #886da5; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
 .demo-controls button:disabled { opacity: .5; }
 .demo-controls p { width: 100%; margin: 0; text-align: center; }
-.demo-presentation:fullscreen .demo-controls { opacity: 0; transition: opacity .2s; }
-.demo-presentation:fullscreen .demo-controls:hover, .demo-presentation:fullscreen .demo-controls:focus-within { opacity: 1; }
+
+
 .demo-target { position: absolute; left: 35%; top: 30%; width: 30%; height: 40%; display: grid; place-items: center; border: 2px dashed #dec4ff; background: #271a3ee8; border-radius: 24px; }
 .demo-pointer { position: absolute; width: 18px; height: 18px; border: 3px solid white; background: #b794ff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
 .demo-error { position: absolute; top: 0; left: 5%; right: 5%; padding: 16px; background: #681c32; z-index: 2; }
 .demo-ended { padding: 40px; }
+
+.demo-presentation { display: flex; flex-direction: column; }
+.demo-slide { position: relative; inset: auto; flex: 1; min-height: 0; overflow-y: auto; padding: 24px 32px; }
+.demo-slide h1 { font-size: clamp(26px, 3.6vw, 52px); font-weight: 500; letter-spacing: -.035em; line-height: 1.25; margin: 16px 0; }
+.demo-slide > p, .tutorial-mode-copy p { font-size: clamp(14px, 1.5vw, 19px); line-height: 1.65; margin: 12px auto; max-width: 780px; }
+.demo-controls { position: relative; flex-shrink: 0; padding: 12px 20px; gap: 8px; }
+.tutorial-motion { width: min(100%, 880px); }
+.tutorial-motion svg { display: block; width: 100%; max-height: 38vh; }
+.tutorial-motion text { fill: #d5c1e9; font-size: 16px; }
+.tutorial-mode-copy { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; width: min(100%, 880px); }
+.tutorial-mode-copy p { font-size: 15px; }
+@media(max-width:600px) { .demo-slide { padding: 16px; } .tutorial-mode-copy { gap: 16px; } .tutorial-mode-copy p { font-size: 12px; } .demo-controls button { padding: 8px; } }
+
+.demo-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 20px 22px; }
+.demo-pagination, .demo-actions { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.demo-pagination span { min-width: 64px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; color: #d5ccef; }
+.demo-controls button { width: 42px; height: 42px; padding: 10px; display: grid; place-items: center; background: transparent; border: 1px solid transparent; border-radius: 10px; color: #cabbe9; }
+.demo-controls button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.demo-controls button:hover:not(:disabled) { background: #ffffff0a; color: #f1e5ff; border-color: #b798d833; }
+.demo-controls button:focus-visible { outline: 2px solid #c79aff; outline-offset: 3px; }
+.demo-controls button:disabled { opacity: .3; cursor: default; }
+.demo-actions { gap: 14px; }
+.demo-actions button { background: transparent; border-color: transparent; color: #cabbe9; }
+.demo-actions button:hover:not(:disabled) { background: transparent; border-color: transparent; color: #f3eaff; }
+.demo-actions .demo-motion-toggle { color: #bca3f0; }
+.demo-actions .demo-motion-toggle[aria-pressed=true] { color: #efe3ff; }
+.demo-controls .demo-control-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.demo-slide > small { color: #c6b5e4; font-size: 11px; font-weight: 500; letter-spacing: .16em; }
+.demo-slide > p, .tutorial-mode-copy p { color: #d9d2e9; font-weight: 400; }
+.demo-presentation:has(.demo-slide.is-black) { background: #000; }

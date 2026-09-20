@@ -237,7 +237,7 @@ export function usePresentationController(target: "external" | "demo" = "externa
   const executeAction = async (action: PresentationAction) => {
     if (!api) {
       if (action === "next-slide" || action === "previous-slide") setRehearsalBlack(false);
-      if (action === "next-slide") setRehearsalSlide((n) => Math.min(target === "demo" ? 5 : 3, n + 1));
+      if (action === "next-slide") setRehearsalSlide((n) => Math.min(target === "demo" ? 6 : 3, n + 1));
       if (action === "previous-slide")
         setRehearsalSlide((n) => Math.max(1, n - 1));
       if (action === "black-screen") setRehearsalBlack((b) => !b);

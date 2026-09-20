@@ -26,20 +26,18 @@ it("explains popup blocking and keeps PDF presentation disabled", async () => {
   await userEvent.click(screen.getByRole("button", { name: "내 PDF 업로드" }));
   expect(screen.getByRole("button", { name: "발표 시작" })).toBeDisabled();
 });
-it("navigates five slides with buttons and keys and clears blackout on navigation", async () => {
+it("navigates six slides with accessible icon buttons and keys", async () => {
   render(<DemoPresentation />);
-  expect(screen.getByText("1 / 5")).toBeVisible();
+  expect(screen.getByText("1 / 6")).toBeVisible();
   fireEvent.keyDown(window, { key: "End" });
-  expect(screen.getByText("5 / 5")).toBeVisible();
+  expect(screen.getByText("6 / 6")).toBeVisible();
   fireEvent.keyDown(window, { key: "ArrowLeft" });
-  expect(screen.getByText("4 / 5")).toBeVisible();
+  expect(screen.getByText("5 / 6")).toBeVisible();
   fireEvent.keyDown(window, { key: "Home" });
-  expect(screen.getByText("1 / 5")).toBeVisible();
-  await userEvent.click(screen.getByRole("button", { name: "검은 화면" }));
-  expect(screen.getByLabelText("데모 슬라이드")).toHaveClass("is-black");
+  expect(screen.getByText("1 / 6")).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "다음" }));
   expect(screen.getByLabelText("데모 슬라이드")).not.toHaveClass("is-black");
-  expect(screen.getByText("2 / 5")).toBeVisible();
+  expect(screen.getByText("2 / 6")).toBeVisible();
   expect(document.querySelector("video")?.closest("[aria-hidden=true]")).not.toBeNull();
   expect(screen.queryByText("모션 진단")).not.toBeInTheDocument();
 });
@@ -49,20 +47,19 @@ it("uses Fullscreen API and reports a rejected request", async () => {
   render(<DemoPresentation />);
   await userEvent.click(screen.getByRole("button", { name: "전체 화면" }));
   expect(request).toHaveBeenCalledTimes(1);
+  expect(request).toHaveBeenCalledWith({ navigationUI: "hide" });
   expect(screen.getByRole("alert")).toHaveTextContent("전체 화면 권한");
   request.mockResolvedValue(undefined);
   await userEvent.click(screen.getByRole("button", { name: "전체 화면" }));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
-it("retains camera permission errors and closes on presentation end", async () => {
+it("retains camera permission errors with the compact controls", async () => {
   Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: vi.fn().mockRejectedValue(new DOMException("denied", "NotAllowedError")) } });
-  const close = vi.spyOn(window, "close").mockImplementation(() => {});
   render(<DemoPresentation />);
   await userEvent.click(screen.getByRole("button", { name: "모션 시작" }));
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("카메라 권한"));
-  await userEvent.click(screen.getByRole("button", { name: "발표 종료" }));
-  expect(close).toHaveBeenCalled();
-  expect(screen.getByText(/발표가 종료되었습니다/)).toBeVisible();
+  expect(screen.queryByRole("button", { name: "발표 종료" })).not.toBeInTheDocument();
+  expect(screen.getAllByRole("button")).toHaveLength(4);
 });
 
 it("releases the active home stream before the demo takes the camera", async () => {
@@ -86,7 +83,7 @@ it("synchronizes fullscreen exit with the browser and supports keys while a cont
   fireEvent(document, new Event("fullscreenchange"));
   const control = screen.getByRole("button", { name: "전체 화면 종료" });
   fireEvent.keyDown(control, { key: "End" });
-  expect(screen.getByText("5 / 5")).toBeVisible();
+  expect(screen.getByText("6 / 6")).toBeVisible();
   await userEvent.click(control);
   expect(exit).toHaveBeenCalled();
   Object.defineProperty(document, "fullscreenElement", { configurable: true, value: null });
