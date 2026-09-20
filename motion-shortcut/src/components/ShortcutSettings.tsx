@@ -207,7 +207,7 @@ export function ShortcutSettings({
       </div>
       <p role="status" className="settings-message">
         {message ||
-          "키 버튼을 누른 뒤 원하는 키를 입력하세요. 키 설정은 프로필에 저장됩니다."}
+          "모션과 키 설정은 이 브라우저에 자동 저장되며 새로고침 후에도 유지됩니다."}
       </p>
     </section>
   );
