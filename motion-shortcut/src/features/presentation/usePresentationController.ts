@@ -95,6 +95,10 @@ export function usePresentationController(target: "external" | "demo" = "externa
     localStorage.setItem("flickey.camera-view.v1", next);
   };
   const [cursorSensitivity, setCursorSensitivity] = useState(1);
+  const [pointerTestOpen, setPointerTestOpen] = useState(false);
+  const [testPointer, setTestPointer] = useState({ x: 0.5, y: 0.5 });
+  const pointerTestRef = useRef(false);
+  const testOwnsCamera = useRef(false);
   const [slideNumber, setSlideNumber] = useState(1);
   const [selectedResourceIndex, setSelectedResourceIndex] = useState(-1);
   const [cameraState, setCameraState] = useState<CameraState>("idle");
@@ -201,6 +205,20 @@ export function usePresentationController(target: "external" | "demo" = "externa
     await api?.setMotionEnabled(false);
     await api?.setCameraEnabled(false);
     addLog("카메라 OFF · 모션 안전 정지");
+  };
+
+  const openPointerTest = () => {
+    testOwnsCamera.current = !streamRef.current && !requestingRef.current;
+    pointerTestRef.current = true;
+    setTestPointer({ x: 0.5, y: 0.5 });
+    setPointerTestOpen(true);
+    void startCamera();
+  };
+  const closePointerTest = () => {
+    pointerTestRef.current = false;
+    setPointerTestOpen(false);
+    if (testOwnsCamera.current) void stopCamera();
+    testOwnsCamera.current = false;
   };
 
   const toggleMotion = async () => {
@@ -431,6 +449,7 @@ export function usePresentationController(target: "external" | "demo" = "externa
   }, [api, refreshSystemStatus]);
 
   const handleGesture = (gesture: MotionGestureId) => {
+    if (pointerTestRef.current) return;
     if (gesture === "toggle-motion") {
       void toggleMotion();
       return;
@@ -536,9 +555,10 @@ export function usePresentationController(target: "external" | "demo" = "externa
     "#b794ff",
     handleGesture,
     (nextMode) => {
-      if (motionOn && mode !== nextMode) void setPresentationMode(nextMode);
+      if (!pointerTestRef.current && motionOn && mode !== nextMode) void setPresentationMode(nextMode);
     },
     (point) => {
+      if (pointerTestRef.current) { setTestPointer(point); return; }
       if (!api && motionOn && mode !== "slide") {
         rehearsalPointerRef.current = point;
         setRehearsalPointer(point);
@@ -548,6 +568,7 @@ export function usePresentationController(target: "external" | "demo" = "externa
       if (motionOn && mode === "laser") api?.moveCursor(point);
     },
     () => {
+      if (pointerTestRef.current) return;
       if (motionOn && mode !== "slide") {
         if (!api) {
           const { x, y } = rehearsalPointerRef.current;
@@ -596,6 +617,10 @@ export function usePresentationController(target: "external" | "demo" = "externa
     changeCameraView,
     cursorSensitivity,
     setCursorSensitivity,
+    pointerTestOpen,
+    testPointer,
+    openPointerTest,
+    closePointerTest,
     slideNumber,
     setSlideNumber,
     cameraState,

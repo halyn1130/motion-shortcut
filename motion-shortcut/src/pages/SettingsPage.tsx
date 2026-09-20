@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { PointerTester } from "../components/PointerTester";
 import type { PresentationController } from "../features/presentation/usePresentationController";
 import { SectionTitle } from "../components/SectionTitle";
 import { ShortcutSettings } from "../components/ShortcutSettings";
@@ -14,9 +16,8 @@ export function SettingsPage({
 }: {
   controller: PresentationController;
 }) {
+  const testerButton = useRef<HTMLButtonElement>(null);
   const {
-    cursorSensitivity,
-    setCursorSensitivity,
     permissions,
     refreshSystemStatus,
   } = c;
@@ -26,23 +27,14 @@ export function SettingsPage({
       <section className="control-panel settings-sensitivity">
         {" "}
         <SectionTitle index="03" title="포인터 감도" />
-        <label className="range-control">
-          <input
-            type="range"
-            aria-label="포인터 감도"
-            min="0.6"
-            max="2"
-            step="0.01"
-            value={cursorSensitivity}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              setCursorSensitivity(value);
-              void window.motionAPI?.setCursorSensitivity(value);
-            }}
-          />
-          <strong>{cursorSensitivity.toFixed(2)}×</strong>
-        </label>
+        <div className="sensitivity-controls">
+          <button ref={testerButton} className="sensitivity-settings-button" type="button" onClick={c.openPointerTest} aria-haspopup="dialog">
+            <span>감도 설정</span>
+            <svg className="sensitivity-settings-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m8 5 5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        </div>
       </section>
+      {c.pointerTestOpen && <PointerTester controller={c} returnFocus={testerButton} />}
       <section className="control-panel settings-permissions">
         {" "}
         <SectionTitle index="SYS" title="권한 점검" />

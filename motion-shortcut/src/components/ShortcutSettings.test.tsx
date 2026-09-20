@@ -48,3 +48,18 @@ it("resets each input type independently and persists defaults", async () => {
   expect(screen.getByRole("button", { name: "다음 슬라이드 키 지정" })).toHaveTextContent("→");
   expect(screen.queryByRole("button", { name: /기본키 초기화/ })).not.toBeInTheDocument();
 });
+
+it("restores custom motions and keys when the page is mounted again", async () => {
+  const user = userEvent.setup();
+  const page = render(<Settings />);
+  await user.selectOptions(screen.getByRole("combobox", { name: "다음 슬라이드 모션 선택" }), "");
+  await user.selectOptions(screen.getByRole("combobox", { name: "이전 슬라이드 모션 선택" }), "swipe-right");
+  await user.selectOptions(screen.getByRole("combobox", { name: "다음 슬라이드 모션 선택" }), "swipe-left");
+  await user.click(screen.getByRole("button", { name: "다음 슬라이드 키 지정" }));
+  await user.keyboard("k");
+  page.unmount();
+  render(<Settings />);
+  expect(screen.getByRole("combobox", { name: "다음 슬라이드 모션 선택" })).toHaveValue("swipe-left");
+  expect(screen.getByRole("combobox", { name: "이전 슬라이드 모션 선택" })).toHaveValue("swipe-right");
+  expect(screen.getByRole("button", { name: "다음 슬라이드 키 지정" })).toHaveTextContent("K");
+});
